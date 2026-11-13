@@ -24,8 +24,8 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - Tiles: last weight, night-over-night delta, % vs birth, 3-night g/day slope, PO last 24 h vs 8 × full feed.
 
 ## Status / next steps
-- [ ] Owner creates Firebase project, enables Email/Password auth, adds both users, adds `<user>.github.io` to authorized domains, publishes rules with real emails.
-- [ ] Fill `firebase-config.js` with the project's web config; push.
+- [x] Firebase project created (twins-tracker-53f1d), Email/Password on, both users added, sign-up disabled, github.io authorized. Rules: real emails pasted in console only (repo copy keeps placeholders).
+- [x] `firebase-config.js` filled.
 - [ ] Enable GitHub Pages (Settings → Pages → main / root) if not already on.
 - [ ] Sign in, complete setup screen, import prior data via the CSV box.
 
