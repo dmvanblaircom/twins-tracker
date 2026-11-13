@@ -564,7 +564,9 @@
   $("lGo").addEventListener("click", async ()=>{
     $("lMsg").textContent="Signing in…";
     try{ await Store.signIn($("lEmail").value.trim(), $("lPw").value); $("lMsg").textContent=""; }
-    catch(err){ $("lMsg").textContent="Email or password didn't match."; }
+    catch(err){ const c=(err&&err.code)||"";
+      $("lMsg").textContent=/invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)
+        ? "Email or password didn't match." : "Sign-in failed: "+(c||(err&&err.message)||"unknown error"); }
   });
   $("lPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("lGo").click(); });
   $("lReset").addEventListener("click", async ()=>{
