@@ -26,7 +26,7 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 ## Status / next steps
 - [x] Firebase project created (twins-tracker-53f1d), Email/Password on, both users added, sign-up disabled, github.io authorized. Rules: real emails pasted in console only (repo copy keeps placeholders).
 - [x] `firebase-config.js` filled.
-- [ ] Enable GitHub Pages (Settings → Pages → main / root) if not already on.
+- [x] GitHub Pages live from main / root; sign-in verified on iPhone.
 - [ ] Sign in, complete setup screen, import prior data via the CSV box.
 
 ## Testing
