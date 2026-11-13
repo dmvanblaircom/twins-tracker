@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only these two sign-ins can read or write anything. Put your real emails here (lowercase).
+    function isFamily() {
+      return request.auth != null
+        && request.auth.token.email in ['david@example.com', 'laura@example.com'];
+    }
+    match /households/main/{document=**} {
+      allow read, write: if isFamily();
+    }
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
