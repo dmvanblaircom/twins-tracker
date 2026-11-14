@@ -20,31 +20,59 @@
     --t0:#2a78d6; --t1:#eb6834; --accent:#0b0b0b; --danger:#b42318;
   }
   @media (prefers-color-scheme: dark){
-    :root{
+    :root:not([data-theme="night"]){
       --bg:#121211; --surface:#1a1a19; --line:#2e2e2c; --grid:#262624;
       --text:#f0efec; --text2:#c3c2b7; --muted:#8f8e86;
       --t0:#3987e5; --t1:#d95926; --accent:#f0efec; --danger:#f97066;
     }
   }
+  /* Night: near-black with dim amber text, easy on eyes at 2 AM */
+  :root[data-theme="night"]{
+    --bg:#000; --surface:#0c0a08; --line:#2b2119; --grid:#19130e;
+    --text:#e6b98c; --text2:#b98f68; --muted:#7f644b;
+    --t0:#7d9cc4; --t1:#d27a4a; --accent:#e6b98c; --danger:#ff8a7a;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
-  .wrap{max-width:960px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:960px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
   #login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   #login .card{width:100%;max-width:360px}
   #login .f{margin-bottom:10px}
-  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
   .link{background:none;border:0;color:var(--text2);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:4px 0}
   details summary{cursor:pointer;font-size:14px;font-weight:600}
-  .nav{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:8px;width:34px;height:32px;font-size:18px;cursor:pointer}
+  .nav{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:10px;width:44px;height:44px;font-size:22px;cursor:pointer}
+  .iconbtn{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:12px;width:44px;height:44px;display:grid;place-items:center;cursor:pointer}
+  .iconbtn svg,.tabbar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .iconbtn[aria-pressed="true"]{background:var(--accent);color:var(--bg)}
+  .tab{display:none}
+  .tab.on{display:block}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:8;display:flex;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+  .tabbar button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;min-height:54px;cursor:pointer;border-radius:10px}
+  .tabbar button.on{color:var(--text)}
+  .tabbar button.on svg{stroke-width:2.4}
+  .nx{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;padding:4px 0}
+  .nx + .nx{border-top:1px solid var(--grid);margin-top:10px;padding-top:12px}
+  .nx .who{font-size:17px;font-weight:650}
+  .nx .when{font-size:15px;color:var(--text2)}
+  .nx .last{grid-column:1/-1;font-size:13px;color:var(--muted)}
+  .nx .box{position:relative;width:140px}
+  .nx input{font-size:34px;font-weight:650;text-align:center;padding:10px 34px 10px 8px;height:68px;border-width:2px;font-variant-numeric:tabular-nums}
+  .nx .box span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+  .nx.done input{border-color:var(--line)}
+  .nx.due input{border-color:var(--accent)}
+  .nx.saving input{opacity:.4}
+  .nx .ok{grid-column:1/-1;font-size:14px;font-weight:600;color:var(--text)}
+  .nx .ok:empty{display:none}
   .tw{margin-top:10px}
   .tw + .tw{border-top:1px solid var(--grid);padding-top:10px}
-  .twh{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:6px}
+  .twh{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;margin-bottom:6px}
   .twh b{font-weight:650}
   .slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
   .slot{display:flex;flex-direction:column;gap:2px}
-  .slot label{font-size:11.5px;color:var(--text2);text-align:center}
-  .slot input{text-align:center !important;padding:8px 4px;font-size:17px;font-variant-numeric:tabular-nums}
-  .slot .p{font-size:11px;color:var(--muted);text-align:center;min-height:13px}
+  .slot label{font-size:13px;color:var(--text2);text-align:center}
+  .slot input{text-align:center !important;padding:8px 4px;font-size:20px;min-height:50px;font-variant-numeric:tabular-nums}
+  .slot .p{font-size:12px;color:var(--muted);text-align:center;min-height:13px}
   .slot.due input{border:2px solid var(--accent)}
   .slot.future input{opacity:.55}
   .slot.saving input{opacity:.4}
@@ -58,7 +86,7 @@
   .seg button.on{background:var(--accent);color:var(--surface);font-weight:600}
   .viewbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 10px;margin:0 0 4px}
   .viewbar .seg{display:flex;width:100%}
-  .viewbar .seg button{flex:1;font-size:15px}
+  .viewbar .seg button{flex:1;font-size:16px;min-height:44px}
   .seg.small button{padding:5px 9px;font-size:12.5px;min-height:30px}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
   .form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -77,7 +105,7 @@
   .twin h3 small{font-weight:400;color:var(--muted);font-size:12px}
   .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
   .stat .k{font-size:11.5px;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
-  .stat .v{font-size:19px;font-weight:650;font-variant-numeric:tabular-nums}
+  .stat .v{font-size:21px;font-weight:650;font-variant-numeric:tabular-nums}
   .stat .s{font-size:12px;color:var(--muted)}
   .bar{height:6px;background:var(--grid);border-radius:3px;margin-top:4px;overflow:hidden}
   .bar i{display:block;height:100%;border-radius:3px}
@@ -88,7 +116,7 @@
   th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--grid);vertical-align:middle}
   th{font-size:12px;color:var(--text2);font-weight:600}
   td.num,th.num{text-align:right}
-  .wg input{width:92px;padding:6px 8px;font-size:16px;text-align:right}
+  .wg input{width:100px;padding:9px 8px;font-size:18px;text-align:right}
   .wg input.approx{color:var(--muted);font-style:italic}
   .wg input.missing{border-style:dashed}
   .wg .d{font-size:11.5px;color:var(--muted);display:block;text-align:right;margin-top:2px;min-height:14px}
@@ -98,6 +126,7 @@
   .muted{color:var(--muted)}
   .banner{display:none;background:#fff4e5;color:#7a4b00;border-radius:9px;padding:9px 12px;font-size:13px;margin-bottom:12px}
   @media (prefers-color-scheme: dark){.banner{background:#3a2a10;color:#f5d39a}}
+  :root[data-theme="night"] .banner{background:#2a1c0c;color:#e6b98c}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   textarea{width:100%;height:120px;font:12px/1.4 ui-monospace,Menlo,monospace;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px;display:none;margin-top:8px}
 </style>
@@ -137,16 +166,12 @@
   </div>
 </div>
 <div class="wrap" id="main">
-  <div class="top"><h1 id="title">Twins</h1><div style="text-align:right"><div class="msg" id="who" style="font-size:12px"></div><button class="link" id="signOut">Sign out</button></div></div>
-  <div class="sub" id="subtitle"></div>
+  <div class="top"><h1 id="title">Twins</h1><button class="iconbtn" id="nightBtn" aria-label="Night mode" title="Night mode"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button></div>
   <nav class="viewbar"><div class="seg" id="view"><button data-v="#0" class="nm0"></button><button data-v="#1" class="nm1"></button><button data-v="both" class="on">Both</button></div></nav>
-  <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Current diet</span>
-    <input id="diet" type="text" style="flex:1;min-width:200px;font-size:15px;padding:7px 9px" value="22 kcal/oz · Enfamil NeuroPro EnfaCare">
-    <span class="msg" id="dietMsg"></span>
-  </div>
   <div class="banner" id="banner"></div>
 
+  <section class="tab" data-tab="feed">
+  <div class="card" id="nextCard"><h2>Next feed <span class="muted" id="nextClock" style="font-weight:400;font-size:13px"></span></h2><div id="next"></div></div>
   <!-- FEED SHEET -->
   <div class="card">
     <h2>PO feeds
@@ -160,33 +185,9 @@
     <div id="sheet"></div>
     <div class="note">Tap a time and type the mL taken by mouth. Clear a box to remove it. A feed day runs 8 AM to 8 AM, like the NICU flowsheet.</div>
   </div>
+  </section>
 
-  <div class="tiles" id="tiles"></div>
-
-  <!-- PO CHART -->
-  <div class="card">
-    <h2>PO volume per feed
-    </h2>
-    <div class="chartbox"><canvas id="cFeed" aria-label="PO volume per feed" role="img"></canvas></div>
-    <div class="legend"><span>● each feed</span><span>— 24-hr average</span><span id="fullLegend"></span></div>
-  </div>
-
-  <!-- DAILY PO -->
-  <div class="card">
-    <h2>Daily PO, % of full-feed goal</h2>
-    <div class="chartbox"><canvas id="cDaily" aria-label="Daily PO total as percent of goal" role="img"></canvas></div>
-    <div class="note">Goal = 8 full feeds/day<span id="goalNote"></span>. Days run 8 AM–8 AM; today's bar is partial.</div>
-  </div>
-
-  <!-- WEIGHT CHART -->
-  <div class="card">
-    <h2>Weight
-      <div class="seg small" id="wMode"><button data-v="g" class="on">grams</button><button data-v="pct">% of birth</button></div>
-    </h2>
-    <div class="chartbox"><canvas id="cWeight" aria-label="Nightly weights" role="img"></canvas></div>
-    <div class="legend"><span><span class="dot" style="background:var(--t0)"></span><span class="nm0"></span></span><span><span class="dot" style="background:var(--t1)"></span><span class="nm1"></span></span><span>○ hollow = estimated from printout</span></div>
-  </div>
-
+  <section class="tab" data-tab="weight">
   <!-- WEIGHT GRID -->
   <div class="card">
     <h2>Nightly weights · 8 PM <span class="muted" style="font-size:12px;font-weight:400">tap a cell to enter or fix (g)</span></h2>
@@ -196,7 +197,39 @@
     </table></div>
     <div class="note">Gray italic = estimated from the printed graph · dashed = no reading yet. Typing over a value replaces it; clearing a cell deletes it.</div>
   </div>
+  <!-- WEIGHT CHART -->
+  <div class="card">
+    <h2>Weight
+      <div class="seg small" id="wMode"><button data-v="g" class="on">grams</button><button data-v="pct">% of birth</button></div>
+    </h2>
+    <div class="chartbox"><canvas id="cWeight" aria-label="Nightly weights" role="img"></canvas></div>
+    <div class="legend"><span><span class="dot" style="background:var(--t0)"></span><span class="nm0"></span></span><span><span class="dot" style="background:var(--t1)"></span><span class="nm1"></span></span><span>○ hollow = estimated from printout</span></div>
+  </div>
+  </section>
 
+  <section class="tab" data-tab="trends">
+  <div class="tiles" id="tiles"></div>
+  <!-- PO CHART -->
+  <div class="card">
+    <h2>PO volume per feed
+    </h2>
+    <div class="chartbox"><canvas id="cFeed" aria-label="PO volume per feed" role="img"></canvas></div>
+    <div class="legend"><span>● each feed</span><span>— 24-hr average</span><span id="fullLegend"></span></div>
+  </div>
+  <!-- DAILY PO -->
+  <div class="card">
+    <h2>Daily PO, % of full-feed goal</h2>
+    <div class="chartbox"><canvas id="cDaily" aria-label="Daily PO total as percent of goal" role="img"></canvas></div>
+    <div class="note">Goal = 8 full feeds/day<span id="goalNote"></span>. Days run 8 AM–8 AM; today's bar is partial.</div>
+  </div>
+  </section>
+
+  <section class="tab" data-tab="more">
+  <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Current diet</span>
+    <input id="diet" type="text" style="flex:1;min-width:200px;font-size:15px;padding:7px 9px" value="22 kcal/oz · Enfamil NeuroPro EnfaCare">
+    <span class="msg" id="dietMsg"></span>
+  </div>
   <!-- FEED LOG -->
   <div class="card">
     <h2>Feed log
@@ -219,9 +252,19 @@
       <div class="row" style="margin-top:8px"><button class="btn ghost" id="impGo">Import</button><span class="msg" id="impMsg"></span></div>
     </details>
   </div>
-  <div class="row" style="justify-content:center"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button></div>
+  <div class="card">
+  <div class="sub" id="subtitle"></div>
+    <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button><span><span class="msg" id="who" style="font-size:12px"></span> <button class="link" id="signOut">Sign out</button></span></div>
+  </div>
   <div class="note">Tracking aid only — the NICU team's charting and targets are the source of truth.</div>
+  </section>
 </div>
+<nav class="tabbar" id="tabbar">
+  <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><path d="M9 2h6M10 2v3.5c0 .8-.6 1.3-1.2 1.8C7.6 8.3 7 9.6 7 11v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9c0-1.4-.6-2.7-1.8-3.7-.6-.5-1.2-1-1.2-1.8V2M7 13h10"/></svg><span>Feed</span></button>
+  <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Weight</span></button>
+  <button data-tab="trends"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4.5-5 3.5 3 6-7"/></svg><span>Trends</span></button>
+  <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
+</nav>
 
 <script>
 (() => {
@@ -324,7 +367,7 @@
         y:{grid:{color:grid}, ticks:{color:muted}, title:{display:!!yTitle, text:yTitle, color:muted}}
       }};
   }
-  function draw(id,cfg){ if(typeof Chart==="undefined") return; charts[id]?.destroy(); charts[id]=new Chart($(id),cfg); }
+  function draw(id,cfg){ if(typeof Chart==="undefined" || !$(id).closest(".tab.on")) return; charts[id]?.destroy(); charts[id]=new Chart($(id),cfg); }
   function hLine(lines){ // [{y,color,label}]
     return {id:"hl", afterDatasetsDraw(c){
       const a=c.chartArea, g=c.ctx; g.save();
@@ -470,14 +513,12 @@
   let sheetDirty=false;
   $("sheet").addEventListener("focusout",()=>setTimeout(()=>{ if(sheetDirty && !$("sheet").contains(document.activeElement)) renderSheet(); },0));
   $("sheet").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.target.blur(); } });
-  $("sheet").addEventListener("change", async e=>{
-    const inp=e.target.closest("input"); if(!inp) return;
-    const tw=inp.dataset.tw, i=+inp.dataset.i, raw=inp.value.trim(), v=parseFloat(raw);
-    const old=slotFeed(tw,state.day,i), cell=inp.parentElement;
-    if(raw!=="" && (!isFinite(v)||v<0||v>150)){ inp.value=old?old.v:""; flash("Enter mL for one feed (0–150)."); return; }
+  async function saveSlot(tw,day,i,inp,cell){ // returns true when saved
+    const raw=inp.value.trim(), v=parseFloat(raw), old=slotFeed(tw,day,i);
+    if(raw!=="" && (!isFinite(v)||v<0||v>150)){ inp.value=old?old.v:""; flash("Enter mL for one feed (0–150)."); return false; }
     cell.classList.add("saving");
     try{
-      const t=slotT(tw,state.day,i);
+      const t=slotT(tw,day,i);
       if(raw===""){ if(old) await Store.delFeed(old.id); }
       else {
         const rec={twin:tw,t,v:Math.round(v*10)/10,note:old&&!/^est\./.test(old.note||"")?old.note||"":"",diet:$("diet").value.trim().slice(0,120)};
@@ -485,15 +526,76 @@
         await Store.setFeed(feedId(rec),rec);
         if(old && old.id!==feedId(rec)) await Store.delFeed(old.id);
       }
-    }catch(err){ failWrite(err); inp.value=old?old.v:""; }
+      return true;
+    }catch(err){ failWrite(err); inp.value=old?old.v:""; return false; }
     finally{ cell.classList.remove("saving"); }
+  }
+  $("sheet").addEventListener("change", e=>{
+    const inp=e.target.closest("input"); if(!inp) return;
+    saveSlot(inp.dataset.tw, state.day, +inp.dataset.i, inp, inp.parentElement);
   });
+
+  // ---------- next feed (the 2 AM view) ----------
+  // Per baby: the most recent unlogged slot from the last 3 h (or due within 30 min), else the next upcoming one.
+  function nextSlot(tw){
+    const now=Date.now(), d0=feedDay(now), d1=dKey(new Date(keyDate(d0).getTime()+36*3600e3)), dm=dKey(new Date(keyDate(d0).getTime()-12*3600e3));
+    const all=[dm,d0,d1].flatMap(day=>SLOT_H.map((_,i)=>({day,i,t:slotT(tw,day,i)}))).sort((a,b)=>a.t-b.t);
+    const open=all.filter(x=>!slotFeed(tw,x.day,x.i));
+    const due=open.filter(x=>x.t<=now+30*60e3 && x.t>=now-3*3600e3).pop();
+    return due ? {...due, due:true} : {...open.find(x=>x.t>now+30*60e3), due:false};
+  }
+  let nextBusy=false;           // hold the box (and its ✓) steady while a save lands
+  function renderNext(){
+    if(TWINS[0]==="A" || nextBusy || $("next").contains(document.activeElement)) return;
+    const C=COLORS(), now=new Date();
+    $("nextClock").textContent = "now "+hm(now.getTime());
+    $("next").innerHTML = shown().map(tw=>{
+      const n=nextSlot(tw), last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop();
+      const lastTxt = last ? `Last: ${last.v} mL at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""} · ${Math.round(last.v/FULL[tw]*100)}% of ${FULL[tw]}` : "No feeds logged yet";
+      return `<div class="nx ${n.due?"due":""}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}">
+        <div><div class="who"><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</div>
+          <div class="when">${n.due?"Due":"Next"}: <b>${hm(n.t)}</b> feed</div></div>
+        <div class="box"><input type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} placeholder="—" aria-label="${esc(tw)} mL"><span>mL</span></div>
+        <div class="last">${lastTxt}</div><div class="ok"></div></div>`;
+    }).join("");
+  }
+  $("next").addEventListener("keydown",e=>{ if(e.key==="Enter") e.target.blur(); });
+  $("next").addEventListener("change", async e=>{
+    const inp=e.target.closest("input"); if(!inp || inp.value.trim()==="") return;
+    const row=inp.closest(".nx"), tw=row.dataset.tw, day=row.dataset.day, i=+row.dataset.i;
+    nextBusy=true;
+    const ok=await saveSlot(tw,day,i,inp,row);
+    if(ok){ inp.blur(); row.querySelector(".ok").textContent=`✓ Saved ${inp.value} mL for ${hm(slotT(tw,day,i))}`; }
+    setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?2500:0);
+  });
+  $("next").addEventListener("focusout",()=>setTimeout(()=>{ if(!$("next").contains(document.activeElement)) renderNext(); },0));
+  setInterval(()=>{ if(!document.hidden) renderNext(); },60e3);
+
+  // ---------- tabs & night mode (remembered per device) ----------
+  const store={get:k=>{try{return localStorage.getItem(k);}catch{return null;}}, set:(k,v)=>{try{localStorage.setItem(k,v);}catch{}}};
+  function showTab(name){
+    if(!document.querySelector(`.tab[data-tab="${name}"]`)) name="feed";
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===name));
+    document.querySelectorAll("#tabbar button").forEach(b=>b.classList.toggle("on",b.dataset.tab===name));
+    store.set("tab",name); scrollTo(0,0);
+    if(TWINS[0]!=="A") renderAll();        // charts can only be measured while visible
+  }
+  $("tabbar").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) showTab(b.dataset.tab); });
+  function setNight(on){
+    if(on) document.documentElement.dataset.theme="night"; else delete document.documentElement.dataset.theme;
+    $("nightBtn").setAttribute("aria-pressed",on?"true":"false");
+    document.querySelector('meta[name="theme-color"]').content = on ? "#000000" : "#1a1a19";
+    store.set("night",on?"1":"0");
+  }
+  $("nightBtn").addEventListener("click",()=>{ setNight(document.documentElement.dataset.theme!=="night"); if(TWINS[0]!=="A") renderAll(); });
+  setNight(store.get("night")==="1");
+  showTab(store.get("tab")||"feed");
   const shiftDay=n=>{ const d=keyDate(state.day); d.setDate(d.getDate()+n); const k=dKey(d), today=feedDay(Date.now()); if(k>today||k<dKey(FIRST_NIGHT)) return; state.day=k; sheetDirty=false; renderSheet(); };
   $("dPrev").addEventListener("click",()=>shiftDay(-1));
   $("dNext").addEventListener("click",()=>shiftDay(1));
   $("dToday").addEventListener("click",()=>{ state.day=feedDay(Date.now()); renderSheet(); });
 
-  function renderAll(){ renderTiles(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
+  function renderAll(){ renderNext(); renderTiles(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
 
   // ---------- feed form ----------
   function seg(id,key,after){ $(id).addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; [...$(id).children].forEach(x=>x.classList.toggle("on",x===b)); const v=b.dataset.v; state[key]=v[0]==="#"?TWINS[+v[1]]:v; after&&after();}); }

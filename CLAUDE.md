@@ -7,7 +7,7 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 ## Files
 - `index.html` — the whole app (UI, charts via Chart.js 4.4.1 from cdnjs, all logic). Talks to the backend only through `window.Store`.
 - `firebase-store.js` — implements `window.Store` on Firebase (offline cache on; writes resolve after server ack or 1.5 s). Fires `store-ready`.
-- `firebase-config.js` — Firebase web config (not secret). Still placeholders until the owner creates the project.
+- `firebase-config.js` — Firebase web config (not secret).
 - `firestore.rules` — allowlist of the two parents' emails; everything under `households/main/**`.
 - `sw.js` — app-shell cache, network-first. Bump `CACHE` name when shell files change.
 - `manifest.webmanifest`, `icons/`.
@@ -18,6 +18,11 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - `config/profile` → `{born, ga, twins:[{name, birthTime, birthG, fullMl, slotMin}]}`.
 - `config/diet` → `{text}`; stamped onto each new feed.
 
+## UI layout
+- Sticky top: title, night-mode toggle (amber-on-black, per device), view bar (twin 0 | twin 1 | Both) that filters every screen.
+- Bottom tab bar: **Feed** (big "Next feed" box per baby + day sheet), **Weight** (nightly grid + chart), **Trends** (tiles, PO chart, daily %), **More** (diet, feed log, CSV export/import, profile, sign out). Tab, view and night mode are remembered in localStorage.
+- Charts render only when their tab is visible (`draw` skips hidden canvases; `showTab` re-renders).
+
 ## Domain rules
 - Feeds every 3 h starting 8 AM (`SLOT_H`); each baby offset by `slotMin` (0 or 30). Feed day = 8 AM–8 AM (`DAY_START_H`).
 - Only PO volume is tracked. Full feed default = 150 mL/kg/day × birth weight ÷ 8, overridable per baby.
@@ -27,7 +32,7 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - [x] Firebase project created (twins-tracker-53f1d), Email/Password on, both users added, sign-up disabled, github.io authorized. Rules: real emails pasted in console only (repo copy keeps placeholders).
 - [x] `firebase-config.js` filled.
 - [x] GitHub Pages live from main / root; sign-in verified on iPhone.
-- [ ] Sign in, complete setup screen, import prior data via the CSV box.
+- [x] Setup screen done; prior data imported from NICU chart photos (estimates flagged `approx` / note `est.`).
 
 ## Testing
 No test suite. Verify by stubbing `window.Store` in a copy of `index.html` (all calls return promises; watchers take `(cb, err)` and return an unsubscribe) and loading it in headless Chromium with `timezone_id="America/New_York"`.
