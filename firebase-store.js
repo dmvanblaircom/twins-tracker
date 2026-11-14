@@ -45,7 +45,13 @@ if (!window.Store) {
     delFeed: id => w(deleteDoc(doc(db, H, "feeds", id))),
     setDiet: text => w(setDoc(doc(db, H, "config", "diet"), { text })),
     watchProfile: (cb, err) => onSnapshot(doc(db, H, "config", "profile"), d => cb(d.exists() ? d.data() : null), err),
-    setProfile: p => w(setDoc(doc(db, H, "config", "profile"), p))
+    setProfile: p => w(setDoc(doc(db, H, "config", "profile"), p)),
+    // Generic helpers (milk log: "pumps", "drops"; config docs such as "milk")
+    watch: (name, cb, err) => watchCol(name, cb, err),
+    put: (name, id, rec) => w(setDoc(doc(db, H, name, id), { ...rec, by: auth.currentUser?.email || "" })),
+    remove: (name, id) => w(deleteDoc(doc(db, H, name, id))),
+    watchConfig: (name, cb, err) => onSnapshot(doc(db, H, "config", name), d => cb(d.exists() ? d.data() : null), err),
+    setConfig: (name, v) => w(setDoc(doc(db, H, "config", name), v))
   };
   window.dispatchEvent(new Event("store-ready"));
 }

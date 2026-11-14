@@ -70,6 +70,13 @@
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
   .swatches button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;background:var(--sw);cursor:pointer;outline-offset:2px}
   .swatches button[aria-checked="true"]{border-color:var(--text);box-shadow:inset 0 0 0 3px var(--surface)}
+  .mkrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
+  .mkrow .box{position:relative}
+  .mkrow input{font-size:30px;font-weight:650;text-align:center;height:60px;padding:8px 36px 8px 8px;border-width:2px}
+  .mkrow .box span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+  .mkrow .save{height:60px;font-size:18px}
+  .stat .v.low{color:var(--danger)}
+  .tabbar button span{font-size:11.5px}
   .chip{border:1px solid var(--field);background:transparent;color:var(--text);border-radius:999px;padding:0 12px;min-height:40px;font:inherit;font-size:14px;cursor:pointer}
   .chip.warn{border-color:var(--danger);color:var(--danger);font-weight:600}
   .nx .missed{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--danger);font-weight:600}
@@ -228,6 +235,23 @@
   </div>
   </section>
 
+  <section class="tab" data-tab="milk">
+  <div class="card"><h2>Milk supply <span class="muted" id="mkAs" style="font-weight:400;font-size:13px"></span></h2><div class="stats" id="mkStats"></div>
+    <div class="note">Babies' need = both full feeds × 8 a day (by mouth + tube). NICU stock = milk dropped off minus that need since then — an estimate; set the real count when the nurses tell you.</div></div>
+  <div class="card"><h2>Log pumping</h2>
+    <div class="mkrow"><div class="box"><input id="pmV" type="number" inputmode="decimal" min="0" step="any" placeholder="—" aria-label="Pumped mL"><span>mL</span></div><button class="btn save" id="pmGo">Save</button></div>
+    <label class="f" style="margin-top:8px">When<input id="pmT" type="datetime-local"></label></div>
+  <div class="card"><h2>Took milk to the NICU</h2>
+    <div class="mkrow"><div class="box"><input id="dpV" type="number" inputmode="decimal" min="0" step="any" placeholder="—" aria-label="Dropped off mL"><span>mL</span></div><button class="btn save" id="dpGo">Save</button></div>
+    <label class="f" style="margin-top:8px">When<input id="dpT" type="datetime-local"></label>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" id="stkGo">NICU told us how much they have</button></div></div>
+  <div class="card"><h2>Pumped per day</h2><div class="chartbox"><canvas id="cMilk" aria-label="Milk pumped per day vs babies' need" role="img"></canvas></div>
+    <div class="legend"><span>▮ pumped that day</span><span>- - babies' daily need</span></div></div>
+  <div class="card"><h2>Milk log</h2>
+    <div style="overflow-x:auto"><table><thead><tr><th>Time</th><th>What</th><th class="num">mL</th><th>By</th><th></th></tr></thead><tbody id="mkBody"></tbody></table></div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" id="mkMore">Show more</button></div></div>
+  </section>
+
   <section class="tab" data-tab="trends">
   <div class="tiles" id="tiles"></div>
   <!-- PO CHART -->
@@ -282,6 +306,7 @@
 <nav class="tabbar" id="tabbar" aria-label="Screens">
   <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><path d="M9 2h6M10 2v3.5c0 .8-.6 1.3-1.2 1.8C7.6 8.3 7 9.6 7 11v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9c0-1.4-.6-2.7-1.8-3.7-.6-.5-1.2-1-1.2-1.8V2M7 13h10"/></svg><span>Feed</span></button>
   <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Weight</span></button>
+  <button data-tab="milk"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></svg><span>Milk</span></button>
   <button data-tab="trends"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4.5-5 3.5 3 6-7"/></svg><span>Trends</span></button>
   <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
 </nav>
@@ -651,7 +676,7 @@
   let lastToday=null;   // if the sheet was on "today", roll it over at 8 AM instead of going stale
   setInterval(()=>{ if(document.hidden || TWINS[0]==="A") return;
     const t=feedDay(Date.now()); if(lastToday && t!==lastToday && state.day===lastToday){ state.day=t; renderSheet(); }
-    lastToday=t; renderNext(); },60e3);
+    lastToday=t; renderNext(); if($("mkStats").closest(".tab.on")) renderMilk(); },60e3);
 
   // ---------- tabs & night mode (remembered per device) ----------
   const store={get:k=>{try{return localStorage.getItem(k);}catch{return null;}}, set:(k,v)=>{try{localStorage.setItem(k,v);}catch{}}};
@@ -660,6 +685,8 @@
     document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===name));
     document.querySelectorAll("#tabbar button").forEach(b=>{ b.classList.toggle("on",b.dataset.tab===name); b.toggleAttribute("aria-current",b.dataset.tab===name); if(b.dataset.tab===name) b.setAttribute("aria-current","page"); });
     store.set("tab",name); scrollTo(0,0);
+    document.querySelector(".viewbar").style.display = name==="milk" ? "none" : "";
+    if(name==="milk") ["pmT","dpT"].forEach(id=>{ if(document.activeElement!==$(id)) $(id).value=toLocalInput(new Date()); });
     if(TWINS[0]!=="A") renderAll();        // charts can only be measured while visible
   }
   $("tabbar").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) showTab(b.dataset.tab); });
@@ -677,7 +704,7 @@
   $("dNext").addEventListener("click",()=>shiftDay(1));
   $("dToday").addEventListener("click",()=>{ state.day=feedDay(Date.now()); renderSheet(); });
 
-  function renderAll(){ renderNext(); renderTiles(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
+  function renderAll(){ renderNext(); renderMilk(); renderTiles(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -708,6 +735,8 @@
     TWINS.forEach(tw=>rows.push([new Date(BIRTH[tw].t).toISOString(),tw,"birth weight",BIRTH[tw].g,"g","","",""]));
     Object.values(W).sort((a,b)=>a.date<b.date?-1:1).forEach(w=>rows.push([new Date(nightT(w.date)).toISOString(),w.twin,"weight",w.v,"g","",w.approx?"yes":"",""]));
     [...F].sort((a,b)=>a.t-b.t).forEach(f=>rows.push([new Date(f.t).toISOString(),f.twin,"PO feed",f.v,"mL",Math.round(f.v/FULL[f.twin]*100),"",`"${(f.note||"").replace(/"/g,'""')}"`,`"${(f.diet||"").replace(/"/g,'""')}"`]));
+    [...P].sort((a,b)=>a.t-b.t).forEach(x=>rows.push([new Date(x.t).toISOString(),"","pump",x.v,"mL","","","",""]));
+    [...D].sort((a,b)=>a.t-b.t).forEach(x=>rows.push([new Date(x.t).toISOString(),"","nicu drop-off",x.v,"mL","","","",""]));
     const csv=rows.map(r=>r.join(",")).join("\n");
     try{ await navigator.clipboard.writeText(csv); $("csvMsg").textContent="Copied."; }
     catch{ const tb=$("csvBox"); tb.style.display="block"; tb.value=csv; tb.select(); $("csvMsg").textContent="Select all and copy."; }
@@ -737,6 +766,8 @@
     try{
       for(const r of rows.slice(1)){
         const tw=r[iTw], ty=(r[iTy]||"").toLowerCase(), v=parseFloat(r[iV]), t=Date.parse(r[iT]);
+        if((ty==="pump"||ty==="nicu drop-off") && Store.put && isFinite(v) && v>0 && isFinite(t)){
+          const col=ty==="pump"?"pumps":"drops"; await Store.put(col,`${ty==="pump"?"p":"d"}-${t}`,{t,v}); f++; continue; }
         if(!TWINS.includes(tw)||!isFinite(v)||!isFinite(t)){ skip++; continue; }
         if(ty==="weight" ? (v<800||v>8000) : ty.includes("feed") && (v<0||v>150)){ skip++; continue; }
         if(ty==="weight"){ const date=dKey(new Date(t)); await Store.setWeight(`${tw}-${date}`,{twin:tw,date,v:Math.round(v),approx:(r[iE]||"")==="yes"}); w++; }
@@ -748,6 +779,75 @@
     }catch(err){ failWrite(err); $("impMsg").textContent=`Stopped after ${w} weights, ${f} feeds.`; }
     finally{ $("impGo").disabled=false; }
   });
+
+  // ---------- milk log ----------
+  let P=[], D=[], milkCfg=null, mkN=20;     // pumps, NICU drop-offs, {count,t} correction
+  const need = () => TWINS.reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for both babies
+  function stock(){
+    const now=Date.now(), base=milkCfg&&isFinite(milkCfg.t)?milkCfg:null;
+    const drops=[...D].sort((a,b)=>a.t-b.t); if(!base && !drops.length) return null;
+    const start = base ? base.t : drops[0].t;
+    const added = drops.filter(d=> base ? d.t>start : true).reduce((a,d)=>a+d.v,0);
+    return Math.max(0, (base?base.count:0) + added - need()*(now-start)/DAY);
+  }
+  const ago = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`; };
+  function renderMilk(){
+    if(TWINS[0]==="A") return;
+    const now=Date.now(), n=need(), p24=P.filter(x=>x.t>now-DAY), tot24=p24.reduce((a,x)=>a+x.v,0);
+    const last=[...P].sort((a,b)=>b.t-a.t)[0], st=stock();
+    const days7=[...Array(7)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-k-1); return dKey(d); });
+    const byDay={}; P.forEach(x=>{ const k=dKey(new Date(x.t)); byDay[k]=(byDay[k]||0)+x.v; });
+    const firstDay=P.length?dKey(new Date(Math.min(...P.map(x=>x.t)))):null;   // first logged day is usually partial
+    const have7=days7.filter(k=>byDay[k]!=null && k>firstDay), avg7=have7.length?have7.reduce((a,k)=>a+byDay[k],0)/have7.length:null;
+    const pct=Math.round(tot24/n*100);
+    $("mkAs").textContent=`need ${Math.round(n)} mL/day`;
+    $("mkStats").innerHTML=`
+      <div class="stat"><div class="k">Pumped last 24 h</div><div class="v ${pct<90?"low":""}">${Math.round(tot24)} <span class="muted" style="font-size:13px;font-weight:500">/ ${Math.round(n)} mL</span></div>
+        <div class="bar"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div><div class="s">${pct}% of what they drink · ${p24.length} sessions</div></div>
+      <div class="stat"><div class="k">Last pump</div><div class="v">${last?ago(last.t):"—"}</div><div class="s">${last?`${last.v} mL at ${hm(last.t)}`:"none logged yet"}</div></div>
+      <div class="stat"><div class="k">NICU stock (est.)</div><div class="v ${st!=null&&st<n?"low":""}">${st==null?"—":Math.round(st)+" mL"}</div>
+        <div class="s">${st==null?"log a drop-off to start":`≈ ${(st/n).toFixed(1)} days of feeds`}</div></div>
+      <div class="stat"><div class="k">7-day average</div><div class="v">${avg7==null?"—":Math.round(avg7)+" mL"}</div><div class="s">${avg7==null?"needs a full day logged":`${Math.round(avg7/n*100)}% of daily need`}</div></div>`;
+    // log
+    const rows=[...P.map(x=>({...x,kind:"pump"})), ...D.map(x=>({...x,kind:"drop"}))].sort((a,b)=>b.t-a.t);
+    $("mkBody").innerHTML = rows.slice(0,mkN).map(r=>`<tr><td>${fmtWhen(r.t)}</td><td>${r.kind==="pump"?"Pumped":"To NICU"}</td><td class="num">${r.v}</td><td class="muted">${esc((r.by||"").split("@")[0])}</td>
+      <td>${canWrite?`<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${r.kind==="pump"?"pump":"drop-off"} at ${fmtWhen(r.t)}">×</button>`:""}</td></tr>`).join("")
+      || `<tr><td colspan="5" class="muted">Nothing logged yet.</td></tr>`;
+    $("mkMore").style.display = rows.length>mkN ? "" : "none";
+    // chart: last 14 days
+    const days=[...Array(14)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-13+k); return dKey(d); });
+    const o=baseOpts("mL per day"); o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted")}}; o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=n*1.15;
+    o.plugins.tooltip={callbacks:{label:it=>`${it.raw} mL (${Math.round(it.raw/n*100)}% of need)${it.dataIndex===13?" · today so far":""}`}};
+    draw("cMilk",{type:"bar",data:{labels:days.map(md),datasets:[{label:"pumped",data:days.map(k=>Math.round(byDay[k]||0)),backgroundColor:css("--accent"),borderRadius:4,maxBarThickness:22}]},
+      options:o,plugins:[hLine([{y:n,color:css("--danger"),label:`need ${Math.round(n)} mL`}])]});
+  }
+  const localNow = () => toLocalInput(new Date());
+  const whenOf = id => { const v=$(id).value; const t=v?new Date(v).getTime():Date.now(); return isFinite(t)?t:Date.now(); };
+  function milkSave(kind){
+    const vId=kind==="pump"?"pmV":"dpV", tId=kind==="pump"?"pmT":"dpT", col=kind==="pump"?"pumps":"drops";
+    const v=parseFloat($(vId).value); if(!isFinite(v)||v<=0||v>3000){ $(vId).focus(); flash("Enter the mL (e.g. 120)."); return; }
+    const t=whenOf(tId); if(t>Date.now()+10*60e3){ flash("That time is in the future."); return; }
+    const id=`${kind[0]}-${t}`, rec={t,v:Math.round(v*10)/10};
+    Store.put(col,id,rec).then(()=>{ $(vId).value=""; $(vId).blur(); $(tId).value=localNow();
+      undoBar(`${kind==="pump"?"Pumped":"To NICU"} ${rec.v} mL · ${hm(t)}`, ()=>Store.remove(col,id)); }).catch(failWrite);
+  }
+  $("pmGo").addEventListener("click",()=>milkSave("pump"));
+  $("dpGo").addEventListener("click",()=>milkSave("drop"));
+  ["pmV","dpV"].forEach(id=>$(id).addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); milkSave(id==="pmV"?"pump":"drop"); } }));
+  $("stkGo").addEventListener("click", async ()=>{
+    const r=prompt("How many mL of milk does the NICU have right now?"); if(r==null) return;
+    const v=parseFloat(r); if(!isFinite(v)||v<0){ flash("Enter a number of mL."); return; }
+    const prev=milkCfg; try{ await Store.setConfig("milk",{count:Math.round(v),t:Date.now()});
+      undoBar(`NICU stock set to ${Math.round(v)} mL`, ()=>Store.setConfig("milk",prev||{})); }catch(err){ failWrite(err); }
+  });
+  $("mkBody").addEventListener("click", async e=>{
+    const b=e.target.closest("button.x"); if(!b) return;
+    if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Delete?"; setTimeout(()=>{ if(b.isConnected){b.classList.remove("armed"); b.textContent="×";} },3000); return; }
+    const col=b.dataset.kind==="pump"?"pumps":"drops", list=b.dataset.kind==="pump"?P:D, old=list.find(x=>x.id===b.dataset.id);
+    try{ await Store.remove(col,b.dataset.id); if(old){ const {id,...r}=old; undoBar(`Deleted · ${fmtWhen(old.t)}`, ()=>Store.put(col,id,r)); } }catch(err){ failWrite(err); }
+  });
+  $("mkMore").addEventListener("click",()=>{ mkN+=40; renderMilk(); });
+  const cleanM = (id,d) => { const t=Number(d.t), v=Number(d.v); return isFinite(t)&&isFinite(v)&&v>0 ? {id,t,v,by:typeof d.by==="string"?d.by:""} : null; };
 
   // ---------- data / auth ----------
 
@@ -780,6 +880,11 @@
     const fail=err=>{ clearTimeout(timer); console.error(err); banner(String(err&&err.code||"").includes("permission")?"This account doesn't have access. Add its email to the allowlist in the Firestore rules.":"Sync stopped — reopen the app to reconnect."); };
     unsubs.push(Store.watchWeights((list,meta)=>{ rawW=list; rebuild(); done(meta); renderAll(); }, fail));
     unsubs.push(Store.watchFeeds((list,meta)=>{ rawF=list; rebuild(); done(meta); renderAll(); }, fail));
+    if(Store.watch){
+      unsubs.push(Store.watch("pumps",list=>{ P=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
+      unsubs.push(Store.watch("drops",list=>{ D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
+      unsubs.push(Store.watchConfig("milk",c=>{ milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
+    }
     unsubs.push(Store.watchDiet(t=>{ if(typeof t==="string" && document.activeElement!==$("diet")) $("diet").value=t.slice(0,120); }, ()=>{}));
   }
   // ---------- profile (private) ----------
@@ -865,7 +970,7 @@
           if(!dataStarted){ dataStarted=true; startData(); } else { rebuild(); renderAll(); }
         }, err=>{ console.error(err); banner("Couldn't load your setup — check the Firestore rules allowlist."); });
       } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[];
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null;
         $("setup").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
       }
     });
