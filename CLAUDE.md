@@ -18,12 +18,14 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - `config/profile` → `{born, ga, twins:[{name, birthTime, birthG, fullMl, slotMin, color}]}` — `color` is a PALETTE key (pink, purple, blue, orange, green, teal) with light/dark/night variants.
 - `config/diet` → `{text}`; stamped onto each new feed.
 - `pumps/p-{epochMs}` → `{t, v (mL), by}` — mom's pump sessions. `drops/d-{epochMs}` → `{t, v, by}` — milk taken to the NICU.
+- `config/people` → `{list:[{email, name}]}` — display names shown as "by" on entries (fallback: email initial). Store stamps `by` = signer's email unless the record already carries one (restores/edits keep the author).
 - `config/milk` → `{count, t}` — NICU's actual stock count at time t (overrides drop-off math from then on).
 - Milk math (assumes babies get only mom's milk): need/day = Σ fullMl × 8; NICU stock ≈ (count or 0) + drop-offs since − need × elapsed.
 
 ## UI layout
-- Sticky top: title, night-mode toggle (amber-on-black, per device), view bar (twin 0 | twin 1 | Both) that filters every screen.
-- Bottom tab bar: **Feed** ("Next feed" card per baby: big mL box + Save, All by tube / Skipped, "Not logged" chips for missed slots in the last 12 h; then the day sheet), **Weight** (nightly grid + chart), **Milk** (pump + drop-off entry, 24 h pumped vs need, last pump, NICU stock estimate, per-day chart, log; hides the baby bar), **Trends** (tiles, PO chart, daily %), **More** (diet, feed log, CSV export/import, profile, sign out). Tab, view and night mode are remembered in localStorage.
+- Sticky top: title + sync status (Synced / Syncing… / Connecting… / Offline, from snapshot `fromCache`/`pending` + navigator.onLine), night-mode toggle (amber-on-black, per device), view bar (twin 0 | twin 1 | Both) that filters every screen.
+- Bottom tab bar: **Feed** ("Next feed" card per baby: big mL box + Save, All by tube / Skipped, one-tap note chips (`TAGS`), "Not logged" chips for missed slots in the last 12 h; then the day sheet), **Weight** (nightly grid + chart), **Milk** (pump + drop-off entry, 24 h pumped vs need, last pump, NICU stock estimate, per-day chart, log; hides the baby bar), **Trends** (Going home card per baby: full-PO streak ≥8, PO % 24/48 h, g/kg/day ≥10, back to birth weight, days since a desat/brady note ≥5; then tiles, PO chart, daily %), **More** (diet, feed log with editable notes and who logged, your display name, CSV export/import, profile, sign out). Tab, view and night mode are remembered in localStorage.
+- A feed arriving from the other parent (by ≠ me, within 3 h) flashes "<name> logged …".
 - Every save/delete shows an 8 s Undo bar. Amounts >130% of full feed or far from the recent average ask to confirm.
 - Charts render only when their tab is visible (`draw` skips hidden canvases; `showTab` re-renders).
 

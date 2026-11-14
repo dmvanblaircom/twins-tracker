@@ -77,6 +77,22 @@
   .mkrow .save{height:60px;font-size:18px}
   .stat .v.low{color:var(--danger)}
   .tabbar button span{font-size:11.5px}
+  .sync{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:2px}
+  .sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+  .sync.ok i{background:#2f9e44} .sync.wait i{background:#e8a33d} .sync.off i{background:var(--danger)}
+  .nx .tags{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+  .nx .tags .chip{min-height:36px;font-size:13px;padding:0 10px}
+  .chip[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .home{border-left:6px solid var(--c);padding-left:12px;border-radius:4px}
+  .home + .home{margin-top:14px}
+  .home h3{margin:0 0 6px;font-size:16px;color:var(--c)}
+  :root[data-theme="night"] .home h3{color:var(--text)}
+  .home ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .home li{display:grid;grid-template-columns:22px 1fr;gap:6px;font-size:14.5px;align-items:baseline}
+  .home li b{font-variant-numeric:tabular-nums}
+  .home .y{color:#2f9e44;font-weight:700} .home .n{color:var(--muted);font-weight:700}
+  :root[data-theme="night"] .home .y{color:var(--text)}
+  .notebtn{background:none;border:0;color:var(--text2);font:inherit;font-size:13px;text-align:left;cursor:pointer;padding:6px 0;min-height:32px;text-decoration:underline dotted}
   .chip{border:1px solid var(--field);background:transparent;color:var(--text);border-radius:999px;padding:0 12px;min-height:40px;font:inherit;font-size:14px;cursor:pointer}
   .chip.warn{border-color:var(--danger);color:var(--danger);font-weight:600}
   .nx .missed{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--danger);font-weight:600}
@@ -193,7 +209,7 @@
   </div>
 </div>
 <div class="wrap" id="main">
-  <div class="top"><h1 id="title">Twins</h1><button class="iconbtn" id="nightBtn" aria-label="Night mode" title="Night mode"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button></div>
+  <div class="top"><div><h1 id="title">Twins</h1><div class="sync" id="sync" role="status" aria-live="polite"><i></i><span>Connecting…</span></div></div><button class="iconbtn" id="nightBtn" aria-label="Night mode" title="Night mode"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button></div>
   <nav class="viewbar" aria-label="Which baby"><div class="seg" id="view"><button data-v="#0" class="nm0"></button><button data-v="#1" class="nm1"></button><button data-v="both" class="on">Both</button></div></nav>
   <div class="banner" id="banner"></div>
   <div id="toast" role="status" aria-live="polite"><span></span><button type="button">Undo</button></div>
@@ -253,6 +269,8 @@
   </section>
 
   <section class="tab" data-tab="trends">
+  <div class="card"><h2>Going home</h2><div id="home"></div>
+    <div class="note">NICUs usually want all feeds by mouth for 24–48 h, steady weight gain and several days with no breathing events before discharge. Your team sets the actual criteria; this only reflects what you've logged.</div></div>
   <div class="tiles" id="tiles"></div>
   <!-- PO CHART -->
   <div class="card">
@@ -280,7 +298,7 @@
     <h2>Feed log
     </h2>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>Time</th><th>Twin</th><th class="num">PO</th><th class="num">% full</th><th>Note</th><th></th></tr></thead>
+      <thead><tr><th>Time</th><th>Twin</th><th class="num">PO</th><th class="num">% full</th><th>Note</th><th>By</th><th></th></tr></thead>
       <tbody id="logBody"></tbody>
     </table></div>
     <div class="row" style="margin-top:10px">
@@ -296,6 +314,10 @@
       <textarea id="impBox" style="display:block" placeholder="datetime,twin,type,value,unit,..."></textarea>
       <div class="row" style="margin-top:8px"><button class="btn ghost" id="impGo">Import</button><span class="msg" id="impMsg"></span></div>
     </details>
+  </div>
+  <div class="card">
+    <label class="f">Your name on entries (this phone's account)<input id="myName" type="text" maxlength="20" placeholder="e.g. Dad"></label>
+    <div class="note" style="margin-top:4px">Shown next to feeds and milk you log, and in the alert the other phone gets.</div>
   </div>
   <div class="card">
   <div class="sub" id="subtitle"></div>
@@ -527,8 +549,9 @@
     $("logBody").innerHTML = list.slice(0,state.logN).map(f=>`<tr>
       <td>${fmtWhen(f.t)}</td><td><span class="dot" style="background:${C[f.twin]}"></span>${esc(f.twin)}</td>
       <td class="num">${f.v} mL</td><td class="num">${Math.round(f.v/FULL[f.twin]*100)}%</td>
-      <td>${esc(f.note)}</td><td>${canWrite?`<button class="x" data-id="${esc(f.id)}" title="Delete" aria-label="Delete ${esc(f.twin)} feed at ${fmtWhen(f.t)}">×</button>`:""}</td></tr>`).join("")
-      || `<tr><td colspan="6" class="muted">No feeds logged yet.</td></tr>`;
+      <td>${canWrite?`<button class="notebtn" data-note="${esc(f.id)}" aria-label="Edit note for ${esc(f.twin)} at ${fmtWhen(f.t)}">${esc(f.note)||"+ note"}</button>`:esc(f.note)}</td>
+      <td class="muted">${esc(whoName(f.by))}</td><td>${canWrite?`<button class="x" data-id="${esc(f.id)}" title="Delete" aria-label="Delete ${esc(f.twin)} feed at ${fmtWhen(f.t)}">×</button>`:""}</td></tr>`).join("")
+      || `<tr><td colspan="7" class="muted">No feeds logged yet.</td></tr>`;
     $("moreBtn").style.display = list.length>state.logN ? "" : "none";
   }
 
@@ -571,8 +594,9 @@
   let sheetDirty=false;
   $("sheet").addEventListener("focusout",()=>setTimeout(()=>{ if(sheetDirty && !$("sheet").contains(document.activeElement)) renderSheet(); },0));
   $("sheet").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.target.blur(); } });
-  const MARK=/^(est\.|All by tube|Skipped)/;   // system notes replaced when a value is re-entered
-  const strip=f=>{ const {id,...r}=f; return r; };
+  const MARK=/^(est\.|All by tube|Skipped)/;
+  const TAGS=["Spit up","Sleepy","Desat/brady","Paced","Fussy"];   // system notes replaced when a value is re-entered
+  const strip=f=>{ const {id,by,...r}=f; return by?{...r,by}:r; };   // keep the original author on restores/edits
   function unusual(tw,t,v){ // returns a warning string, or "" if the amount looks normal
     if(!(v>0)) return "";
     const recent=fSeries(tw).filter(f=>f.v>0 && f.t<t).slice(-4), avg=recent.length>=3 ? recent.reduce((a,f)=>a+f.v,0)/recent.length : null;
@@ -589,7 +613,9 @@
     try{
       if(raw===""){ if(!old) return false; await Store.delFeed(old.id); undoBar(`Cleared ${tw} · ${hm(t)}`, ()=>Store.setFeed(old.id,strip(old))); }
       else {
-        const rec={twin:tw,t,v:Math.round(v*10)/10,note:opt.note??(old&&!MARK.test(old.note||"")?old.note||"":""),diet:$("diet").value.trim().slice(0,120)};
+        const tags=opt.tags||[], keep=old&&!MARK.test(old.note||"")?old.note||"":"";
+        const note=opt.note ? [opt.note,...tags].join(", ") : tags.length ? tags.join(", ") : keep;
+        const rec={twin:tw,t,v:Math.round(v*10)/10,note:note.slice(0,200),diet:$("diet").value.trim().slice(0,120)};
         if(old && old.diet && old.t===t) rec.diet=old.diet;    // keep the diet it was charted under
         const id=feedId(rec);
         await Store.setFeed(id,rec);
@@ -630,7 +656,7 @@
   const nextPick={};   // per baby: a missed slot the parent chose to fill instead
   let nextBusy=false;           // hold the box (and its ✓) steady while a save lands
   function renderNext(){
-    if(TWINS[0]==="A" || nextBusy || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim())) return;
+    if(TWINS[0]==="A" || nextBusy || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
     const C=COLORS(), now=new Date();
     $("nextClock").textContent = "now "+hm(now.getTime());
     $("next").innerHTML = shown().map(tw=>{
@@ -638,7 +664,7 @@
       const missed=n.missed, chosen=nextPick[tw] && missed.find(x=>x.day===nextPick[tw].day && x.i===nextPick[tw].i);
       if(chosen) n={...chosen, due:true, missed, chosen:true}; else delete nextPick[tw];
       const last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop();
-      const lastTxt = last ? `Last: ${!last.v&&MARK.test(last.note||"")?last.note.toLowerCase():last.v+" mL"} at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""} ${last.v?` · ${Math.round(last.v/FULL[tw]*100)}% of ${FULL[tw]}`:""}` : "No feeds logged yet";
+      const lastTxt = last ? `Last: ${!last.v&&MARK.test(last.note||"")?last.note.toLowerCase():last.v+" mL"} at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""} ${last.v?` · ${Math.round(last.v/FULL[tw]*100)}% of ${FULL[tw]}`:""}${last.by?` · ${esc(whoName(last.by))}`:""}${last.note&&!/^est\./.test(last.note)&&last.v?` · ${esc(last.note)}`:""}` : "No feeds logged yet";
       const others=missed.filter(x=>!(n.chosen && x.day===n.day && x.i===n.i));
       return `<div class="nx ${n.due?"due":""}" style="--c:${C[tw]}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}">
         <div><div class="who">${esc(tw)}</div>
@@ -647,6 +673,7 @@
         <div class="box"><input type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} placeholder="—" aria-label="${esc(tw)} mL at ${hm(n.t)}"><span>mL</span></div>
         <div class="quick"><button class="chip" data-act="tube" ${canWrite?"":"disabled"}>All by tube</button><button class="chip" data-act="skip" ${canWrite?"":"disabled"}>Skipped</button></div>
         <button class="btn save" data-act="save" ${canWrite?"":"disabled"}>Save</button>
+        <div class="tags" role="group" aria-label="Notes for this feed">${TAGS.map(t=>`<button class="chip" data-act="tag" aria-pressed="false">${t}</button>`).join("")}</div>
         <div class="missed">${others.length?`Not logged:`+others.map(x=>`<button class="chip warn" data-act="pick" data-day="${x.day}" data-i="${x.i}" aria-label="Fill in ${hm(x.t)} feed">${hm(x.t)}</button>`).join(""):""}</div>
         <div class="last">${lastTxt}</div><div class="ok"></div></div>`;
     }).join("");
@@ -655,16 +682,18 @@
     const inp=row.querySelector("input"), tw=row.dataset.tw, day=row.dataset.day, i=+row.dataset.i;
     if(!opt && inp.value.trim()===""){ inp.focus(); return; }
     nextBusy=true;
-    const ok=await saveSlot(tw,day,i,inp,row,opt||{});
+    const tags=[...row.querySelectorAll('.tags [aria-pressed="true"]')].map(b=>b.textContent);
+    const ok=await saveSlot(tw,day,i,inp,row,{...(opt||{}),tags});
     if(ok){ inp.blur(); delete nextPick[tw];
-      row.querySelector(".ok").textContent=`✓ ${tw} · ${hm(slotT(tw,day,i))} · ${opt?opt.note.toLowerCase():inp.value+" mL"}`;
-      inp.value=""; }   // saved: an empty box lets the card move on to the next feed
+      row.querySelector(".ok").textContent=`✓ ${tw} · ${hm(slotT(tw,day,i))} · ${opt?opt.note.toLowerCase():inp.value+" mL"}${tags.length?" · "+tags.join(", "):""}`;
+      inp.value=""; row.querySelectorAll(".tags button").forEach(b=>b.setAttribute("aria-pressed","false")); }   // saved: a clear card can move on to the next feed
     setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?2500:0);
   }
   $("next").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); nextSave(e.target.closest(".nx")); } });
   $("next").addEventListener("click",e=>{
     const b=e.target.closest("button[data-act]"); if(!b || nextBusy) return;
     const row=b.closest(".nx"), tw=row.dataset.tw, act=b.dataset.act;
+    if(act==="tag"){ b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")==="true"?"false":"true"); return; }
     if(act==="save") nextSave(row);
     else if(act==="tube") nextSave(row,{v:0,note:"All by tube"});
     else if(act==="skip") nextSave(row,{v:0,note:"Skipped"});
@@ -704,7 +733,7 @@
   $("dNext").addEventListener("click",()=>shiftDay(1));
   $("dToday").addEventListener("click",()=>{ state.day=feedDay(Date.now()); renderSheet(); });
 
-  function renderAll(){ renderNext(); renderMilk(); renderTiles(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
+  function renderAll(){ renderNext(); renderMilk(); renderHome(); renderTiles(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -723,6 +752,11 @@
   const feedId = r => `${r.twin}-${r.t}`;   // one doc per twin per feed slot
 
   $("logBody").addEventListener("click", async e=>{
+    const nb=e.target.closest("button.notebtn");
+    if(nb){ const f=F.find(x=>x.id===nb.dataset.note); if(!f) return;
+      const r=prompt(`Note for ${f.twin} · ${fmtWhen(f.t)}\n(e.g. ${TAGS.join(", ")})`, f.note||""); if(r==null) return;
+      try{ await Store.setFeed(f.id,{...strip(f),note:r.trim().slice(0,200)}); undoBar(`Note saved · ${f.twin} · ${hm(f.t)}`, ()=>Store.setFeed(f.id,strip(f))); }catch(err){ failWrite(err); }
+      return; }
     const b=e.target.closest("button.x"); if(!b) return;
     if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Delete?"; setTimeout(()=>{ if(b.isConnected){b.classList.remove("armed"); b.textContent="×";} },3000); return; }
     const id=b.dataset.id, old=F.find(f=>f.id===id);
@@ -746,7 +780,7 @@
   // ---------- data ----------
   function banner(t){ const b=$("banner"); b.textContent=t||""; b.style.display=t?"block":"none"; }
   function cleanW(d){ const tw=TWINS.includes(d.twin)?d.twin:null, v=Number(d.v); if(!tw||!/^\d{4}-\d\d-\d\d$/.test(d.date||"")||!isFinite(v)) return null; return {twin:tw,date:d.date,v,approx:!!d.approx}; }
-  function cleanF(id,d){ const tw=TWINS.includes(d.twin)?d.twin:null, t=Number(d.t), v=Number(d.v); if(!tw||!isFinite(t)||!isFinite(v)) return null; return {id,twin:tw,t,v,note:typeof d.note==="string"?d.note.slice(0,200):"",diet:typeof d.diet==="string"?d.diet.slice(0,120):""}; }
+  function cleanF(id,d){ const tw=TWINS.includes(d.twin)?d.twin:null, t=Number(d.t), v=Number(d.v); if(!tw||!isFinite(t)||!isFinite(v)) return null; return {id,twin:tw,t,v,note:typeof d.note==="string"?d.note.slice(0,200):"",diet:typeof d.diet==="string"?d.diet.slice(0,120):"",by:typeof d.by==="string"?d.by:""}; }
 
   // ---------- import ----------
   function parseCSV(text){
@@ -780,6 +814,49 @@
     finally{ $("impGo").disabled=false; }
   });
 
+  // ---------- people (who logged it) ----------
+  let myEmail="", people=[];          // [{email,name}]
+  const whoName = e => { if(!e) return ""; const p=people.find(x=>x.email===e); return p&&p.name ? p.name : e[0].toUpperCase(); };
+  $("myName").addEventListener("change", async ()=>{
+    const name=$("myName").value.trim().slice(0,20), list=people.filter(x=>x.email!==myEmail);
+    if(name) list.push({email:myEmail,name});
+    try{ await Store.setConfig("people",{list}); flash(name?`Entries will show “${name}”.`:"Name cleared."); }catch(err){ failWrite(err); }
+  });
+
+  // ---------- sync status ----------
+  const meta={w:null,f:null};
+  function renderSync(){
+    const el=$("sync"), m=[meta.w,meta.f].filter(Boolean);
+    const [cls,txt] = !navigator.onLine ? ["off","Offline · entries saved on this phone"]
+      : m.some(x=>x.pending) ? ["wait","Syncing…"]
+      : m.length<2 || m.some(x=>x.fromCache) ? ["wait","Connecting…"] : ["ok","Synced"];
+    el.className="sync "+cls; el.querySelector("span").textContent=txt;
+  }
+  addEventListener("online",renderSync); addEventListener("offline",renderSync);
+
+  // ---------- going home ----------
+  function renderHome(){
+    if(TWINS[0]==="A") return;
+    const now=Date.now();
+    $("home").innerHTML = shown().map(tw=>{
+      const f=fSeries(tw).filter(x=>x.t<=now), full=FULL[tw];
+      let streak=0; for(let k=f.length-1;k>=0 && f[k].v>=full;k--) streak++;
+      const po=h=>{ const s=f.filter(x=>x.t>now-h*3600e3).reduce((a,x)=>a+x.v,0); return Math.round(s/(full*FEEDS_PER_DAY*h/24)*100); };
+      const p24=po(24), p48=po(48), m=metrics(tw);
+      const gkg = m.gain!=null&&m.cur ? m.gain/(m.cur.v/1000) : null;
+      const ev=f.filter(x=>/desat|brady/i.test(x.note||"")).pop();
+      const evDays = ev ? Math.floor((now-ev.t)/DAY) : null;
+      const li=(ok,html)=>`<li><span class="${ok?"y":"n"}" aria-label="${ok?"met":"not yet"}">${ok?"✓":"○"}</span><span>${html}</span></li>`;
+      return `<div class="home" style="--c:${COLORS()[tw]}"><h3>${esc(tw)}</h3><ul>
+        ${li(streak>=8, `<b>${streak}</b> full feed${streak===1?"":"s"} by mouth in a row <span class="muted">(${full} mL each)</span>`)}
+        ${li(p24>=100, `By mouth: <b>${p24}%</b> last 24 h · <b>${p48}%</b> last 48 h`)}
+        ${li(gkg!=null&&gkg>=10, gkg==null?"Weight trend: needs 2+ nights":`Gaining <b>${gkg>=0?"+":"−"}${Math.abs(gkg).toFixed(1)}</b> g/kg/day <span class="muted">(3 nights)</span>`)}
+        ${li(m.cur&&m.cur.v>=BIRTH[tw].g, m.cur?(m.cur.v>=BIRTH[tw].g?"Back to birth weight":`<b>${fmtG(BIRTH[tw].g-m.cur.v)} g</b> to birth weight`):"No weights yet")}
+        ${li(ev?evDays>=5:false, ev?`Last desat/brady noted <b>${evDays===0?"today":evDays+" day"+(evDays===1?"":"s")+" ago"}</b>`:"No desat/brady notes logged")}
+      </ul></div>`;
+    }).join("");
+  }
+
   // ---------- milk log ----------
   let P=[], D=[], milkCfg=null, mkN=20;     // pumps, NICU drop-offs, {count,t} correction
   const need = () => TWINS.reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for both babies
@@ -810,7 +887,7 @@
       <div class="stat"><div class="k">7-day average</div><div class="v">${avg7==null?"—":Math.round(avg7)+" mL"}</div><div class="s">${avg7==null?"needs a full day logged":`${Math.round(avg7/n*100)}% of daily need`}</div></div>`;
     // log
     const rows=[...P.map(x=>({...x,kind:"pump"})), ...D.map(x=>({...x,kind:"drop"}))].sort((a,b)=>b.t-a.t);
-    $("mkBody").innerHTML = rows.slice(0,mkN).map(r=>`<tr><td>${fmtWhen(r.t)}</td><td>${r.kind==="pump"?"Pumped":"To NICU"}</td><td class="num">${r.v}</td><td class="muted">${esc((r.by||"").split("@")[0])}</td>
+    $("mkBody").innerHTML = rows.slice(0,mkN).map(r=>`<tr><td>${fmtWhen(r.t)}</td><td>${r.kind==="pump"?"Pumped":"To NICU"}</td><td class="num">${r.v}</td><td class="muted">${esc(whoName(r.by))}</td>
       <td>${canWrite?`<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${r.kind==="pump"?"pump":"drop-off"} at ${fmtWhen(r.t)}">×</button>`:""}</td></tr>`).join("")
       || `<tr><td colspan="5" class="muted">Nothing logged yet.</td></tr>`;
     $("mkMore").style.display = rows.length>mkN ? "" : "none";
@@ -878,8 +955,14 @@
     let pending=2; const timer=setTimeout(()=>banner("Offline — showing saved data. New entries will sync when you're back online."),8000);
     const done=meta=>{ if(!meta.fromCache && --pending<=0){ clearTimeout(timer); banner(""); } };
     const fail=err=>{ clearTimeout(timer); console.error(err); banner(String(err&&err.code||"").includes("permission")?"This account doesn't have access. Add its email to the allowlist in the Firestore rules.":"Sync stopped — reopen the app to reconnect."); };
-    unsubs.push(Store.watchWeights((list,meta)=>{ rawW=list; rebuild(); done(meta); renderAll(); }, fail));
-    unsubs.push(Store.watchFeeds((list,meta)=>{ rawF=list; rebuild(); done(meta); renderAll(); }, fail));
+    let seen=null;   // feed ids already shown; alert on new ones from the other parent
+    unsubs.push(Store.watchWeights((list,m)=>{ rawW=list; rebuild(); meta.w=m; done(m); renderSync(); renderAll(); }, fail));
+    unsubs.push(Store.watchFeeds((list,m)=>{ rawF=list; rebuild(); meta.f=m; done(m); renderSync();
+      if(seen){ const fresh=F.filter(f=>!seen.has(f.id) && f.by && f.by!==myEmail && Date.now()-f.t<3*3600e3);
+        if(fresh.length){ const f=fresh[fresh.length-1]; flash(`${whoName(f.by)} logged ${f.twin} · ${hm(f.t)} · ${!f.v&&MARK.test(f.note)?f.note.split(",")[0].toLowerCase():f.v+" mL"}`); } }
+      seen=new Set(F.map(f=>f.id)); renderAll(); }, fail));
+    if(Store.watchConfig) unsubs.push(Store.watchConfig("people",c=>{ people=Array.isArray(c&&c.list)?c.list.filter(x=>x&&typeof x.email==="string"):[];
+      if(document.activeElement!==$("myName")) $("myName").value=(people.find(x=>x.email===myEmail)||{}).name||""; renderAll(); }, ()=>{}));
     if(Store.watch){
       unsubs.push(Store.watch("pumps",list=>{ P=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
       unsubs.push(Store.watch("drops",list=>{ D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
@@ -963,14 +1046,14 @@
     Store.onAuth(user=>{
       unProfile&&unProfile(); unProfile=null;
       if(user){
-        $("login").style.display="none"; $("who").textContent=user.email||"";
+        $("login").style.display="none"; $("who").textContent=user.email||""; myEmail=(user.email||"").toLowerCase();
         unProfile=Store.watchProfile(p=>{
           if(!validProfile(p)){ profile=null; showSetup(false); return; }
           applyProfile(p); hideSetup();
           if(!dataStarted){ dataStarted=true; startData(); } else { rebuild(); renderAll(); }
         }, err=>{ console.error(err); banner("Couldn't load your setup — check the Firestore rules allowlist."); });
       } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null;
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; meta.w=meta.f=null;
         $("setup").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
       }
     });

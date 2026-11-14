@@ -22,7 +22,7 @@ if (!window.Store) {
 
   const watchCol = (name, cb, err) =>
     onSnapshot(collection(db, H, name), { includeMetadataChanges: true },
-      snap => cb(snap.docs.map(d => [d.id, d.data()]), { fromCache: snap.metadata.fromCache }),
+      snap => cb(snap.docs.map(d => [d.id, d.data()]), { fromCache: snap.metadata.fromCache, pending: snap.metadata.hasPendingWrites }),
       err);
 
   // Offline, a write is saved locally at once but the server ack waits for signal.
@@ -39,16 +39,16 @@ if (!window.Store) {
     watchWeights: (cb, err) => watchCol("weights", cb, err),
     watchFeeds: (cb, err) => watchCol("feeds", cb, err),
     watchDiet: (cb, err) => onSnapshot(doc(db, H, "config", "diet"), d => cb(d.exists() ? d.data().text : null), err),
-    setWeight: (id, rec) => w(setDoc(doc(db, H, "weights", id), { ...rec, by: auth.currentUser?.email || "" })),
+    setWeight: (id, rec) => w(setDoc(doc(db, H, "weights", id), { by: auth.currentUser?.email || "", ...rec })),
     delWeight: id => w(deleteDoc(doc(db, H, "weights", id))),
-    setFeed: (id, rec) => w(setDoc(doc(db, H, "feeds", id), { ...rec, by: auth.currentUser?.email || "" })),
+    setFeed: (id, rec) => w(setDoc(doc(db, H, "feeds", id), { by: auth.currentUser?.email || "", ...rec })),
     delFeed: id => w(deleteDoc(doc(db, H, "feeds", id))),
     setDiet: text => w(setDoc(doc(db, H, "config", "diet"), { text })),
     watchProfile: (cb, err) => onSnapshot(doc(db, H, "config", "profile"), d => cb(d.exists() ? d.data() : null), err),
     setProfile: p => w(setDoc(doc(db, H, "config", "profile"), p)),
     // Generic helpers (milk log: "pumps", "drops"; config docs such as "milk")
     watch: (name, cb, err) => watchCol(name, cb, err),
-    put: (name, id, rec) => w(setDoc(doc(db, H, name, id), { ...rec, by: auth.currentUser?.email || "" })),
+    put: (name, id, rec) => w(setDoc(doc(db, H, name, id), { by: auth.currentUser?.email || "", ...rec })),
     remove: (name, id) => w(deleteDoc(doc(db, H, name, id))),
     watchConfig: (name, cb, err) => onSnapshot(doc(db, H, "config", name), d => cb(d.exists() ? d.data() : null), err),
     setConfig: (name, v) => w(setDoc(doc(db, H, "config", name), v))
