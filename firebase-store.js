@@ -27,7 +27,9 @@ if (!window.Store) {
 
   // Offline, a write is saved locally at once but the server ack waits for signal.
   // Resolve after the ack or 1.5 s, whichever first, so the UI never hangs; rejections still surface.
-  const w = p => Promise.race([p, new Promise(r => setTimeout(r, 1500))]);
+  // A late rejection (e.g. permission denied after the timeout) is reported via a "store-error" event.
+  const w = p => { p.catch(err => window.dispatchEvent(new CustomEvent("store-error", { detail: err })));
+    return Promise.race([p, new Promise(r => setTimeout(r, 1500))]); };
 
   window.Store = {
     onAuth: cb => onAuthStateChanged(auth, cb),

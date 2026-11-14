@@ -84,7 +84,7 @@
   .seg button{border:0;background:transparent;color:var(--text2);padding:8px 12px;font:inherit;font-size:14px;cursor:pointer;min-height:38px}
   .seg button+button{border-left:1px solid var(--field)}
   .seg button.on{background:var(--accent);color:var(--surface);font-weight:600}
-  .viewbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0 10px;margin:0 0 4px}
+  .viewbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(8px + env(safe-area-inset-top)) 0 10px;margin:calc(-1 * env(safe-area-inset-top)) 0 4px}
   .viewbar .seg{display:flex;width:100%}
   .viewbar .seg button{flex:1;font-size:16px;min-height:44px}
   .seg.small button{padding:5px 9px;font-size:12.5px;min-height:30px}
@@ -258,13 +258,13 @@
   </div>
   <div class="note">Tracking aid only — the NICU team's charting and targets are the source of truth.</div>
   </section>
-</div>
 <nav class="tabbar" id="tabbar" aria-label="Screens">
   <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><path d="M9 2h6M10 2v3.5c0 .8-.6 1.3-1.2 1.8C7.6 8.3 7 9.6 7 11v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9c0-1.4-.6-2.7-1.8-3.7-.6-.5-1.2-1-1.2-1.8V2M7 13h10"/></svg><span>Feed</span></button>
   <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Weight</span></button>
   <button data-tab="trends"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4.5-5 3.5 3 6-7"/></svg><span>Trends</span></button>
   <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
 </nav>
+</div>
 
 <script>
 (() => {
@@ -342,7 +342,7 @@
       const po = `<div class="v">${Math.round(m.po24)} <span style="font-size:13px;font-weight:500" class="muted">/ ${m.goal} mL</span></div>
         <div class="bar"><i style="width:${Math.min(100,m.poPct)}%;background:${C[tw]}"></i></div>
         <div class="s">${Math.round(m.poPct)}% PO · ${m.n24} feeds${m.avg24!=null?` · avg ${Math.round(m.avg24)} mL (${Math.round(m.avg24/FULL[tw]*100)}%)`:""}</div>`;
-      return `<div class="card twin"><h3><span><span class="dot" style="background:${C[tw]}"></span>${tw}</span><small>full feed ${FULL[tw]} mL</small></h3>
+      return `<div class="card twin"><h3><span><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</span><small>full feed ${FULL[tw]} mL</small></h3>
         <div class="stats">
           <div class="stat"><div class="k">Last weight</div>${wt}</div>
           <div class="stat"><div class="k">Night over night</div>${dl}</div>
@@ -401,15 +401,15 @@
     const C=COLORS(), show=shown(), ds=[];
     show.forEach(tw=>{
       const f=fSeries(tw);
-      ds.push({type:"scatter",label:tw,data:f.map(p=>({x:p.t,y:p.v,note:p.note,diet:p.diet})),backgroundColor:C[tw]+"88",borderColor:C[tw],borderWidth:1,pointRadius:3.5,pointHoverRadius:6});
-      ds.push({type:"line",label:`${tw} 24-hr avg`,data:rolling(f),borderColor:C[tw],borderWidth:2.5,pointRadius:0,pointHoverRadius:4,tension:.25});
+      ds.push({type:"scatter",label:tw,tw,data:f.map(p=>({x:p.t,y:p.v,note:p.note,diet:p.diet})),backgroundColor:C[tw]+"88",borderColor:C[tw],borderWidth:1,pointRadius:3.5,pointHoverRadius:6});
+      ds.push({type:"line",label:`${tw} 24-hr avg`,tw,data:rolling(f),borderColor:C[tw],borderWidth:2.5,pointRadius:0,pointHoverRadius:4,tension:.25});
     });
     const o=baseOpts("mL PO");
     o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=60;
     { const ts=F.map(f=>f.t), now=Date.now(); o.scales.x.min=Math.min(now-2*DAY,...ts); o.scales.x.max=Math.max(now,...ts)+2*3600e3; }
     o.plugins.tooltip={callbacks:{
       title:it=>fmtWhen(it[0].raw.x),
-      label:it=>{const tw=it.dataset.label.split(" ")[0]; return it.dataset.type==="scatter"
+      label:it=>{const tw=it.dataset.tw; return it.dataset.type==="scatter"
         ? `${tw}: ${it.raw.y} mL (${Math.round(it.raw.y/FULL[tw]*100)}% of ${FULL[tw]})${it.raw.note?" · "+it.raw.note:""}${it.raw.diet?" · "+it.raw.diet:""}`
         : `${it.dataset.label}: ${it.raw.y} mL`;}}};
     draw("cFeed",{type:"scatter",data:{datasets:ds},options:o,plugins:[hLine(show.map(tw=>({y:FULL[tw],color:C[tw],label:show.length===1?`full feed ${FULL[tw]} mL`:""})))]});
@@ -443,7 +443,7 @@
       const pd=keyDate(k); pd.setDate(pd.getDate()-1); const prevK=dKey(pd);
       const p=W[tw+"|"+prevK]; const base = k===dKey(FIRST_NIGHT) ? BIRTH[tw].g : (p?p.v:null);
       const d = w && base!=null ? `${sgn(w.v-base)} g${k===dKey(FIRST_NIGHT)?" vs birth":""}` : "";
-      return `<td class="num"><input inputmode="numeric" type="number" aria-label="${esc(tw)} weight, night of ${md(k)}" ${canWrite?"":"disabled"} data-k="${tw}|${k}" value="${w?w.v:""}" class="${w?(w.approx?"approx":""):"missing"}" placeholder="—"><span class="d">${d}</span></td>`;
+      return `<td class="num"><input inputmode="numeric" type="number" aria-label="${esc(tw)} weight, night of ${md(k)}" ${canWrite?"":"disabled"} data-k="${esc(tw)}|${k}" value="${w?w.v:""}" class="${w?(w.approx?"approx":""):"missing"}" placeholder="—"><span class="d">${d}</span></td>`;
     }).join("")}</tr>`).join("");
   }
   let gridDirty=false;
@@ -467,7 +467,7 @@
   function renderLog(){
     const C=COLORS(), list=F.filter(f=>shown().includes(f.twin)).sort((a,b)=>b.t-a.t);
     $("logBody").innerHTML = list.slice(0,state.logN).map(f=>`<tr>
-      <td>${fmtWhen(f.t)}</td><td><span class="dot" style="background:${C[f.twin]}"></span>${f.twin}</td>
+      <td>${fmtWhen(f.t)}</td><td><span class="dot" style="background:${C[f.twin]}"></span>${esc(f.twin)}</td>
       <td class="num">${f.v} mL</td><td class="num">${Math.round(f.v/FULL[f.twin]*100)}%</td>
       <td>${esc(f.note)}</td><td>${canWrite?`<button class="x" data-id="${esc(f.id)}" title="Delete" aria-label="Delete ${esc(f.twin)} feed at ${fmtWhen(f.t)}">×</button>`:""}</td></tr>`).join("")
       || `<tr><td colspan="6" class="muted">No feeds logged yet.</td></tr>`;
@@ -478,7 +478,7 @@
   // Feed day starts 8 AM. Each baby feeds every 3 h from 8 AM, offset by her SLOT_M minutes.
   const SLOT_H = [8,11,14,17,20,23,26,29];
   const DAY_START_H = 8;
-  const feedDay = t => dKey(new Date(t - DAY_START_H*3600e3));
+  const feedDay = t => { const d=new Date(t); if(d.getHours()<DAY_START_H) d.setDate(d.getDate()-1); return dKey(d); };
   const slotT = (tw,day,i) => { const d=keyDate(day); d.setHours(SLOT_H[i], SLOT_M[tw], 0, 0); return d.getTime(); };
   const hm = t => { const d=new Date(t); let h=d.getHours(), m=d.getMinutes(); const ap=h<12?"a":"p"; h=h%12||12; return `${h}${m?":"+pad(m):""}${ap}`; };
   function slotFeed(tw,day,i){ // exact slot, else a stray feed within ±90 min (e.g. imported)
@@ -494,18 +494,18 @@
     $("dLabel").textContent = (state.day===today?"Today · ":"") + dd.toLocaleDateString(undefined,{weekday:"short",month:"numeric",day:"numeric"});
     $("dNext").disabled = state.day>=today;
     $("sheet").innerHTML = shown().map(tw=>{
-      let tot=0, n=0, due=-1;
+      const ti=TWINS.indexOf(tw); let tot=0, n=0, due=-1;
       if(state.day===today){ for(let i=0;i<8;i++){ if(slotT(tw,state.day,i)<=now+20*60e3 && !slotFeed(tw,state.day,i)) due=i; } }
       const cells = SLOT_H.map((_,i)=>{
         const t=slotT(tw,state.day,i), f=slotFeed(tw,state.day,i);
         if(f){ tot+=f.v; n++; }
         const cls=["slot", i===due?"due":"", (!f && t>now+20*60e3)?"future":""].join(" ");
-        return `<div class="${cls}"><label for="s-${tw}-${i}">${hm(t)}</label>
-          <input id="s-${tw}-${i}" type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} data-tw="${tw}" data-i="${i}" value="${f?f.v:""}" placeholder="—">
+        return `<div class="${cls}"><label for="s-${ti}-${i}">${hm(t)}</label>
+          <input id="s-${ti}-${i}" type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} data-tw="${esc(tw)}" data-i="${i}" value="${f?f.v:""}" placeholder="—">
           <span class="p">${f?Math.round(f.v/FULL[tw]*100)+"%":""}</span></div>`;
       }).join("");
       const goal=FULL[tw]*FEEDS_PER_DAY;
-      return `<div class="tw"><div class="twh"><span><span class="dot" style="background:${C[tw]}"></span><b>${tw}</b> <span class="muted">full ${FULL[tw]} mL</span></span>
+      return `<div class="tw"><div class="twh"><span><span class="dot" style="background:${C[tw]}"></span><b>${esc(tw)}</b> <span class="muted">full ${FULL[tw]} mL</span></span>
         <span>${Math.round(tot)} / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b> <span class="muted">(${n}/8)</span></span></div>
         <div class="slots">${cells}</div></div>`;
     }).join("");
@@ -542,7 +542,7 @@
     const all=[dm,d0,d1].flatMap(day=>SLOT_H.map((_,i)=>({day,i,t:slotT(tw,day,i)}))).sort((a,b)=>a.t-b.t);
     const open=all.filter(x=>!slotFeed(tw,x.day,x.i));
     const due=open.filter(x=>x.t<=now+30*60e3 && x.t>=now-3*3600e3).pop();
-    return due ? {...due, due:true} : {...open.find(x=>x.t>now+30*60e3), due:false};
+    const nx=open.find(x=>x.t>now+30*60e3); return due ? {...due, due:true} : nx ? {...nx, due:false} : null;
   }
   let nextBusy=false;           // hold the box (and its ✓) steady while a save lands
   function renderNext(){
@@ -550,7 +550,7 @@
     const C=COLORS(), now=new Date();
     $("nextClock").textContent = "now "+hm(now.getTime());
     $("next").innerHTML = shown().map(tw=>{
-      const n=nextSlot(tw), last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop();
+      const n=nextSlot(tw); if(!n) return ""; const last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop();
       const lastTxt = last ? `Last: ${last.v} mL at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""} · ${Math.round(last.v/FULL[tw]*100)}% of ${FULL[tw]}` : "No feeds logged yet";
       return `<div class="nx ${n.due?"due":""}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}">
         <div><div class="who"><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</div>
@@ -569,7 +569,10 @@
     setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?2500:0);
   });
   $("next").addEventListener("focusout",()=>setTimeout(()=>{ if(!$("next").contains(document.activeElement)) renderNext(); },0));
-  setInterval(()=>{ if(!document.hidden) renderNext(); },60e3);
+  let lastToday=null;   // if the sheet was on "today", roll it over at 8 AM instead of going stale
+  setInterval(()=>{ if(document.hidden || TWINS[0]==="A") return;
+    const t=feedDay(Date.now()); if(lastToday && t!==lastToday && state.day===lastToday){ state.day=t; renderSheet(); }
+    lastToday=t; renderNext(); },60e3);
 
   // ---------- tabs & night mode (remembered per device) ----------
   const store={get:k=>{try{return localStorage.getItem(k);}catch{return null;}}, set:(k,v)=>{try{localStorage.setItem(k,v);}catch{}}};
@@ -609,6 +612,7 @@
     syncPressed("view");
   }
 
+  addEventListener("store-error",e=>failWrite(e.detail));
   function failWrite(err){ console.error(err); flash(err&&String(err.code||"").includes("permission")?"This account isn't allowed to write — check the allowlist in the Firestore rules.":"Couldn't save — try again."); }
   const feedId = r => `${r.twin}-${r.t}`;   // one doc per twin per feed slot
 
@@ -655,6 +659,7 @@
       for(const r of rows.slice(1)){
         const tw=r[iTw], ty=(r[iTy]||"").toLowerCase(), v=parseFloat(r[iV]), t=Date.parse(r[iT]);
         if(!TWINS.includes(tw)||!isFinite(v)||!isFinite(t)){ skip++; continue; }
+        if(ty==="weight" ? (v<800||v>8000) : ty.includes("feed") && (v<0||v>150)){ skip++; continue; }
         if(ty==="weight"){ const date=dKey(new Date(t)); await Store.setWeight(`${tw}-${date}`,{twin:tw,date,v:Math.round(v),approx:(r[iE]||"")==="yes"}); w++; }
         else if(ty.includes("feed")){ const rec={twin:tw,t,v,note:iN>=0?(r[iN]||"").slice(0,200):"",diet:iD>=0?(r[iD]||"").slice(0,120):""}; const id=feedId(rec);
           if(F.some(x=>x.id===id)){ skip++; continue; } await Store.setFeed(id,rec); f++; }
@@ -666,9 +671,6 @@
   });
 
   // ---------- data / auth ----------
-  function banner(t){ const b=$("banner"); b.textContent=t||""; b.style.display=t?"block":"none"; }
-  function cleanW(d){ const tw=TWINS.includes(d.twin)?d.twin:null, v=Number(d.v); if(!tw||!/^\d{4}-\d\d-\d\d$/.test(d.date||"")||!isFinite(v)) return null; return {twin:tw,date:d.date,v,approx:!!d.approx}; }
-  function cleanF(id,d){ const tw=TWINS.includes(d.twin)?d.twin:null, t=Number(d.t), v=Number(d.v); if(!tw||!isFinite(t)||!isFinite(v)) return null; return {id,twin:tw,t,v,note:typeof d.note==="string"?d.note.slice(0,200):"",diet:typeof d.diet==="string"?d.diet.slice(0,120):""}; }
 
   let Store=null, unsubs=[];
   $("diet").addEventListener("change", async ()=>{ const t=$("diet").value.trim().slice(0,120); if(!t||!Store) return;
@@ -691,7 +693,7 @@
     unsubs.forEach(u=>u()); unsubs=[];
     let pending=2; const timer=setTimeout(()=>banner("Offline — showing saved data. New entries will sync when you're back online."),8000);
     const done=meta=>{ if(!meta.fromCache && --pending<=0){ clearTimeout(timer); banner(""); } };
-    const fail=err=>{ clearTimeout(timer); console.error(err); banner(String(err&&err.code||"").includes("permission")?"This account doesn't have access. Ask David to add it to the allowlist.":"Sync stopped — reopen the app to reconnect."); };
+    const fail=err=>{ clearTimeout(timer); console.error(err); banner(String(err&&err.code||"").includes("permission")?"This account doesn't have access. Add its email to the allowlist in the Firestore rules.":"Sync stopped — reopen the app to reconnect."); };
     unsubs.push(Store.watchWeights((list,meta)=>{ W={}; list.forEach(([id,d])=>{const w=cleanW(d); if(w) W[w.twin+"|"+w.date]=w;}); done(meta); renderAll(); }, fail));
     unsubs.push(Store.watchFeeds((list,meta)=>{ F=list.map(([id,d])=>cleanF(id,d)).filter(Boolean); done(meta); renderAll(); }, fail));
     unsubs.push(Store.watchDiet(t=>{ if(typeof t==="string" && document.activeElement!==$("diet")) $("diet").value=t.slice(0,120); }, ()=>{}));
