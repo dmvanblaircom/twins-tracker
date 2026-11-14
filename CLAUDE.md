@@ -14,13 +14,14 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 
 ## Data model (under `households/main/`)
 - `weights/{Name}-{YYYY-MM-DD}` → `{twin, date, v (g), approx, by}` — one per baby per night (weighed at 8 PM).
-- `feeds/{Name}-{epochMs}` → `{twin, t, v (mL PO), note, diet, by}` — one per baby per fixed feed slot.
-- `config/profile` → `{born, ga, twins:[{name, birthTime, birthG, fullMl, slotMin}]}`.
+- `feeds/{Name}-{epochMs}` → `{twin, t, v (mL PO), note, diet, by}` — one per baby per fixed feed slot. `v:0` with note `All by tube` / `Skipped` marks a non-PO feed; notes matching `MARK` (`est.`, those two) are replaced when a value is re-entered.
+- `config/profile` → `{born, ga, twins:[{name, birthTime, birthG, fullMl, slotMin, color}]}` — `color` is a PALETTE key (pink, purple, blue, orange, green, teal) with light/dark/night variants.
 - `config/diet` → `{text}`; stamped onto each new feed.
 
 ## UI layout
 - Sticky top: title, night-mode toggle (amber-on-black, per device), view bar (twin 0 | twin 1 | Both) that filters every screen.
-- Bottom tab bar: **Feed** (big "Next feed" box per baby + day sheet), **Weight** (nightly grid + chart), **Trends** (tiles, PO chart, daily %), **More** (diet, feed log, CSV export/import, profile, sign out). Tab, view and night mode are remembered in localStorage.
+- Bottom tab bar: **Feed** ("Next feed" card per baby: big mL box + Save, All by tube / Skipped, "Not logged" chips for missed slots in the last 12 h; then the day sheet), **Weight** (nightly grid + chart), **Trends** (tiles, PO chart, daily %), **More** (diet, feed log, CSV export/import, profile, sign out). Tab, view and night mode are remembered in localStorage.
+- Every save/delete shows an 8 s Undo bar. Amounts >130% of full feed or far from the recent average ask to confirm.
 - Charts render only when their tab is visible (`draw` skips hidden canvases; `showTab` re-renders).
 
 ## Domain rules

@@ -51,9 +51,10 @@
   .tabbar button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;min-height:54px;cursor:pointer;border-radius:10px}
   .tabbar button.on{color:var(--text)}
   .tabbar button.on svg{stroke-width:2.4}
-  .nx{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;padding:4px 0}
+  .nx{display:grid;grid-template-columns:1fr 140px;gap:8px 12px;align-items:center;padding:6px 0 6px 12px;border-left:6px solid var(--c);border-radius:4px}
   .nx + .nx{border-top:1px solid var(--grid);margin-top:10px;padding-top:12px}
-  .nx .who{font-size:17px;font-weight:650}
+  .nx .who{font-size:19px;font-weight:700;color:var(--c)}
+  :root[data-theme="night"] .nx .who{color:var(--text)}
   .nx .when{font-size:15px;color:var(--text2)}
   .nx .last{grid-column:1/-1;font-size:13px;color:var(--muted)}
   .nx .box{position:relative;width:140px}
@@ -62,7 +63,24 @@
   .nx.done input{border-color:var(--field)}
   .nx.due input{border-color:var(--accent)}
   .nx.saving input{opacity:.4}
-  .nx .ok{grid-column:1/-1;font-size:14px;font-weight:600;color:var(--text)}
+  .nx .ok{grid-column:1/-1;font-size:15px;font-weight:650;color:var(--text)}
+  .nx .save{height:48px;font-size:17px;width:100%}
+  .nx .quick{display:flex;gap:6px;flex-wrap:nowrap}
+  .nx .quick .chip{padding:0 10px;white-space:nowrap}
+  .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+  .swatches button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;background:var(--sw);cursor:pointer;outline-offset:2px}
+  .swatches button[aria-checked="true"]{border-color:var(--text);box-shadow:inset 0 0 0 3px var(--surface)}
+  .chip{border:1px solid var(--field);background:transparent;color:var(--text);border-radius:999px;padding:0 12px;min-height:40px;font:inherit;font-size:14px;cursor:pointer}
+  .chip.warn{border-color:var(--danger);color:var(--danger);font-weight:600}
+  .nx .missed{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--danger);font-weight:600}
+  .nx .missed .chip{min-height:36px;font-size:13px;padding:0 10px}
+  .nx .missed:empty{display:none}
+  .nx .picking{font-size:13px;color:var(--danger);font-weight:600}
+  .tw{border-left:6px solid var(--c);padding-left:10px;border-radius:4px}
+  #toast{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:9;display:none;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--text);color:var(--bg);border-radius:12px;padding:10px 10px 10px 16px;font-size:15px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+  #toast.on{display:flex}
+  #toast button{border:0;background:var(--bg);color:var(--text);border-radius:9px;font:inherit;font-weight:700;min-height:44px;padding:0 16px;cursor:pointer}
   .nx .ok:empty{display:none}
   .tw{margin-top:10px}
   .tw + .tw{border-top:1px solid var(--grid);padding-top:10px}
@@ -155,12 +173,14 @@
       <label class="f">Birth weight (g)<input id="suW0" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF0" type="number" inputmode="decimal" placeholder="auto"></label>
       <label class="f full">Feed times<select id="suM0" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">8, 11, 2, 5 on the hour</option><option value="30">8:30, 11:30, 2:30, 5:30</option></select></label>
+      <div class="f full">Color<div class="swatches" id="suC0" role="radiogroup" aria-label="Color"></div></div>
 <div class="full" style="margin-top:6px;font-weight:650"><span class="dot" style="background:var(--t1)"></span>Baby B</div>
       <label class="f">Name<input id="suN1" type="text"></label>
       <label class="f">Birth time<input id="suT1" type="time"></label>
       <label class="f">Birth weight (g)<input id="suW1" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF1" type="number" inputmode="decimal" placeholder="auto"></label>
       <label class="f full">Feed times<select id="suM1" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">8, 11, 2, 5 on the hour</option><option value="30">8:30, 11:30, 2:30, 5:30</option></select></label>
+      <div class="f full">Color<div class="swatches" id="suC1" role="radiogroup" aria-label="Color"></div></div>
       <div class="full row"><button class="btn" id="suSave">Save</button><button class="btn ghost" id="suCancel" style="display:none">Cancel</button><span class="msg" id="suMsg"></span></div>
     </div>
   </div>
@@ -169,6 +189,7 @@
   <div class="top"><h1 id="title">Twins</h1><button class="iconbtn" id="nightBtn" aria-label="Night mode" title="Night mode"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button></div>
   <nav class="viewbar" aria-label="Which baby"><div class="seg" id="view"><button data-v="#0" class="nm0"></button><button data-v="#1" class="nm1"></button><button data-v="both" class="on">Both</button></div></nav>
   <div class="banner" id="banner"></div>
+  <div id="toast" role="status" aria-live="polite"><span></span><button type="button">Undo</button></div>
 
   <section class="tab" data-tab="feed">
   <div class="card" id="nextCard"><h2>Next feed <span class="muted" id="nextClock" style="font-weight:400;font-size:13px"></span></h2><div id="next"></div></div>
@@ -279,6 +300,17 @@
   const DAY = 864e5;
 
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  // Per-baby colors, each tuned for contrast in light / dark / night themes.
+  const PALETTE = {pink:["#d6336c","#f06595","#d58aa6"], purple:["#7048e8","#9775fa","#a690d6"], blue:["#2a78d6","#3987e5","#7d9cc4"],
+    orange:["#d9480f","#ff922b","#d27a4a"], green:["#2b8a3e","#51cf66","#86b386"], teal:["#0b7285","#22b8cf","#72aab3"]};
+  let COLOR_KEY = ["blue","orange"];
+  function applyColors(){
+    const mode = document.documentElement.dataset.theme==="night" ? 2 : matchMedia("(prefers-color-scheme: dark)").matches ? 1 : 0;
+    COLOR_KEY.forEach((k,i)=>document.documentElement.style.setProperty("--t"+i, (PALETTE[k]||PALETTE[i?"orange":"blue"])[mode]));
+  }
+  function swatches(i,sel){
+    $("suC"+i).innerHTML = Object.keys(PALETTE).map(k=>`<button type="button" role="radio" aria-checked="${k===sel}" aria-label="${k}" data-k="${k}" style="--sw:${PALETTE[k][0]}"></button>`).join("");
+  }
   const COLORS = () => ({[TWINS[0]]:css("--t0"), [TWINS[1]]:css("--t1")});
   const $ = id => document.getElementById(id);
   const pad = n => String(n).padStart(2,"0");
@@ -338,7 +370,7 @@
       const m=metrics(tw);
       const wt = m.cur ? `<div class="v">${fmtG(m.cur.v)} g${m.cur.approx?' <span class="muted" style="font-size:13px">≈</span>':""}</div><div class="s">${lbOz(m.cur.v)} · night of ${md(m.cur.date)}</div>` : `<div class="v">—</div>`;
       const dl = m.cur ? `<div class="v">${sgn(m.delta)} g</div><div class="s">${m.prev?`vs ${md(m.prev.date)} (${fmtG(m.prev.v)} g)`:"vs birth"}</div>` : `<div class="v">—</div>`;
-      const vb = m.cur ? `<div class="v">${m.pct>=0?"+":"−"}${Math.abs(m.pct).toFixed(1)}%</div><div class="s">${m.cur.v<BIRTH[tw].g?`${fmtG(BIRTH[tw].g-m.cur.v)} g to regain`:"back to birth weight"}${m.gain!=null?` · ${sgn(m.gain)} g/day (3-night trend)`:""}</div>` : `<div class="v">—</div>`;
+      const vb = m.cur ? `<div class="v">${m.pct>=0?"+":"−"}${Math.abs(m.pct).toFixed(1)}%</div><div class="s">${m.cur.v<BIRTH[tw].g?`${fmtG(BIRTH[tw].g-m.cur.v)} g to regain`:"back to birth weight"}${m.gain!=null?` · ${sgn(m.gain)} g/day = ${m.gain>=0?"+":"−"}${Math.abs(m.gain/(m.cur.v/1000)).toFixed(1)} g/kg/day (3-night trend)`:""}</div>` : `<div class="v">—</div>`;
       const po = `<div class="v">${Math.round(m.po24)} <span style="font-size:13px;font-weight:500" class="muted">/ ${m.goal} mL</span></div>
         <div class="bar"><i style="width:${Math.min(100,m.poPct)}%;background:${C[tw]}"></i></div>
         <div class="s">${Math.round(m.poPct)}% PO · ${m.n24} feeds${m.avg24!=null?` · avg ${Math.round(m.avg24)} mL (${Math.round(m.avg24/FULL[tw]*100)}%)`:""}</div>`;
@@ -455,9 +487,10 @@
     if(raw!=="" && (!isFinite(v)||v<800||v>8000)){ inp.value = W[inp.dataset.k]?.v ?? ""; flash("Weights are in grams, e.g. 2510."); return; }
     cell.classList.add("saving");
     try{
-      const id=`${tw}-${date}`;
-      if(raw===""){ await Store.delWeight(id); }
-      else { await Store.setWeight(id,{twin:tw,date,v:Math.round(v),approx:false}); }
+      const id=`${tw}-${date}`, old=W[inp.dataset.k];
+      const back=()=>old ? Store.setWeight(id,{twin:tw,date,v:old.v,approx:old.approx}) : Store.delWeight(id);
+      if(raw===""){ if(!old) return; await Store.delWeight(id); undoBar(`Cleared ${tw} · ${md(date)}`, back); }
+      else { await Store.setWeight(id,{twin:tw,date,v:Math.round(v),approx:false}); undoBar(`Saved ${Math.round(v)} g · ${tw} · ${md(date)}`, back); }
     }catch(err){ failWrite(err); inp.value = W[inp.dataset.k]?.v ?? ""; }
     finally{ cell.classList.remove("saving"); }
   });
@@ -491,7 +524,7 @@
     sheetDirty=false;
     const C=COLORS(), now=Date.now(), today=feedDay(now);
     const dd=keyDate(state.day);
-    $("dLabel").textContent = (state.day===today?"Today · ":"") + dd.toLocaleDateString(undefined,{weekday:"short",month:"numeric",day:"numeric"});
+    $("dLabel").textContent = (state.day===today?(new Date().getHours()<DAY_START_H?"Overnight · ":"Today · "):"") + dd.toLocaleDateString(undefined,{weekday:"short",month:"numeric",day:"numeric"});
     $("dNext").disabled = state.day>=today;
     $("sheet").innerHTML = shown().map(tw=>{
       const ti=TWINS.indexOf(tw); let tot=0, n=0, due=-1;
@@ -502,10 +535,10 @@
         const cls=["slot", i===due?"due":"", (!f && t>now+20*60e3)?"future":""].join(" ");
         return `<div class="${cls}"><label for="s-${ti}-${i}">${hm(t)}</label>
           <input id="s-${ti}-${i}" type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} data-tw="${esc(tw)}" data-i="${i}" value="${f?f.v:""}" placeholder="—">
-          <span class="p">${f?Math.round(f.v/FULL[tw]*100)+"%":""}</span></div>`;
+          <span class="p">${f?(MARK.test(f.note||"")&&!f.v?(f.note.startsWith("Skip")?"skipped":"tube"):Math.round(f.v/FULL[tw]*100)+"%"):""}</span></div>`;
       }).join("");
       const goal=FULL[tw]*FEEDS_PER_DAY;
-      return `<div class="tw"><div class="twh"><span><span class="dot" style="background:${C[tw]}"></span><b>${esc(tw)}</b> <span class="muted">full ${FULL[tw]} mL</span></span>
+      return `<div class="tw" style="--c:${C[tw]}"><div class="twh"><span><span class="dot" style="background:${C[tw]}"></span><b>${esc(tw)}</b> <span class="muted">full ${FULL[tw]} mL</span></span>
         <span>${Math.round(tot)} / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b> <span class="muted">(${n}/8)</span></span></div>
         <div class="slots">${cells}</div></div>`;
     }).join("");
@@ -513,23 +546,46 @@
   let sheetDirty=false;
   $("sheet").addEventListener("focusout",()=>setTimeout(()=>{ if(sheetDirty && !$("sheet").contains(document.activeElement)) renderSheet(); },0));
   $("sheet").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.target.blur(); } });
-  async function saveSlot(tw,day,i,inp,cell){ // returns true when saved
-    const raw=inp.value.trim(), v=parseFloat(raw), old=slotFeed(tw,day,i);
+  const MARK=/^(est\.|All by tube|Skipped)/;   // system notes replaced when a value is re-entered
+  const strip=f=>{ const {id,...r}=f; return r; };
+  function unusual(tw,t,v){ // returns a warning string, or "" if the amount looks normal
+    if(!(v>0)) return "";
+    const recent=fSeries(tw).filter(f=>f.v>0 && f.t<t).slice(-4), avg=recent.length>=3 ? recent.reduce((a,f)=>a+f.v,0)/recent.length : null;
+    const pct=Math.round(v/FULL[tw]*100);
+    if(v>1.3*FULL[tw] || (avg!=null && Math.abs(v-avg)>Math.max(15,.6*avg)))
+      return `${v} mL for ${tw} at ${hm(t)}?\n\nThat's ${pct}% of full feed (${FULL[tw]} mL)${avg!=null?` and her recent average is ${Math.round(avg)} mL`:""}.\n\nTap OK if that's right.`;
+    return "";
+  }
+  async function saveSlot(tw,day,i,inp,cell,opt={}){ // returns true when saved
+    const raw = opt.v!=null ? String(opt.v) : inp.value.trim(), v=parseFloat(raw), old=slotFeed(tw,day,i), t=slotT(tw,day,i);
     if(raw!=="" && (!isFinite(v)||v<0||v>150)){ inp.value=old?old.v:""; flash("Enter mL for one feed (0–150)."); return false; }
+    if(raw!=="" && opt.note==null){ const warn=unusual(tw,t,v); if(warn && !confirm(warn)){ inp.value=old?old.v:""; return false; } }
     cell.classList.add("saving");
     try{
-      const t=slotT(tw,day,i);
-      if(raw===""){ if(old) await Store.delFeed(old.id); }
+      if(raw===""){ if(!old) return false; await Store.delFeed(old.id); undoBar(`Cleared ${tw} · ${hm(t)}`, ()=>Store.setFeed(old.id,strip(old))); }
       else {
-        const rec={twin:tw,t,v:Math.round(v*10)/10,note:old&&!/^est\./.test(old.note||"")?old.note||"":"",diet:$("diet").value.trim().slice(0,120)};
+        const rec={twin:tw,t,v:Math.round(v*10)/10,note:opt.note??(old&&!MARK.test(old.note||"")?old.note||"":""),diet:$("diet").value.trim().slice(0,120)};
         if(old && old.diet && old.t===t) rec.diet=old.diet;    // keep the diet it was charted under
-        await Store.setFeed(feedId(rec),rec);
-        if(old && old.id!==feedId(rec)) await Store.delFeed(old.id);
+        const id=feedId(rec);
+        await Store.setFeed(id,rec);
+        if(old && old.id!==id) await Store.delFeed(old.id);
+        undoBar(`Saved ${opt.note&&!rec.v?opt.note.toLowerCase():rec.v+" mL"} · ${tw} · ${hm(t)}`, async()=>{
+          if(old){ await Store.setFeed(old.id,strip(old)); if(old.id!==id) await Store.delFeed(id); } else await Store.delFeed(id); });
       }
       return true;
     }catch(err){ failWrite(err); inp.value=old?old.v:""; return false; }
     finally{ cell.classList.remove("saving"); }
   }
+  // ---------- undo bar ----------
+  let undoFn=null, undoTimer=null;
+  function undoBar(text,fn){
+    undoFn=fn; $("toast").querySelector("span").textContent=text; $("toast").classList.add("on");
+    clearTimeout(undoTimer); undoTimer=setTimeout(()=>{ $("toast").classList.remove("on"); undoFn=null; },8000);
+  }
+  $("toast").querySelector("button").addEventListener("click", async ()=>{
+    const fn=undoFn; undoFn=null; $("toast").classList.remove("on"); clearTimeout(undoTimer);
+    if(fn){ try{ await fn(); flash("Undone."); }catch(err){ failWrite(err); } }
+  });
   $("sheet").addEventListener("change", e=>{
     const inp=e.target.closest("input"); if(!inp) return;
     saveSlot(inp.dataset.tw, state.day, +inp.dataset.i, inp, inp.parentElement);
@@ -542,33 +598,56 @@
     const all=[dm,d0,d1].flatMap(day=>SLOT_H.map((_,i)=>({day,i,t:slotT(tw,day,i)}))).sort((a,b)=>a.t-b.t);
     const open=all.filter(x=>!slotFeed(tw,x.day,x.i));
     const due=open.filter(x=>x.t<=now+30*60e3 && x.t>=now-3*3600e3).pop();
-    const nx=open.find(x=>x.t>now+30*60e3); return due ? {...due, due:true} : nx ? {...nx, due:false} : null;
+    const nx=open.find(x=>x.t>now+30*60e3), pick=due ? {...due, due:true} : nx ? {...nx, due:false} : null;
+    if(pick) pick.missed=open.filter(x=>x.t<pick.t && x.t>=now-12*3600e3 && x.t<now-30*60e3 && x.t>=FIRST_NIGHT.getTime());
+    return pick;
   }
+  const nextPick={};   // per baby: a missed slot the parent chose to fill instead
   let nextBusy=false;           // hold the box (and its ✓) steady while a save lands
   function renderNext(){
-    if(TWINS[0]==="A" || nextBusy || $("next").contains(document.activeElement)) return;
+    if(TWINS[0]==="A" || nextBusy || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim())) return;
     const C=COLORS(), now=new Date();
     $("nextClock").textContent = "now "+hm(now.getTime());
     $("next").innerHTML = shown().map(tw=>{
-      const n=nextSlot(tw); if(!n) return ""; const last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop();
-      const lastTxt = last ? `Last: ${last.v} mL at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""} · ${Math.round(last.v/FULL[tw]*100)}% of ${FULL[tw]}` : "No feeds logged yet";
-      return `<div class="nx ${n.due?"due":""}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}">
-        <div><div class="who"><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</div>
-          <div class="when">${n.due?"Due":"Next"}: <b>${hm(n.t)}</b> feed</div></div>
-        <div class="box"><input type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} placeholder="—" aria-label="${esc(tw)} mL"><span>mL</span></div>
+      let n=nextSlot(tw); if(!n) return "";
+      const missed=n.missed, chosen=nextPick[tw] && missed.find(x=>x.day===nextPick[tw].day && x.i===nextPick[tw].i);
+      if(chosen) n={...chosen, due:true, missed, chosen:true}; else delete nextPick[tw];
+      const last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop();
+      const lastTxt = last ? `Last: ${!last.v&&MARK.test(last.note||"")?last.note.toLowerCase():last.v+" mL"} at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""} ${last.v?` · ${Math.round(last.v/FULL[tw]*100)}% of ${FULL[tw]}`:""}` : "No feeds logged yet";
+      const others=missed.filter(x=>!(n.chosen && x.day===n.day && x.i===n.i));
+      return `<div class="nx ${n.due?"due":""}" style="--c:${C[tw]}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}">
+        <div><div class="who">${esc(tw)}</div>
+          <div class="when">${n.chosen?"Filling in":n.due?"Due":"Next"}: <b>${hm(n.t)}</b> feed</div>
+          ${n.chosen?`<button class="link" data-act="back">← back to latest</button>`:""}</div>
+        <div class="box"><input type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} placeholder="—" aria-label="${esc(tw)} mL at ${hm(n.t)}"><span>mL</span></div>
+        <div class="quick"><button class="chip" data-act="tube" ${canWrite?"":"disabled"}>All by tube</button><button class="chip" data-act="skip" ${canWrite?"":"disabled"}>Skipped</button></div>
+        <button class="btn save" data-act="save" ${canWrite?"":"disabled"}>Save</button>
+        <div class="missed">${others.length?`Not logged:`+others.map(x=>`<button class="chip warn" data-act="pick" data-day="${x.day}" data-i="${x.i}" aria-label="Fill in ${hm(x.t)} feed">${hm(x.t)}</button>`).join(""):""}</div>
         <div class="last">${lastTxt}</div><div class="ok"></div></div>`;
     }).join("");
   }
-  $("next").addEventListener("keydown",e=>{ if(e.key==="Enter") e.target.blur(); });
-  $("next").addEventListener("change", async e=>{
-    const inp=e.target.closest("input"); if(!inp || inp.value.trim()==="") return;
-    const row=inp.closest(".nx"), tw=row.dataset.tw, day=row.dataset.day, i=+row.dataset.i;
+  async function nextSave(row,opt){
+    const inp=row.querySelector("input"), tw=row.dataset.tw, day=row.dataset.day, i=+row.dataset.i;
+    if(!opt && inp.value.trim()===""){ inp.focus(); return; }
     nextBusy=true;
-    const ok=await saveSlot(tw,day,i,inp,row);
-    if(ok){ inp.blur(); row.querySelector(".ok").textContent=`✓ Saved ${inp.value} mL for ${hm(slotT(tw,day,i))}`; }
+    const ok=await saveSlot(tw,day,i,inp,row,opt||{});
+    if(ok){ inp.blur(); delete nextPick[tw];
+      row.querySelector(".ok").textContent=`✓ ${tw} · ${hm(slotT(tw,day,i))} · ${opt?opt.note.toLowerCase():inp.value+" mL"}`;
+      inp.value=""; }   // saved: an empty box lets the card move on to the next feed
     setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?2500:0);
+  }
+  $("next").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); nextSave(e.target.closest(".nx")); } });
+  $("next").addEventListener("click",e=>{
+    const b=e.target.closest("button[data-act]"); if(!b || nextBusy) return;
+    const row=b.closest(".nx"), tw=row.dataset.tw, act=b.dataset.act;
+    if(act==="save") nextSave(row);
+    else if(act==="tube") nextSave(row,{v:0,note:"All by tube"});
+    else if(act==="skip") nextSave(row,{v:0,note:"Skipped"});
+    else if(act==="pick"){ nextPick[tw]={day:b.dataset.day,i:+b.dataset.i}; renderNext(); }
+    else if(act==="back"){ delete nextPick[tw]; renderNext(); }
   });
-  $("next").addEventListener("focusout",()=>setTimeout(()=>{ if(!$("next").contains(document.activeElement)) renderNext(); },0));
+  // Leaving the box keeps a typed-but-unsaved number in place; only re-render empty boxes.
+  $("next").addEventListener("focusout",()=>setTimeout(()=>{ if(!$("next").contains(document.activeElement) && ![...$("next").querySelectorAll("input")].some(x=>x.value.trim())) renderNext(); },0));
   let lastToday=null;   // if the sheet was on "today", roll it over at 8 AM instead of going stale
   setInterval(()=>{ if(document.hidden || TWINS[0]==="A") return;
     const t=feedDay(Date.now()); if(lastToday && t!==lastToday && state.day===lastToday){ state.day=t; renderSheet(); }
@@ -588,7 +667,7 @@
     if(on) document.documentElement.dataset.theme="night"; else delete document.documentElement.dataset.theme;
     $("nightBtn").setAttribute("aria-pressed",on?"true":"false");
     document.querySelector('meta[name="theme-color"]').content = on ? "#000000" : "#1a1a19";
-    store.set("night",on?"1":"0");
+    store.set("night",on?"1":"0"); applyColors();
   }
   $("nightBtn").addEventListener("click",()=>{ setNight(document.documentElement.dataset.theme!=="night"); if(TWINS[0]!=="A") renderAll(); });
   setNight(store.get("night")==="1");
@@ -619,8 +698,8 @@
   $("logBody").addEventListener("click", async e=>{
     const b=e.target.closest("button.x"); if(!b) return;
     if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Delete?"; setTimeout(()=>{ if(b.isConnected){b.classList.remove("armed"); b.textContent="×";} },3000); return; }
-    const id=b.dataset.id;
-    try{ await Store.delFeed(id); }
+    const id=b.dataset.id, old=F.find(f=>f.id===id);
+    try{ await Store.delFeed(id); if(old) undoBar(`Deleted ${old.twin} · ${fmtWhen(old.t)}`, ()=>Store.setFeed(old.id,strip(old))); }
     catch{ b.textContent="failed"; }
   });
   $("moreBtn").addEventListener("click",()=>{ state.logN+=40; renderLog(); });
@@ -633,7 +712,7 @@
     try{ await navigator.clipboard.writeText(csv); $("csvMsg").textContent="Copied."; }
     catch{ const tb=$("csvBox"); tb.style.display="block"; tb.value=csv; tb.select(); $("csvMsg").textContent="Select all and copy."; }
   });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",renderAll);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{ applyColors(); renderAll(); });
 
   // ---------- data ----------
   function banner(t){ const b=$("banner"); b.textContent=t||""; b.style.display=t?"block":"none"; }
@@ -708,6 +787,7 @@
   function applyProfile(p){
     profile=p; const tw=p.twins;
     TWINS=[tw[0].name, tw[1].name];
+    COLOR_KEY=[tw[0].color||"blue", tw[1].color||"orange"]; applyColors();
     const [y,m,d]=p.born.split("-").map(Number);
     FIRST_NIGHT=new Date(y,m-1,d);
     BIRTH={}; FULL={}; SLOT_M={};
@@ -738,15 +818,17 @@
     $("suBorn").value=p?p.born:""; $("suGA").value=p?p.ga||"":"";
     [0,1].forEach(i=>{ const t=p?p.twins[i]:null;
       $("suN"+i).value=t?t.name:""; $("suT"+i).value=t?t.birthTime||"":""; $("suW"+i).value=t?t.birthG:"";
-      $("suF"+i).value=t&&t.fullMl?t.fullMl:""; $("suM"+i).value=t?String(t.slotMin||0):(i?"30":"0"); });
+      $("suF"+i).value=t&&t.fullMl?t.fullMl:""; $("suM"+i).value=t?String(t.slotMin||0):(i?"30":"0"); swatches(i, t&&t.color || (i?"orange":"blue")); });
   }
   function hideSetup(){ $("setup").style.display="none"; $("main").style.display=""; }
+  [0,1].forEach(i=>$("suC"+i).addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return;
+    [...$("suC"+i).children].forEach(x=>x.setAttribute("aria-checked",x===b?"true":"false")); }));
   $("editProfile").addEventListener("click",()=>showSetup(true));
   $("suCancel").addEventListener("click",hideSetup);
   $("suSave").addEventListener("click", async ()=>{
     const p={born:$("suBorn").value, ga:$("suGA").value.trim().slice(0,20), twins:[0,1].map(i=>({
       name:$("suN"+i).value.trim().slice(0,30), birthTime:$("suT"+i).value||"00:00",
-      birthG:Math.round(+$("suW"+i).value), fullMl:+$("suF"+i).value||null, slotMin:+$("suM"+i).value}))};
+      birthG:Math.round(+$("suW"+i).value), fullMl:+$("suF"+i).value||null, slotMin:+$("suM"+i).value, color:$("suC"+i).querySelector('[aria-checked="true"]')?.dataset.k||(i?"orange":"blue")}))};
     if(!validProfile(p)){ $("suMsg").textContent="Need a birth date, two different names and both birth weights."; return; }
     const map={}; if(profile) TWINS.forEach((o,i)=>{ if(o!==p.twins[i].name) map[o]=p.twins[i].name; });
     const ws=Object.values(W).filter(w=>map[w.twin]), fs=F.filter(f=>map[f.twin]);
