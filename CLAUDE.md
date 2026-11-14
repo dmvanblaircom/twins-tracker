@@ -20,7 +20,7 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - `pumps/p-{epochMs}` → `{t, v (mL), by}` — mom's pump sessions. `drops/d-{epochMs}` → `{t, v, by}` — milk taken to the NICU.
 - `config/people` → `{list:[{email, name}]}` — display names shown as "by" on entries (fallback: email initial). Store stamps `by` = signer's email unless the record already carries one (restores/edits keep the author).
 - `config/milk` → `{count, t}` — NICU's actual stock count at time t (overrides drop-off math from then on).
-- Milk math (assumes babies get only mom's milk): need/day = Σ fullMl × 8; NICU stock ≈ (count or 0) + drop-offs since − need × elapsed.
+- Milk math (assumes babies get only mom's milk): need/day = Σ fullMl × 8; NICU stock ≈ (count or 0) + drop-offs since − fullMl for every scheduled feed slot since (`usedSince`), stepping down at each feed time.
 
 ## UI layout
 - Sticky top: title + sync status (Synced / Syncing… / Connecting… / Offline, from snapshot `fromCache`/`pending` + navigator.onLine), night-mode toggle (amber-on-black, per device), view bar (twin 0 | twin 1 | Both) that filters every screen.

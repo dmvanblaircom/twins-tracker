@@ -253,7 +253,7 @@
 
   <section class="tab" data-tab="milk">
   <div class="card"><h2>Milk supply <span class="muted" id="mkAs" style="font-weight:400;font-size:13px"></span></h2><div class="stats" id="mkStats"></div>
-    <div class="note">Babies' need = both full feeds × 8 a day (by mouth + tube). NICU stock = milk dropped off minus that need since then — an estimate; set the real count when the nurses tell you.</div></div>
+    <div class="note">Babies' need = both full feeds × 8 a day (by mouth + tube). NICU stock = milk dropped off minus each baby's full feed at every feed time since — an estimate; set the real count when the nurses tell you.</div></div>
   <div class="card"><h2>Log pumping</h2>
     <div class="mkrow"><div class="box"><input id="pmV" type="number" inputmode="decimal" min="0" step="any" placeholder="—" aria-label="Pumped mL"><span>mL</span></div><button class="btn save" id="pmGo">Save</button></div>
     <label class="f" style="margin-top:8px">When<input id="pmT" type="datetime-local"></label></div>
@@ -865,7 +865,21 @@
     const drops=[...D].sort((a,b)=>a.t-b.t); if(!base && !drops.length) return null;
     const start = base ? base.t : drops[0].t;
     const added = drops.filter(d=> base ? d.t>start : true).reduce((a,d)=>a+d.v,0);
-    return Math.max(0, (base?base.count:0) + added - need()*(now-start)/DAY);
+    return Math.max(0, (base?base.count:0) + added - usedSince(start,now));
+  }
+  // Each scheduled feed uses that baby's full feed (by mouth + tube), taken out at the feed time.
+  function usedSince(start,end){
+    let used=0, day=feedDay(start); const last=feedDay(end);
+    for(let guard=0; day<=last && guard<400; guard++){
+      TWINS.forEach(tw=>SLOT_H.forEach((_,i)=>{ const t=slotT(tw,day,i); if(t>start && t<=end) used+=FULL[tw]; }));
+      const d=keyDate(day); d.setDate(d.getDate()+1); day=dKey(d);
+    }
+    return used;
+  }
+  function nextUse(){ // next feed time that draws on the stock, and how much
+    const now=Date.now(), day=feedDay(now), d=keyDate(day); d.setDate(d.getDate()+1);
+    const slots=[day,dKey(d)].flatMap(k=>TWINS.flatMap(tw=>SLOT_H.map((_,i)=>({tw,t:slotT(tw,k,i)})))).filter(x=>x.t>now).sort((a,b)=>a.t-b.t);
+    return slots.length ? {t:slots[0].t, tw:slots[0].tw, ml:FULL[slots[0].tw]} : null;
   }
   const ago = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`; };
   function renderMilk(){
@@ -883,7 +897,7 @@
         <div class="bar"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div><div class="s">${pct}% of what they drink · ${p24.length} sessions</div></div>
       <div class="stat"><div class="k">Last pump</div><div class="v">${last?ago(last.t):"—"}</div><div class="s">${last?`${last.v} mL at ${hm(last.t)}`:"none logged yet"}</div></div>
       <div class="stat"><div class="k">NICU stock (est.)</div><div class="v ${st!=null&&st<n?"low":""}">${st==null?"—":Math.round(st)+" mL"}</div>
-        <div class="s">${st==null?"log a drop-off to start":`≈ ${(st/n).toFixed(1)} days of feeds`}</div></div>
+        <div class="s">${st==null?"log a drop-off to start":`≈ ${(st/n).toFixed(1)} days of feeds${(u=>u?` · next −${u.ml} at ${hm(u.t)}`:"")(nextUse())}`}</div></div>
       <div class="stat"><div class="k">7-day average</div><div class="v">${avg7==null?"—":Math.round(avg7)+" mL"}</div><div class="s">${avg7==null?"needs a full day logged":`${Math.round(avg7/n*100)}% of daily need`}</div></div>`;
     // log
     const rows=[...P.map(x=>({...x,kind:"pump"})), ...D.map(x=>({...x,kind:"drop"}))].sort((a,b)=>b.t-a.t);
