@@ -51,7 +51,8 @@
   .tabbar button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;min-height:54px;cursor:pointer;border-radius:10px}
   .tabbar button.on{color:var(--text)}
   .tabbar button.on svg{stroke-width:2.4}
-  .nx{display:grid;grid-template-columns:1fr 140px;gap:8px 12px;align-items:center;padding:6px 0 6px 12px;border-left:6px solid var(--c);border-radius:4px}
+  #nextCard,.mkcard{container-type:inline-size}
+  .nx{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:8px 12px;align-items:center;padding:6px 0 6px 12px;border-left:6px solid var(--c);border-radius:4px}
   .nx + .nx{border-top:1px solid var(--grid);margin-top:10px;padding-top:12px}
   .nx .who{font-size:19px;font-weight:700;color:var(--c)}
   :root[data-theme="night"] .nx .who{color:var(--text)}
@@ -65,7 +66,7 @@
   .nx.saving input{opacity:.4}
   .nx .ok{grid-column:1/-1;font-size:15px;font-weight:650;color:var(--text)}
   .nx .save{height:48px;font-size:17px;width:100%}
-  .nx .quick{display:flex;gap:6px;flex-wrap:nowrap}
+  .nx .quick{display:flex;gap:6px;flex-wrap:wrap}
   .nx .quick .chip{padding:0 10px;white-space:nowrap}
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
   .swatches button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;background:var(--sw);cursor:pointer;outline-offset:2px}
@@ -93,6 +94,15 @@
   .home .y{color:#2f9e44;font-weight:700} .home .n{color:var(--muted);font-weight:700}
   :root[data-theme="night"] .home .y{color:var(--text)}
   .notebtn{background:none;border:0;color:var(--text2);font:inherit;font-size:13px;text-align:left;cursor:pointer;padding:6px 0;min-height:32px;text-decoration:underline dotted}
+  /* Large text (A+/A++) narrows the card: stack the box and Save under the name */
+  @container (max-width: 340px){
+    .nx{grid-template-columns:minmax(0,1fr)} .nx .box{width:100%} .nx .save{width:100%}
+  }
+  .prefs{display:grid;gap:10px}
+  .pr{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px}
+  .fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:7;border:0;border-radius:999px;background:var(--accent);color:var(--bg);
+    font:inherit;font-size:17px;font-weight:700;min-height:56px;padding:0 22px;box-shadow:0 6px 18px rgba(0,0,0,.28);cursor:pointer;display:none}
+  .fab.on{display:block}
   .chip{border:1px solid var(--field);background:transparent;color:var(--text);border-radius:999px;padding:0 12px;min-height:40px;font:inherit;font-size:14px;cursor:pointer}
   .chip.warn{border-color:var(--danger);color:var(--danger);font-weight:600}
   .nx .missed{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--danger);font-weight:600}
@@ -190,19 +200,21 @@
     <div class="form" style="margin-top:12px">
       <label class="f full">Birth date<input id="suBorn" type="date"></label>
       <label class="f full">Gestational age at birth (optional)<input id="suGA" type="text" placeholder="e.g. 36w0d"></label>
+      <label class="f">Feeds every<select id="suEvery" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="2">2 hours</option><option value="3">3 hours</option><option value="4">4 hours</option></select></label>
+      <label class="f">Feed day starts<select id="suStart" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option><option value="3">3 AM</option><option value="4">4 AM</option><option value="5">5 AM</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option><option value="11">11 AM</option><option value="12">12 PM</option></select></label>
       <div class="full" style="margin-top:6px;font-weight:650"><span class="dot" style="background:var(--t0)"></span>Baby A</div>
       <label class="f">Name<input id="suN0" type="text"></label>
       <label class="f">Birth time<input id="suT0" type="time"></label>
       <label class="f">Birth weight (g)<input id="suW0" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF0" type="number" inputmode="decimal" placeholder="auto"></label>
-      <label class="f full">Feed times<select id="suM0" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">8, 11, 2, 5 on the hour</option><option value="30">8:30, 11:30, 2:30, 5:30</option></select></label>
+      <label class="f full">Feed times<select id="suM0" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
       <div class="f full">Color<div class="swatches" id="suC0" role="radiogroup" aria-label="Color"></div></div>
 <div class="full" style="margin-top:6px;font-weight:650"><span class="dot" style="background:var(--t1)"></span>Baby B</div>
       <label class="f">Name<input id="suN1" type="text"></label>
       <label class="f">Birth time<input id="suT1" type="time"></label>
       <label class="f">Birth weight (g)<input id="suW1" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF1" type="number" inputmode="decimal" placeholder="auto"></label>
-      <label class="f full">Feed times<select id="suM1" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">8, 11, 2, 5 on the hour</option><option value="30">8:30, 11:30, 2:30, 5:30</option></select></label>
+      <label class="f full">Feed times<select id="suM1" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
       <div class="f full">Color<div class="swatches" id="suC1" role="radiogroup" aria-label="Color"></div></div>
       <div class="full row"><button class="btn" id="suSave">Save</button><button class="btn ghost" id="suCancel" style="display:none">Cancel</button><span class="msg" id="suMsg"></span></div>
     </div>
@@ -283,7 +295,7 @@
   <div class="card">
     <h2>Daily PO, % of full-feed goal</h2>
     <div class="chartbox"><canvas id="cDaily" aria-label="Daily PO total as percent of goal" role="img"></canvas></div>
-    <div class="note">Goal = 8 full feeds/day<span id="goalNote"></span>. Days run 8 AM–8 AM; today's bar is partial.</div>
+    <div class="note">Goal = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
   </div>
   </section>
 
@@ -319,12 +331,22 @@
     <label class="f">Your name on entries (this phone's account)<input id="myName" type="text" maxlength="20" placeholder="e.g. Dad"></label>
     <div class="note" style="margin-top:4px">Shown next to feeds and milk you log, and in the alert the other phone gets.</div>
   </div>
+  <div class="card"><h2>This phone</h2>
+    <div class="prefs">
+      <div class="pr"><span>Weights shown in</span><div class="seg small" id="pfUnits"><button data-v="g">grams</button><button data-v="lb">lb / oz</button></div></div>
+      <div class="pr"><span>Time</span><div class="seg small" id="pfClock"><button data-v="12">2:30p</button><button data-v="24">14:30</button></div></div>
+      <div class="pr"><span>Text size</span><div class="seg small" id="pfText"><button data-v="1">A</button><button data-v="1.15">A+</button><button data-v="1.3">A++</button></div></div>
+      <div class="pr"><span>Night mode</span><div class="seg small" id="pfNight"><button data-v="manual">Moon button</button><button data-v="auto">9 PM–7 AM</button></div></div>
+    </div>
+    <div class="note">Only affects this phone. Weights are still entered in grams, like the NICU charts them.</div>
+  </div>
   <div class="card">
   <div class="sub" id="subtitle"></div>
     <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button><span><span class="msg" id="who" style="font-size:12px"></span> <button class="link" id="signOut">Sign out</button></span></div>
   </div>
   <div class="note">Tracking aid only — the NICU team's charting and targets are the source of truth.</div>
   </section>
+<button class="fab" id="fab" aria-label="Log a feed">+ Log feed</button>
 <nav class="tabbar" id="tabbar" aria-label="Screens">
   <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><path d="M9 2h6M10 2v3.5c0 .8-.6 1.3-1.2 1.8C7.6 8.3 7 9.6 7 11v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9c0-1.4-.6-2.7-1.8-3.7-.6-.5-1.2-1-1.2-1.8V2M7 13h10"/></svg><span>Feed</span></button>
   <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Weight</span></button>
@@ -342,7 +364,7 @@
   let BIRTH = {A:{g:NaN,t:0}, B:{g:NaN,t:0}};
   let FULL = {A:NaN, B:NaN};                   // mL per feed (default 150 mL/kg/day × birth wt ÷ 8)
   let SLOT_M = {A:0, B:30};
-  const FEEDS_PER_DAY = 8;
+  let FEEDS_PER_DAY = 8;              // set from profile.schedule (24 ÷ feed interval)
   let FIRST_NIGHT = new Date();
   const DAY = 864e5;
 
@@ -368,7 +390,14 @@
   const nightT = k => { const d=keyDate(k); d.setHours(20,0,0,0); return d.getTime(); };
   const md = k => { const d=keyDate(k); return `${d.getMonth()+1}/${d.getDate()}`; };
   const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  const fmtWhen = t => { const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  // Per-phone display preferences (localStorage; never synced)
+  const PREF = (()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem("prefs")||"{}")||{}; }catch{} return {units:"g",clock:"12",text:"1",night:"manual",...p}; })();
+  const savePrefs = () => { try{ localStorage.setItem("prefs",JSON.stringify(PREF)); }catch{} };
+  const clock = (h,m,short) => PREF.clock==="24" ? `${pad(h)}:${pad(m)}` : `${h%12||12}${m||!short?":"+pad(m):""}${short?(h<12?"a":"p"):(h<12?" AM":" PM")}`;
+  const hmH = h => PREF.clock==="24" ? clock(h%24,0,false) : clock(h%24,0,false).replace(":00","");
+  const fmtWhen = t => { const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${clock(d.getHours(),d.getMinutes(),true)}`; };
+  const wtMain = g => PREF.units==="lb" ? lbOz(g) : `${fmtG(g)} g`;       // entry stays in grams (matches the NICU)
+  const wtSub  = g => PREF.units==="lb" ? `${fmtG(g)} g` : lbOz(g);
   const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const sgn = n => (n>0?"+":n<0?"−":"±") + Math.abs(Math.round(n));
 
@@ -415,7 +444,7 @@
     const C=COLORS();
     $("tiles").innerHTML = shown().map(tw=>{
       const m=metrics(tw);
-      const wt = m.cur ? `<div class="v">${fmtG(m.cur.v)} g${m.cur.approx?' <span class="muted" style="font-size:13px">≈</span>':""}</div><div class="s">${lbOz(m.cur.v)} · night of ${md(m.cur.date)}</div>` : `<div class="v">—</div>`;
+      const wt = m.cur ? `<div class="v">${wtMain(m.cur.v)}${m.cur.approx?' <span class="muted" style="font-size:13px">≈</span>':""}</div><div class="s">${wtSub(m.cur.v)} · night of ${md(m.cur.date)}</div>` : `<div class="v">—</div>`;
       const dl = m.cur ? `<div class="v">${sgn(m.delta)} g</div><div class="s">${m.prev?`vs ${md(m.prev.date)} (${fmtG(m.prev.v)} g)`:"vs birth"}</div>` : `<div class="v">—</div>`;
       const vb = m.cur ? `<div class="v">${m.pct>=0?"+":"−"}${Math.abs(m.pct).toFixed(1)}%</div><div class="s">${m.cur.v<BIRTH[tw].g?`${fmtG(BIRTH[tw].g-m.cur.v)} g to regain`:"back to birth weight"}${m.gain!=null?` · ${sgn(m.gain)} g/day = ${m.gain>=0?"+":"−"}${Math.abs(m.gain/(m.cur.v/1000)).toFixed(1)} g/kg/day (3-night trend)`:""}</div>` : `<div class="v">—</div>`;
       const po = `<div class="v">${Math.round(m.po24)} <span style="font-size:13px;font-weight:500" class="muted">/ ${m.goal} mL</span></div>
@@ -447,6 +476,18 @@
       }};
   }
   function draw(id,cfg){ if(typeof Chart==="undefined" || !$(id).closest(".tab.on")) return; charts[id]?.destroy(); charts[id]=new Chart($(id),cfg); }
+  // Where the diet stamped on feeds changes (e.g. 22 → 24 kcal), as [{x, text}]
+  function dietChanges(){ const f=[...F].filter(x=>x.diet).sort((a,b)=>a.t-b.t), out=[];
+    for(let k=1;k<f.length;k++) if(f[k].diet!==f[k-1].diet && !out.some(o=>Math.abs(o.x-f[k].t)<3600e3)) out.push({x:f[k].t,text:f[k].diet});
+    return out; }
+  function vLine(marks){
+    return {id:"vl", afterDatasetsDraw(c){ const a=c.chartArea, g=c.ctx, sx=c.scales.x; g.save();
+      marks.forEach((m,k)=>{ const x=sx.getPixelForValue(m.x); if(!(x>=a.left&&x<=a.right)) return;
+        g.strokeStyle=css("--text2"); g.globalAlpha=.7; g.setLineDash([2,3]); g.lineWidth=1.5; g.beginPath(); g.moveTo(x,a.top); g.lineTo(x,a.bottom); g.stroke();
+        g.globalAlpha=1; g.setLineDash([]); g.fillStyle=css("--text2"); g.font="600 11px -apple-system,sans-serif";
+        const t=m.text.length>26?m.text.slice(0,25)+"…":m.text, w=g.measureText(t).width; g.fillText(t, Math.min(x+4,a.right-w), a.top+12+(k%2)*13); });
+      g.restore(); }};
+  }
   function hLine(lines){ // [{y,color,label}]
     return {id:"hl", afterDatasetsDraw(c){
       const a=c.chartArea, g=c.ctx; g.save();
@@ -463,12 +504,12 @@
     const ds = shown().map(tw=>{
       const b=BIRTH[tw];
       const pts=[{x:b.t, g:b.g, approx:false, lbl:"birth"}].concat(wSeries(tw).map(w=>({x:nightT(w.date), g:w.v, approx:w.approx})));
-      pts.forEach(p=>p.y = pct ? +(p.g/b.g*100).toFixed(1) : p.g);
+      pts.forEach(p=>p.y = pct ? +(p.g/b.g*100).toFixed(1) : PREF.units==="lb" ? +(p.g/453.592).toFixed(3) : p.g);
       return {label:tw, data:pts, borderColor:C[tw], backgroundColor:C[tw], borderWidth:2, tension:0, spanGaps:true,
         pointRadius:4.5, pointHoverRadius:7, pointBorderWidth:2, pointBorderColor:C[tw],
         pointBackgroundColor:pts.map(p=>p.approx?surf:C[tw])};
     });
-    const o=baseOpts(pct?"% of birth weight":"grams");
+    const o=baseOpts(pct?"% of birth weight":PREF.units==="lb"?"pounds":"grams");
     o.plugins.tooltip={callbacks:{
       title:it=>fmtWhen(it[0].raw.x),
       label:it=>`${it.dataset.label}${it.raw.lbl?" (birth)":""}: ${fmtG(it.raw.g)} g · ${lbOz(it.raw.g)}${pct?` · ${it.raw.y}%`:""}${it.raw.approx?" · est.":""}`}};
@@ -491,7 +532,7 @@
       label:it=>{const tw=it.dataset.tw; return it.dataset.type==="scatter"
         ? `${tw}: ${it.raw.y} mL (${Math.round(it.raw.y/FULL[tw]*100)}% of ${FULL[tw]})${it.raw.note?" · "+it.raw.note:""}${it.raw.diet?" · "+it.raw.diet:""}`
         : `${it.dataset.label}: ${it.raw.y} mL`;}}};
-    draw("cFeed",{type:"scatter",data:{datasets:ds},options:o,plugins:[hLine(show.map(tw=>({y:FULL[tw],color:C[tw],label:show.length===1?`full feed ${FULL[tw]} mL`:""})))]});
+    draw("cFeed",{type:"scatter",data:{datasets:ds},options:o,plugins:[vLine(dietChanges()),hLine(show.map(tw=>({y:FULL[tw],color:C[tw],label:show.length===1?`full feed ${FULL[tw]} mL`:""})))]});
   }
 
   function renderDaily(){
@@ -502,13 +543,14 @@
       return {label:tw, data:days.map(k=>tot[k]?Math.round(tot[k]/goal*100):0), ml:days.map(k=>Math.round(tot[k]||0)), goal,
         backgroundColor:C[tw], borderRadius:4, borderSkipped:"start", maxBarThickness:26};
     });
+    const dc=dietChanges().map(m=>({x:days.indexOf(feedDay(m.x)),text:m.text})).filter(m=>m.x>=0);
     const o=baseOpts("% of daily goal");
     o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted")}};
     o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=110;
     o.interaction={mode:"index",intersect:false};
     o.datasets={bar:{categoryPercentage:.7,barPercentage:.85}};
     o.plugins.tooltip={callbacks:{label:it=>`${it.dataset.label}: ${it.dataset.ml[it.dataIndex]} / ${it.dataset.goal} mL (${it.raw}%)`}};
-    draw("cDaily",{type:"bar",data:{labels:days.map(md),datasets:ds},options:o,plugins:[hLine([{y:100,color:css("--muted"),label:"goal"}])]});
+    draw("cDaily",{type:"bar",data:{labels:days.map(md),datasets:ds},options:o,plugins:[vLine(dc),hLine([{y:100,color:css("--muted"),label:"goal"}])]});
   }
 
   // ---------- weight grid ----------
@@ -557,11 +599,15 @@
 
   // ---------- feed slots ----------
   // Feed day starts 8 AM. Each baby feeds every 3 h from 8 AM, offset by her SLOT_M minutes.
-  const SLOT_H = [8,11,14,17,20,23,26,29];
-  const DAY_START_H = 8;
+  let SLOT_H = [8,11,14,17,20,23,26,29];   // hours from the feed-day's midnight; >24 = next morning
+  let DAY_START_H = 8;
+  function setSchedule(everyH,startH){
+    everyH=[2,3,4].includes(+everyH)?+everyH:3; startH=Number.isInteger(+startH)&&+startH>=0&&+startH<=12?+startH:8;
+    DAY_START_H=startH; FEEDS_PER_DAY=24/everyH; SLOT_H=[...Array(FEEDS_PER_DAY)].map((_,k)=>startH+k*everyH);
+  }
   const feedDay = t => { const d=new Date(t); if(d.getHours()<DAY_START_H) d.setDate(d.getDate()-1); return dKey(d); };
   const slotT = (tw,day,i) => { const d=keyDate(day); d.setHours(SLOT_H[i], SLOT_M[tw], 0, 0); return d.getTime(); };
-  const hm = t => { const d=new Date(t); let h=d.getHours(), m=d.getMinutes(); const ap=h<12?"a":"p"; h=h%12||12; return `${h}${m?":"+pad(m):""}${ap}`; };
+  const hm = t => { const d=new Date(t); return clock(d.getHours(),d.getMinutes(),true); };
   function slotFeed(tw,day,i){ // exact slot, else a stray feed within ±90 min (e.g. imported)
     const t=slotT(tw,day,i);
     return F.find(f=>f.twin===tw && f.t===t) || F.find(f=>f.twin===tw && Math.abs(f.t-t)<90*60e3);
@@ -576,7 +622,7 @@
     $("dNext").disabled = state.day>=today;
     $("sheet").innerHTML = shown().map(tw=>{
       const ti=TWINS.indexOf(tw); let tot=0, n=0, due=-1;
-      if(state.day===today){ for(let i=0;i<8;i++){ if(slotT(tw,state.day,i)<=now+20*60e3 && !slotFeed(tw,state.day,i)) due=i; } }
+      if(state.day===today){ for(let i=0;i<SLOT_H.length;i++){ if(slotT(tw,state.day,i)<=now+20*60e3 && !slotFeed(tw,state.day,i)) due=i; } }
       const cells = SLOT_H.map((_,i)=>{
         const t=slotT(tw,state.day,i), f=slotFeed(tw,state.day,i);
         if(f){ tot+=f.v; n++; }
@@ -587,7 +633,7 @@
       }).join("");
       const goal=FULL[tw]*FEEDS_PER_DAY;
       return `<div class="tw" style="--c:${C[tw]}"><div class="twh"><span><span class="dot" style="background:${C[tw]}"></span><b>${esc(tw)}</b> <span class="muted">full ${FULL[tw]} mL</span></span>
-        <span>${Math.round(tot)} / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b> <span class="muted">(${n}/8)</span></span></div>
+        <span>${Math.round(tot)} / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b> <span class="muted">(${n}/${SLOT_H.length})</span></span></div>
         <div class="slots">${cells}</div></div>`;
     }).join("");
   }
@@ -705,6 +751,7 @@
   let lastToday=null;   // if the sheet was on "today", roll it over at 8 AM instead of going stale
   setInterval(()=>{ if(document.hidden || TWINS[0]==="A") return;
     const t=feedDay(Date.now()); if(lastToday && t!==lastToday && state.day===lastToday){ state.day=t; renderSheet(); }
+    if(PREF.night==="auto" && (document.documentElement.dataset.theme==="night")!==nightDue()){ setNight(nightDue()); renderAll(); }
     lastToday=t; renderNext(); if($("mkStats").closest(".tab.on")) renderMilk(); },60e3);
 
   // ---------- tabs & night mode (remembered per device) ----------
@@ -715,9 +762,16 @@
     document.querySelectorAll("#tabbar button").forEach(b=>{ b.classList.toggle("on",b.dataset.tab===name); b.toggleAttribute("aria-current",b.dataset.tab===name); if(b.dataset.tab===name) b.setAttribute("aria-current","page"); });
     store.set("tab",name); scrollTo(0,0);
     document.querySelector(".viewbar").style.display = name==="milk" ? "none" : "";
+    updateFab();
     if(name==="milk") ["pmT","dpT"].forEach(id=>{ if(document.activeElement!==$(id)) $(id).value=toLocalInput(new Date()); });
     if(TWINS[0]!=="A") renderAll();        // charts can only be measured while visible
   }
+  // Floating "+ Log feed": on other screens, or once the Next-feed box has scrolled out of reach.
+  function updateFab(){ const onFeed=$("next").closest(".tab.on"), r=$("nextCard").getBoundingClientRect();
+    $("fab").classList.toggle("on", !onFeed || r.bottom<80); }
+  addEventListener("scroll",updateFab,{passive:true});
+  $("fab").addEventListener("click",()=>{ if(!$("next").closest(".tab.on")) showTab("feed"); scrollTo({top:0,behavior:"smooth"});
+    setTimeout(()=>{ const inp=$("next").querySelector(".nx.due input")||$("next").querySelector("input"); inp&&inp.focus(); },350); });
   $("tabbar").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) showTab(b.dataset.tab); });
   function setNight(on){
     if(on) document.documentElement.dataset.theme="night"; else delete document.documentElement.dataset.theme;
@@ -725,8 +779,22 @@
     document.querySelector('meta[name="theme-color"]').content = on ? "#000000" : "#1a1a19";
     store.set("night",on?"1":"0"); applyColors();
   }
-  $("nightBtn").addEventListener("click",()=>{ setNight(document.documentElement.dataset.theme!=="night"); if(TWINS[0]!=="A") renderAll(); });
-  setNight(store.get("night")==="1");
+  $("nightBtn").addEventListener("click",()=>{
+    if(PREF.night==="auto"){ PREF.night="manual"; savePrefs(); [...$("pfNight").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v==="manual"); b.setAttribute("aria-pressed",b.dataset.v==="manual"?"true":"false"); }); }
+    setNight(document.documentElement.dataset.theme!=="night"); if(TWINS[0]!=="A") renderAll(); });
+  function applyText(){ document.documentElement.style.zoom = PREF.text==="1" ? "" : PREF.text; }
+  function nightDue(){ const h=new Date().getHours(); return h>=21 || h<7; }
+  function prefSeg(id,key,after){
+    const el=$(id); [...el.children].forEach(b=>{ b.classList.toggle("on",b.dataset.v===PREF[key]); b.setAttribute("aria-pressed",b.dataset.v===PREF[key]?"true":"false"); });
+    el.addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; PREF[key]=b.dataset.v; savePrefs();
+      [...el.children].forEach(x=>{ x.classList.toggle("on",x===b); x.setAttribute("aria-pressed",x===b?"true":"false"); }); after&&after(); });
+  }
+  prefSeg("pfUnits","units",()=>TWINS[0]!=="A"&&renderAll());
+  prefSeg("pfClock","clock",()=>{ if(TWINS[0]!=="A"&&profile) applyProfile(profile); TWINS[0]!=="A"&&renderAll(); });
+  prefSeg("pfText","text",applyText);
+  prefSeg("pfNight","night",()=>{ if(PREF.night==="auto") setNight(nightDue()); });
+  applyText();
+  setNight(PREF.night==="auto" ? nightDue() : store.get("night")==="1");
   showTab(store.get("tab")||"feed");
   const shiftDay=n=>{ const d=keyDate(state.day); d.setDate(d.getDate()+n); const k=dKey(d), today=feedDay(Date.now()); if(k>today||k<dKey(FIRST_NIGHT)) return; state.day=k; sheetDirty=false; renderSheet(); };
   $("dPrev").addEventListener("click",()=>shiftDay(-1));
@@ -848,7 +916,7 @@
       const evDays = ev ? Math.floor((now-ev.t)/DAY) : null;
       const li=(ok,html)=>`<li><span class="${ok?"y":"n"}" aria-label="${ok?"met":"not yet"}">${ok?"✓":"○"}</span><span>${html}</span></li>`;
       return `<div class="home" style="--c:${COLORS()[tw]}"><h3>${esc(tw)}</h3><ul>
-        ${li(streak>=8, `<b>${streak}</b> full feed${streak===1?"":"s"} by mouth in a row <span class="muted">(${full} mL each)</span>`)}
+        ${li(streak>=FEEDS_PER_DAY, `<b>${streak}</b> full feed${streak===1?"":"s"} by mouth in a row <span class="muted">(${full} mL each)</span>`)}
         ${li(p24>=100, `By mouth: <b>${p24}%</b> last 24 h · <b>${p48}%</b> last 48 h`)}
         ${li(gkg!=null&&gkg>=10, gkg==null?"Weight trend: needs 2+ nights":`Gaining <b>${gkg>=0?"+":"−"}${Math.abs(gkg).toFixed(1)}</b> g/kg/day <span class="muted">(3 nights)</span>`)}
         ${li(m.cur&&m.cur.v>=BIRTH[tw].g, m.cur?(m.cur.v>=BIRTH[tw].g?"Back to birth weight":`<b>${fmtG(BIRTH[tw].g-m.cur.v)} g</b> to birth weight`):"No weights yet")}
@@ -989,13 +1057,14 @@
   function applyProfile(p){
     profile=p; const tw=p.twins;
     TWINS=[tw[0].name, tw[1].name];
+    setSchedule(p.schedule&&p.schedule.everyH, p.schedule&&p.schedule.startH);
     COLOR_KEY=[tw[0].color||"blue", tw[1].color||"orange"]; applyColors();
     const [y,m,d]=p.born.split("-").map(Number);
     FIRST_NIGHT=new Date(y,m-1,d);
     BIRTH={}; FULL={}; SLOT_M={};
     tw.forEach(t=>{ const [hh,mm]=(t.birthTime||"00:00").split(":").map(Number);
       BIRTH[t.name]={g:+t.birthG, t:new Date(y,m-1,d,hh,mm).getTime()};
-      FULL[t.name]= +t.fullMl || Math.round(150*t.birthG/1000/8);
+      FULL[t.name]= +t.fullMl || Math.round(150*t.birthG/1000/FEEDS_PER_DAY);
       SLOT_M[t.name]= +t.slotMin===30?30:0; });
     const fmtT=t=>new Date(t).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
     $("title").textContent=`${TWINS[0]} & ${TWINS[1]}`;
@@ -1005,6 +1074,7 @@
     document.querySelectorAll(".nm1").forEach(e=>e.textContent=TWINS[1]);
     restoreView();
     $("fullLegend").textContent=`- - full feed (${TWINS.map(n=>`${n} ${FULL[n]}`).join(" · ")} mL)`;
+    $("goalFeeds").textContent=FEEDS_PER_DAY; $("dayRun").textContent=`${hmH(DAY_START_H)}–${hmH(DAY_START_H)}`;
     $("goalNote").textContent=`: ${TWINS.map(n=>`${n} ${FULL[n]*FEEDS_PER_DAY} mL`).join(", ")}`;
     state.day=feedDay(Date.now());
   }
@@ -1018,6 +1088,7 @@
     $("suCancel").style.display=editing?"":"none"; $("suMsg").textContent="";
     const p=profile;
     $("suBorn").value=p?p.born:""; $("suGA").value=p?p.ga||"":"";
+    $("suEvery").value=String(p&&p.schedule&&p.schedule.everyH||3); $("suStart").value=String(p&&p.schedule&&p.schedule.startH!=null?p.schedule.startH:8);
     [0,1].forEach(i=>{ const t=p?p.twins[i]:null;
       $("suN"+i).value=t?t.name:""; $("suT"+i).value=t?t.birthTime||"":""; $("suW"+i).value=t?t.birthG:"";
       $("suF"+i).value=t&&t.fullMl?t.fullMl:""; $("suM"+i).value=t?String(t.slotMin||0):(i?"30":"0"); swatches(i, t&&t.color || (i?"orange":"blue")); });
@@ -1028,7 +1099,7 @@
   $("editProfile").addEventListener("click",()=>showSetup(true));
   $("suCancel").addEventListener("click",hideSetup);
   $("suSave").addEventListener("click", async ()=>{
-    const p={born:$("suBorn").value, ga:$("suGA").value.trim().slice(0,20), twins:[0,1].map(i=>({
+    const p={born:$("suBorn").value, ga:$("suGA").value.trim().slice(0,20), schedule:{everyH:+$("suEvery").value, startH:+$("suStart").value}, twins:[0,1].map(i=>({
       name:$("suN"+i).value.trim().slice(0,30), birthTime:$("suT"+i).value||"00:00",
       birthG:Math.round(+$("suW"+i).value), fullMl:+$("suF"+i).value||null, slotMin:+$("suM"+i).value, color:$("suC"+i).querySelector('[aria-checked="true"]')?.dataset.k||(i?"orange":"blue")}))};
     if(!validProfile(p)){ $("suMsg").textContent="Need a birth date, two different names and both birth weights."; return; }
