@@ -689,13 +689,18 @@
   });
   $("signOut").addEventListener("click", ()=>Store && Store.signOut());
 
+  let rawW=[], rawF=[];
+  function rebuild(){ // (re)filter raw docs against the current names
+    W={}; rawW.forEach(([id,d])=>{const w=cleanW(d); if(w) W[w.twin+"|"+w.date]=w;});
+    F=rawF.map(([id,d])=>cleanF(id,d)).filter(Boolean);
+  }
   function startData(){
     unsubs.forEach(u=>u()); unsubs=[];
     let pending=2; const timer=setTimeout(()=>banner("Offline — showing saved data. New entries will sync when you're back online."),8000);
     const done=meta=>{ if(!meta.fromCache && --pending<=0){ clearTimeout(timer); banner(""); } };
     const fail=err=>{ clearTimeout(timer); console.error(err); banner(String(err&&err.code||"").includes("permission")?"This account doesn't have access. Add its email to the allowlist in the Firestore rules.":"Sync stopped — reopen the app to reconnect."); };
-    unsubs.push(Store.watchWeights((list,meta)=>{ W={}; list.forEach(([id,d])=>{const w=cleanW(d); if(w) W[w.twin+"|"+w.date]=w;}); done(meta); renderAll(); }, fail));
-    unsubs.push(Store.watchFeeds((list,meta)=>{ F=list.map(([id,d])=>cleanF(id,d)).filter(Boolean); done(meta); renderAll(); }, fail));
+    unsubs.push(Store.watchWeights((list,meta)=>{ rawW=list; rebuild(); done(meta); renderAll(); }, fail));
+    unsubs.push(Store.watchFeeds((list,meta)=>{ rawF=list; rebuild(); done(meta); renderAll(); }, fail));
     unsubs.push(Store.watchDiet(t=>{ if(typeof t==="string" && document.activeElement!==$("diet")) $("diet").value=t.slice(0,120); }, ()=>{}));
   }
   // ---------- profile (private) ----------
@@ -743,10 +748,25 @@
       name:$("suN"+i).value.trim().slice(0,30), birthTime:$("suT"+i).value||"00:00",
       birthG:Math.round(+$("suW"+i).value), fullMl:+$("suF"+i).value||null, slotMin:+$("suM"+i).value}))};
     if(!validProfile(p)){ $("suMsg").textContent="Need a birth date, two different names and both birth weights."; return; }
-    if(profile && TWINS.join()!==p.twins.map(t=>t.name).join() && (F.length||Object.keys(W).length)){
-      $("suMsg").textContent="Names can't change once data is logged (entries are filed by name)."; return; }
+    const map={}; if(profile) TWINS.forEach((o,i)=>{ if(o!==p.twins[i].name) map[o]=p.twins[i].name; });
+    const ws=Object.values(W).filter(w=>map[w.twin]), fs=F.filter(f=>map[f.twin]);
+    if((ws.length||fs.length) && !confirm(`Rename ${Object.entries(map).map(([o,n])=>`“${o}” → “${n}”`).join(" and ")}?\n\nThis moves ${ws.length} weights and ${fs.length} feeds to the new names. Keep the app open until it says done.`)) return;
     $("suSave").disabled=true;
-    try{ await Store.setProfile(p); }catch(err){ failWrite(err); }
+    try{
+      if(ws.length||fs.length){
+        $("suMsg").textContent="Renaming… copying entries";
+        await Promise.all([
+          ...ws.map(w=>Store.setWeight(`${map[w.twin]}-${w.date}`,{twin:map[w.twin],date:w.date,v:w.v,approx:w.approx})),
+          ...fs.map(f=>{ const rec={twin:map[f.twin],t:f.t,v:f.v,note:f.note,diet:f.diet}; return Store.setFeed(feedId(rec),rec); })]);
+        $("suMsg").textContent="Renaming… switching names";
+        await Store.setProfile(p);
+        $("suMsg").textContent="Renaming… cleaning up";
+        await Promise.all([...ws.map(w=>Store.delWeight(`${w.twin}-${w.date}`)), ...fs.map(f=>Store.delFeed(f.id))]);
+        try{ localStorage.removeItem("view"); }catch{}
+        $("suMsg").textContent="";
+        flash(`Renamed — ${ws.length} weights and ${fs.length} feeds moved.`);
+      } else await Store.setProfile(p);
+    }catch(err){ failWrite(err); $("suMsg").textContent="Rename stopped partway — tap Save again to finish (nothing is lost)."; }
     finally{ $("suSave").disabled=false; }
   });
 
@@ -760,10 +780,10 @@
         unProfile=Store.watchProfile(p=>{
           if(!validProfile(p)){ profile=null; showSetup(false); return; }
           applyProfile(p); hideSetup();
-          if(!dataStarted){ dataStarted=true; startData(); } else renderAll();
+          if(!dataStarted){ dataStarted=true; startData(); } else { rebuild(); renderAll(); }
         }, err=>{ console.error(err); banner("Couldn't load your setup — check the Firestore rules allowlist."); });
       } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[];
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[];
         $("setup").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
       }
     });
