@@ -34,7 +34,7 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
-  .wrap{max-width:960px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
+  .wrap{max-width:960px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(160px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
   #login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   #login .card{width:100%;max-width:360px}
   #login .f{margin-bottom:10px}
@@ -508,6 +508,15 @@
         y:{grid:{color:grid}, ticks:{color:muted}, title:{display:!!yTitle, text:yTitle, color:muted}}
       }};
   }
+  // Touch: a tapped point's callout closes on a tap elsewhere, on scroll, or after 5 s.
+  function hideTips(except){
+    Object.values(charts).forEach(c=>{ if(!c || c===except || !c.tooltip) return;
+      if(c.tooltip.getActiveElements().length || c.getActiveElements().length){ c.setActiveElements([]); c.tooltip.setActiveElements([],{x:0,y:0}); c.update("none"); } });
+  }
+  let tipTimer=null;
+  document.addEventListener("pointerdown",e=>{ const cv=e.target.closest&&e.target.closest("canvas"); hideTips(cv&&typeof Chart!=="undefined"?Chart.getChart(cv):null); },{passive:true});
+  document.addEventListener("pointerup",e=>{ if(!(e.target.closest&&e.target.closest("canvas"))) return; clearTimeout(tipTimer); tipTimer=setTimeout(()=>hideTips(),5000); },{passive:true});
+  addEventListener("scroll",()=>hideTips(),{passive:true});
   function draw(id,cfg){ if(typeof Chart==="undefined" || !$(id).closest(".tab.on")) return; charts[id]?.destroy(); charts[id]=new Chart($(id),cfg); }
   // Where the diet stamped on feeds changes (e.g. 22 → 24 kcal), as [{x, text}]
   function dietChanges(){ const f=[...F].filter(x=>x.diet).sort((a,b)=>a.t-b.t), out=[];
@@ -863,7 +872,8 @@
   }
   // Floating "+ Log feed": on other screens, or once the Next-feed box has scrolled out of reach.
   function updateFab(){ const onFeed=$("next").closest(".tab.on"), r=$("nextCard").getBoundingClientRect();
-    $("fab").classList.toggle("on", !onFeed || r.bottom<80); }
+    const tab=document.querySelector(".tab.on")?.dataset.tab;
+    $("fab").classList.toggle("on", tab!=="milk" && tab!=="more" && (!onFeed || r.bottom<80)); }
   addEventListener("scroll",updateFab,{passive:true});
   $("fab").addEventListener("click",()=>{ if(!$("next").closest(".tab.on")) showTab("feed"); scrollTo({top:0,behavior:"smooth"});
     setTimeout(()=>{ const inp=$("next").querySelector(".nx.due input")||$("next").querySelector("input"); inp&&inp.focus(); },350); });

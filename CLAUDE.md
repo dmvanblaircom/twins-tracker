@@ -32,7 +32,7 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - A feed arriving from the other parent (by ≠ me, within 3 h) flashes "<name> logged …".
 - Every save/delete shows an 8 s Undo bar. Amounts >130% of full feed or far from the recent average ask to confirm.
 - Per-phone prefs (localStorage `prefs`): units g|lb (display only; entry stays grams), clock 12|24, text size via CSS zoom (cards restack with container queries), night manual|auto 9 PM–7 AM.
-- Floating "+ Log feed" button on other tabs / when the Next card scrolls away. Diet changes (from feeds' `diet`) draw dotted markers on the PO and daily charts.
+- Floating "+ Log feed" button on Weight/Progress, or on Today once the Next card scrolls away (hidden on Milk/More). Chart callouts close on a tap elsewhere, on scroll, or after 5 s (`hideTips`). Diet changes (from feeds' `diet`) draw dotted markers on the PO and daily charts.
 - Charts render only when their tab is visible (`draw` skips hidden canvases; `showTab` re-renders).
 
 ## Domain rules
