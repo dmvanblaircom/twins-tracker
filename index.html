@@ -66,7 +66,8 @@
   .nx.saving input{opacity:.4}
   .nx .ok{grid-column:1/-1;font-size:15px;font-weight:650;color:var(--text)}
   .nx .save{height:48px;font-size:17px;width:100%}
-  .nx .quick{display:flex;gap:6px;flex-wrap:nowrap}
+  .nx .quick{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+  .nx .btn.full{height:48px;font-size:16px;font-weight:700;border:2px solid var(--c);color:var(--text);padding:0 8px;white-space:nowrap}
   @container (max-width: 290px){ .nx .quick{flex-wrap:wrap} }
   .nx .quick .chip{padding:0 9px;white-space:nowrap;font-size:13.5px}
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
@@ -691,7 +692,7 @@
   async function saveSlot(tw,day,i,inp,cell,opt={}){ // returns true when saved
     const raw = opt.v!=null ? String(opt.v) : inp.value.trim(), v=parseFloat(raw), old=slotFeed(tw,day,i), t=slotT(tw,day,i);
     if(raw!=="" && (!isFinite(v)||v<0||v>150)){ inp.value=old?old.v:""; flash("Enter mL for one feed (0–150)."); return false; }
-    if(raw!=="" && opt.note==null){ const warn=unusual(tw,t,v); if(warn && !confirm(warn)){ inp.value=old?old.v:""; return false; } }
+    if(raw!=="" && opt.note==null && !opt.full){ const warn=unusual(tw,t,v); if(warn && !confirm(warn)){ inp.value=old?old.v:""; return false; } }
     cell.classList.add("saving");
     try{
       if(raw===""){ if(!old) return false; await Store.delFeed(old.id); undoBar(`Cleared ${tw} · ${hm(t)}`, ()=>Store.setFeed(old.id,strip(old))); }
@@ -754,8 +755,9 @@
           <div class="when">${n.chosen?"Filling in":n.due?"Due":"Next"}: <b>${hm(n.t)}</b> feed</div>
           ${n.chosen?`<button class="link" data-act="back">← back to latest</button>`:""}</div>
         <div class="box"><input type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} placeholder="—" aria-label="${esc(tw)} mL at ${hm(n.t)}"><span>mL</span></div>
-        <div class="quick"><button class="chip" data-act="tube" ${canWrite?"":"disabled"}>All by tube</button><button class="chip" data-act="skip" ${canWrite?"":"disabled"}>Skipped</button></div>
+        <button class="btn ghost full" data-act="full" ${canWrite?"":"disabled"} aria-label="Log a full feed, ${FULL[tw]} mL">Full · ${FULL[tw]} mL</button>
         <button class="btn save" data-act="save" ${canWrite?"":"disabled"}>Save</button>
+        <div class="quick"><button class="chip" data-act="tube" ${canWrite?"":"disabled"}>All by tube</button><button class="chip" data-act="skip" ${canWrite?"":"disabled"}>Skipped</button></div>
         <div class="tags" role="group" aria-label="Notes for this feed">${TAGS.map(t=>`<button class="chip" data-act="tag" aria-pressed="false">${t}</button>`).join("")}</div>
         <div class="missed">${others.length?`Not logged:`+others.map(x=>`<button class="chip warn" data-act="pick" data-day="${x.day}" data-i="${x.i}" aria-label="Fill in ${hm(x.t)} feed">${hm(x.t)}</button>`).join(""):""}</div>
         <div class="last">${lastTxt}</div><div class="ok"></div>${tb}</div>`;
@@ -770,6 +772,8 @@
     const pts=vals.map((v,k)=>v==null?null:`${(k/(n-1||1))*(W_-6)+3},${y(v)}`).filter(Boolean);
     return `<svg viewBox="0 0 ${W_} ${H_}" aria-hidden="true"><polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>${pts.length?`<circle cx="${pts[pts.length-1].split(",")[0]}" cy="${pts[pts.length-1].split(",")[1]}" r="3.5" fill="${color}"/>`:""}</svg>`;
   }
+  function poPerKg(tw,hours=24){ const w=wSeries(tw).pop(); if(!w) return null; const now=Date.now();
+    const s=F.filter(f=>f.twin===tw && f.t<=now && f.t>now-hours*3600e3).reduce((a,f)=>a+f.v,0); return Math.round(s/(hours/24)/(w.v/1000)); }
   function todayBlock(tw){
     const C=COLORS(), day=feedDay(Date.now()), full=FULL[tw], goal=full*FEEDS_PER_DAY;
     const fd=F.filter(f=>f.twin===tw && feedDay(f.t)===day), po=fd.reduce((a,f)=>a+f.v,0), pct=Math.round(po/goal*100);
@@ -782,7 +786,7 @@
     const pcts=days.map(k=>{ const s=F.filter(f=>f.twin===tw && feedDay(f.t)===k); return s.length?Math.round(s.reduce((a,f)=>a+f.v,0)/goal*100):null; });
     const ws=wSeries(tw).slice(-7), last=ws[ws.length-1], first=ws[0];
     return `<div class="tday">
-      <div class="tsum">Today so far: <b>${fd.length}</b>/${past} feeds · <b>${Math.round(po)}</b> / ${goal} mL by mouth (<b>${pct}%</b>)
+      <div class="tsum">Today so far: <b>${fd.length}</b>/${past} feeds · <b>${Math.round(po)}</b> / ${goal} mL by mouth (<b>${pct}%</b>)${(k=>k!=null?` · last 24 h <b>${k}</b> mL/kg/day`:"")(poPerKg(tw))}
         <div class="bar"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div></div>
       <div class="twt">${wRow}</div>
       <div class="tplan">${(p=>p.today?`<span><b>Plan ${md(p.day)}:</b> ${esc(p.today.text)}</span><button class="link" data-act="plan">edit</button>`
@@ -817,7 +821,8 @@
     const tags=[...row.querySelectorAll('.tags [aria-pressed="true"]')].map(b=>b.textContent);
     const ok=await saveSlot(tw,day,i,inp,row,{...(opt||{}),tags});
     if(ok){ inp.blur(); delete nextPick[tw];
-      row.querySelector(".ok").textContent=`✓ ${tw} · ${hm(slotT(tw,day,i))} · ${opt?opt.note.toLowerCase():inp.value+" mL"}${tags.length?" · "+tags.join(", "):""}`;
+      const what = opt&&opt.note ? opt.note.toLowerCase() : `${opt&&opt.v!=null?opt.v:inp.value} mL${opt&&opt.v!=null?" (full)":""}`;
+      row.querySelector(".ok").textContent=`✓ ${tw} · ${hm(slotT(tw,day,i))} · ${what}${tags.length?" · "+tags.join(", "):""}`;
       inp.value=""; row.querySelectorAll(".tags button").forEach(b=>b.setAttribute("aria-pressed","false")); }   // saved: a clear card can move on to the next feed
     setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?2500:0);
   }
@@ -830,6 +835,7 @@
     if(act==="plan"){ editPlan(tw); return; }
     if(act==="gohome"){ showTab("trends"); return; }
     if(act==="save") nextSave(row);
+    else if(act==="full") nextSave(row,{v:FULL[tw],full:true});
     else if(act==="tube") nextSave(row,{v:0,note:"All by tube"});
     else if(act==="skip") nextSave(row,{v:0,note:"Skipped"});
     else if(act==="pick"){ nextPick[tw]={day:b.dataset.day,i:+b.dataset.i}; renderNext(); }
@@ -1006,7 +1012,7 @@
       const li=(ok,html)=>`<li><span class="${ok?"y":"n"}" aria-label="${ok?"met":"not yet"}">${ok?"✓":"○"}</span><span>${html}</span></li>`;
       return `<div class="home" style="--c:${COLORS()[tw]}"><h3>${esc(tw)}</h3><ul>
         ${li(streak>=FEEDS_PER_DAY, `<b>${streak}</b> full feed${streak===1?"":"s"} by mouth in a row <span class="muted">(${full} mL each)</span>`)}
-        ${li(p24>=100, `By mouth: <b>${p24}%</b> last 24 h · <b>${p48}%</b> last 48 h`)}
+        ${li(p24>=100, `By mouth: <b>${p24}%</b> last 24 h · <b>${p48}%</b> last 48 h${(k=>k!=null?` · <b>${k}</b> mL/kg/day <span class="muted">(24 h, at ${fmtG(m.cur.v)} g)</span>`:"")(poPerKg(tw))}`)}
         ${li(gkg!=null&&gkg>=10, gkg==null?"Weight trend: needs 2+ nights":`Gaining <b>${gkg>=0?"+":"−"}${Math.abs(gkg).toFixed(1)}</b> g/kg/day <span class="muted">(3 nights)</span>`)}
         ${li(m.cur&&m.cur.v>=BIRTH[tw].g, m.cur?(m.cur.v>=BIRTH[tw].g?"Back to birth weight":`<b>${fmtG(BIRTH[tw].g-m.cur.v)} g</b> to birth weight`):"No weights yet")}
         ${li(ev?evDays>=5:false, ev?`Last desat/brady noted <b>${evDays===0?"today":evDays+" day"+(evDays===1?"":"s")+" ago"}</b>`:"No desat/brady notes logged")}
