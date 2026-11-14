@@ -66,8 +66,9 @@
   .nx.saving input{opacity:.4}
   .nx .ok{grid-column:1/-1;font-size:15px;font-weight:650;color:var(--text)}
   .nx .save{height:48px;font-size:17px;width:100%}
-  .nx .quick{display:flex;gap:6px;flex-wrap:wrap}
-  .nx .quick .chip{padding:0 10px;white-space:nowrap}
+  .nx .quick{display:flex;gap:6px;flex-wrap:nowrap}
+  @container (max-width: 290px){ .nx .quick{flex-wrap:wrap} }
+  .nx .quick .chip{padding:0 9px;white-space:nowrap;font-size:13.5px}
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
   .swatches button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;background:var(--sw);cursor:pointer;outline-offset:2px}
   .swatches button[aria-checked="true"]{border-color:var(--text);box-shadow:inset 0 0 0 3px var(--surface)}
@@ -95,9 +96,20 @@
   :root[data-theme="night"] .home .y{color:var(--text)}
   .notebtn{background:none;border:0;color:var(--text2);font:inherit;font-size:13px;text-align:left;cursor:pointer;padding:6px 0;min-height:32px;text-decoration:underline dotted}
   /* Large text (A+/A++) narrows the card: stack the box and Save under the name */
-  @container (max-width: 340px){
+  @container (max-width: 290px){
     .nx{grid-template-columns:minmax(0,1fr)} .nx .box{width:100%} .nx .save{width:100%}
   }
+  .tday{grid-column:1/-1;display:grid;gap:10px;margin-top:4px;padding-top:10px;border-top:1px dashed var(--grid)}
+  .tsum{font-size:14.5px} .tsum b{font-variant-numeric:tabular-nums}
+  .tsum .bar{height:8px}
+  .twt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14.5px}
+  .twt input{width:92px;font-size:18px;padding:8px;text-align:center}
+  .twt .btn{min-height:44px;padding:0 14px}
+  .spk{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .spk div{font-size:12.5px;color:var(--text2)} .spk b{color:var(--text);font-size:14px}
+  .spk svg{display:block;width:100%;height:38px;margin-top:2px}
+  .tmilk{display:block;width:100%;text-align:left;margin-top:14px;padding:10px 12px;border:1px solid var(--field);border-radius:10px;background:transparent;color:var(--text);font:inherit;font-size:14px;cursor:pointer}
+  .tmilk:empty{display:none}
   .prefs{display:grid;gap:10px}
   .pr{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px}
   .fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:7;border:0;border-radius:999px;background:var(--accent);color:var(--bg);
@@ -227,7 +239,7 @@
   <div id="toast" role="status" aria-live="polite"><span></span><button type="button">Undo</button></div>
 
   <section class="tab" data-tab="feed">
-  <div class="card" id="nextCard"><h2>Next feed <span class="muted" id="nextClock" style="font-weight:400;font-size:13px"></span></h2><div id="next"></div></div>
+  <div class="card" id="nextCard"><h2><span>Today <span class="muted" id="ageLine" style="font-weight:400;font-size:13px"></span></span><span class="muted" id="nextClock" style="font-weight:400;font-size:13px"></span></h2><div id="next"></div><button class="tmilk" id="todayMilk" type="button"></button></div>
   <!-- FEED SHEET -->
   <div class="card">
     <h2>PO feeds
@@ -348,7 +360,7 @@
   </section>
 <button class="fab" id="fab" aria-label="Log a feed">+ Log feed</button>
 <nav class="tabbar" id="tabbar" aria-label="Screens">
-  <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><path d="M9 2h6M10 2v3.5c0 .8-.6 1.3-1.2 1.8C7.6 8.3 7 9.6 7 11v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9c0-1.4-.6-2.7-1.8-3.7-.6-.5-1.2-1-1.2-1.8V2M7 13h10"/></svg><span>Feed</span></button>
+  <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Today</span></button>
   <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Weight</span></button>
   <button data-tab="milk"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></svg><span>Milk</span></button>
   <button data-tab="trends"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4.5-5 3.5 3 6-7"/></svg><span>Trends</span></button>
@@ -569,19 +581,24 @@
   }
   let gridDirty=false;
   $("wBody").addEventListener("focusout",()=>setTimeout(()=>{ if(gridDirty && !$("wBody").contains(document.activeElement)) renderGrid(); },0));
-  $("wBody").addEventListener("change", async e=>{
-    const inp=e.target.closest("input"); if(!inp) return;
-    const [tw,date]=inp.dataset.k.split("|"); const raw=inp.value.trim(); const v=parseFloat(raw);
-    const cell=inp.parentElement;
-    if(raw!=="" && (!isFinite(v)||v<800||v>8000)){ inp.value = W[inp.dataset.k]?.v ?? ""; flash("Weights are in grams, e.g. 2510."); return; }
+  async function saveWeight(tw,date,inp,cell){ // returns true when saved
+    const k=tw+"|"+date, raw=inp.value.trim(), v=parseFloat(raw), old=W[k];
+    if(raw!=="" && (!isFinite(v)||v<800||v>8000)){ inp.value = old?.v ?? ""; flash("Weights are in grams, e.g. 2510."); return false; }
+    if(raw!=="" && old==null){ const prev=wSeries(tw).filter(w=>w.date<date).pop();
+      if(prev && Math.abs(v-prev.v)>Math.max(100,prev.v*.05) && !confirm(`${Math.round(v)} g for ${tw}?\n\nThat's ${sgn(v-prev.v)} g from ${md(prev.date)} (${fmtG(prev.v)} g). Tap OK if that's right.`)){ inp.value=""; return false; } }
     cell.classList.add("saving");
     try{
-      const id=`${tw}-${date}`, old=W[inp.dataset.k];
+      const id=`${tw}-${date}`;
       const back=()=>old ? Store.setWeight(id,{twin:tw,date,v:old.v,approx:old.approx}) : Store.delWeight(id);
-      if(raw===""){ if(!old) return; await Store.delWeight(id); undoBar(`Cleared ${tw} · ${md(date)}`, back); }
+      if(raw===""){ if(!old) return false; await Store.delWeight(id); undoBar(`Cleared ${tw} · ${md(date)}`, back); }
       else { await Store.setWeight(id,{twin:tw,date,v:Math.round(v),approx:false}); undoBar(`Saved ${Math.round(v)} g · ${tw} · ${md(date)}`, back); }
-    }catch(err){ failWrite(err); inp.value = W[inp.dataset.k]?.v ?? ""; }
+      return true;
+    }catch(err){ failWrite(err); inp.value = old?.v ?? ""; return false; }
     finally{ cell.classList.remove("saving"); }
+  }
+  $("wBody").addEventListener("change", e=>{
+    const inp=e.target.closest("input"); if(!inp) return;
+    const [tw,date]=inp.dataset.k.split("|"); saveWeight(tw,date,inp,inp.parentElement);
   });
   function flash(t){ $("banner").textContent=t; $("banner").style.display="block"; setTimeout(()=>{ if($("banner").textContent===t) banner(""); },3500); }
 
@@ -704,14 +721,14 @@
   function renderNext(){
     if(TWINS[0]==="A" || nextBusy || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
     const C=COLORS(), now=new Date();
-    $("nextClock").textContent = "now "+hm(now.getTime());
+    $("nextClock").textContent = "now "+hm(now.getTime()); $("ageLine").textContent=ageLine(); renderTodayMilk();
     $("next").innerHTML = shown().map(tw=>{
       let n=nextSlot(tw); if(!n) return "";
       const missed=n.missed, chosen=nextPick[tw] && missed.find(x=>x.day===nextPick[tw].day && x.i===nextPick[tw].i);
       if(chosen) n={...chosen, due:true, missed, chosen:true}; else delete nextPick[tw];
       const last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop();
       const lastTxt = last ? `Last: ${!last.v&&MARK.test(last.note||"")?last.note.toLowerCase():last.v+" mL"} at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""} ${last.v?` · ${Math.round(last.v/FULL[tw]*100)}% of ${FULL[tw]}`:""}${last.by?` · ${esc(whoName(last.by))}`:""}${last.note&&!/^est\./.test(last.note)&&last.v?` · ${esc(last.note)}`:""}` : "No feeds logged yet";
-      const others=missed.filter(x=>!(n.chosen && x.day===n.day && x.i===n.i));
+      const others=missed.filter(x=>!(n.chosen && x.day===n.day && x.i===n.i)), tb=todayBlock(tw);
       return `<div class="nx ${n.due?"due":""}" style="--c:${C[tw]}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}">
         <div><div class="who">${esc(tw)}</div>
           <div class="when">${n.chosen?"Filling in":n.due?"Due":"Next"}: <b>${hm(n.t)}</b> feed</div>
@@ -721,11 +738,57 @@
         <button class="btn save" data-act="save" ${canWrite?"":"disabled"}>Save</button>
         <div class="tags" role="group" aria-label="Notes for this feed">${TAGS.map(t=>`<button class="chip" data-act="tag" aria-pressed="false">${t}</button>`).join("")}</div>
         <div class="missed">${others.length?`Not logged:`+others.map(x=>`<button class="chip warn" data-act="pick" data-day="${x.day}" data-i="${x.i}" aria-label="Fill in ${hm(x.t)} feed">${hm(x.t)}</button>`).join(""):""}</div>
-        <div class="last">${lastTxt}</div><div class="ok"></div></div>`;
+        <div class="last">${lastTxt}</div><div class="ok"></div>${tb}</div>`;
     }).join("");
   }
+  // ---------- Today: totals, tonight's weight, 7-day mini trends ----------
+  function spark(vals,{bar=false,color,max,min,lastFaded=false}={}){
+    const W_=140,H_=38,n=vals.length; if(!n) return "";
+    const ok=vals.filter(v=>v!=null); if(!ok.length) return `<svg viewBox="0 0 ${W_} ${H_}" aria-hidden="true"></svg>`;
+    const hi=max??Math.max(...ok), lo=bar?0:(min??Math.min(...ok)), span=(hi-lo)||1, y=v=>H_-3-(v-lo)/span*(H_-6);
+    if(bar){ const bw=W_/n; return `<svg viewBox="0 0 ${W_} ${H_}" aria-hidden="true">${vals.map((v,k)=>v==null?"":`<rect x="${k*bw+2}" y="${y(Math.min(v,hi))}" width="${bw-4}" height="${H_-3-y(Math.min(v,hi))}" rx="2" fill="${color}" opacity="${lastFaded&&k===n-1?.45:1}"/>`).join("")}<line x1="0" x2="${W_}" y1="${y(100)}" y2="${y(100)}" stroke="var(--muted)" stroke-dasharray="3 3"/></svg>`; }
+    const pts=vals.map((v,k)=>v==null?null:`${(k/(n-1||1))*(W_-6)+3},${y(v)}`).filter(Boolean);
+    return `<svg viewBox="0 0 ${W_} ${H_}" aria-hidden="true"><polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>${pts.length?`<circle cx="${pts[pts.length-1].split(",")[0]}" cy="${pts[pts.length-1].split(",")[1]}" r="3.5" fill="${color}"/>`:""}</svg>`;
+  }
+  function todayBlock(tw){
+    const C=COLORS(), day=feedDay(Date.now()), full=FULL[tw], goal=full*FEEDS_PER_DAY;
+    const fd=F.filter(f=>f.twin===tw && feedDay(f.t)===day), po=fd.reduce((a,f)=>a+f.v,0), pct=Math.round(po/goal*100);
+    const past=SLOT_H.filter((_,i)=>slotT(tw,day,i)<=Date.now()).length;
+    // tonight's weight belongs to the feed day (8 PM weigh-in)
+    const w=W[tw+"|"+day], prev=wSeries(tw).filter(x=>x.date<day).pop();
+    const wRow = w ? `<span>Weight ${md(day)}: <b>${wtMain(w.v)}</b>${w.approx?" ≈":""} ${prev?`<span class="muted">(${sgn(w.v-prev.v)} g)</span>`:""}</span>`
+      : `<span>8 PM weight ${md(day)}:</span><input class="wIn" type="number" inputmode="numeric" placeholder="g" aria-label="${esc(tw)} weight for night of ${md(day)}" data-day="${day}" ${canWrite?"":"disabled"}><button class="btn ghost" data-act="wsave" ${canWrite?"":"disabled"}>Save</button>`;
+    const days=[...Array(7)].map((_,k)=>{ const d=keyDate(day); d.setDate(d.getDate()-6+k); return dKey(d); });
+    const pcts=days.map(k=>{ const s=F.filter(f=>f.twin===tw && feedDay(f.t)===k); return s.length?Math.round(s.reduce((a,f)=>a+f.v,0)/goal*100):null; });
+    const ws=wSeries(tw).slice(-7), last=ws[ws.length-1], first=ws[0];
+    return `<div class="tday">
+      <div class="tsum">Today so far: <b>${fd.length}</b>/${past} feeds · <b>${Math.round(po)}</b> / ${goal} mL by mouth (<b>${pct}%</b>)
+        <div class="bar"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div></div>
+      <div class="twt">${wRow}</div>
+      <div class="spk"><div>By mouth, 7 days<br><b>${pcts.filter(x=>x!=null).slice(-2,-1)[0]??"—"}%</b> yesterday${spark(pcts,{bar:true,color:C[tw],max:120,lastFaded:true})}</div>
+        <div>Weight, ${ws.length} nights<br><b>${last?wtMain(last.v):"—"}</b> ${last&&first&&ws.length>1?`<span class="muted">${sgn(last.v-first.v)} g</span>`:""}${spark(ws.map(x=>x.v),{color:C[tw]})}</div></div>
+    </div>`;
+  }
+  function ageLine(){
+    if(!profile) return "";
+    const b=keyDate(profile.born), t=new Date(); t.setHours(0,0,0,0); const dol=Math.round((t-b)/DAY);
+    const m=/(\d+)\s*w\s*(\d+)?/i.exec(profile.ga||""); if(!m) return `· day ${dol}`;
+    const pma=(+m[1])*7+(+(m[2]||0))+dol; return `· day ${dol} · ${Math.floor(pma/7)}w${pma%7}d`;
+  }
+  function renderTodayMilk(){
+    const el=$("todayMilk"); if(TWINS[0]==="A" || !P.length && !D.length && !milkCfg){ el.textContent=""; return; }
+    const now=Date.now(), n=need(), tot=P.filter(x=>x.t>now-DAY).reduce((a,x)=>a+x.v,0), st=stock(), last=[...P].sort((a,b)=>b.t-a.t)[0];
+    el.innerHTML=`<b>Milk</b> · pumped ${Math.round(tot)}/${Math.round(n)} mL (24 h)${st!=null?` · NICU ≈ ${(st/n).toFixed(1)} days`:""}${last?` · last pump ${ago(last.t)} ago`:""} ›`;
+  }
+  $("todayMilk").addEventListener("click",()=>showTab("milk"));
+  async function saveTodayWeight(row){
+    const inp=row.querySelector(".wIn"); if(!inp) return; if(inp.value.trim()===""){ inp.focus(); return; }
+    nextBusy=true; const ok=await saveWeight(row.dataset.tw, inp.dataset.day, inp, row);
+    if(ok){ inp.value=""; inp.blur(); }
+    setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?600:0);
+  }
   async function nextSave(row,opt){
-    const inp=row.querySelector("input"), tw=row.dataset.tw, day=row.dataset.day, i=+row.dataset.i;
+    const inp=row.querySelector(".box input"), tw=row.dataset.tw, day=row.dataset.day, i=+row.dataset.i;
     if(!opt && inp.value.trim()===""){ inp.focus(); return; }
     nextBusy=true;
     const tags=[...row.querySelectorAll('.tags [aria-pressed="true"]')].map(b=>b.textContent);
@@ -735,11 +798,12 @@
       inp.value=""; row.querySelectorAll(".tags button").forEach(b=>b.setAttribute("aria-pressed","false")); }   // saved: a clear card can move on to the next feed
     setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?2500:0);
   }
-  $("next").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); nextSave(e.target.closest(".nx")); } });
+  $("next").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); const row=e.target.closest(".nx"); e.target.classList.contains("wIn") ? saveTodayWeight(row) : nextSave(row); } });
   $("next").addEventListener("click",e=>{
     const b=e.target.closest("button[data-act]"); if(!b || nextBusy) return;
     const row=b.closest(".nx"), tw=row.dataset.tw, act=b.dataset.act;
     if(act==="tag"){ b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")==="true"?"false":"true"); return; }
+    if(act==="wsave"){ saveTodayWeight(row); return; }
     if(act==="save") nextSave(row);
     else if(act==="tube") nextSave(row,{v:0,note:"All by tube"});
     else if(act==="skip") nextSave(row,{v:0,note:"Skipped"});
