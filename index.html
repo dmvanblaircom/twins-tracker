@@ -84,6 +84,8 @@
   .sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
   .sync.ok i{background:#2f9e44} .sync.wait i{background:#e8a33d} .sync.off i{background:var(--danger)}
   .nx .tags{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+  .nx .tags[hidden]{display:none}
+  .nx .notetog{grid-column:1/-1;justify-self:start;font-size:14px;min-height:36px}
   .nx .tags .chip{min-height:36px;font-size:13px;padding:0 10px}
   .chip[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
   .home{border-left:6px solid var(--c);padding-left:12px;border-radius:4px}
@@ -128,6 +130,8 @@
   .qs li.done{color:var(--muted)} .qs .ans{display:block;font-size:13px;color:var(--text2);margin-top:2px}
   .qs .who2{font-size:12px;color:var(--muted)}
   .qadd{display:grid;grid-template-columns:1fr auto;gap:8px}
+  details.settings>summary{font-size:15px;padding:4px 0;min-height:36px;display:flex;align-items:center}
+  details.settings .sect{border-top:1px solid var(--grid);margin-top:12px;padding-top:12px}
   .prefs{display:grid;gap:10px}
   .pr{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px}
   .fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:7;border:0;border-radius:999px;background:var(--accent);color:var(--bg);
@@ -316,7 +320,6 @@
   <section class="tab" data-tab="trends">
   <div class="card"><h2>Going home</h2><div id="home"></div><div id="famList"></div>
     <div class="note">NICUs usually want all feeds by mouth for 24–48 h, steady weight gain and several days with no breathing events before discharge. Your team sets the actual criteria; this only reflects what you've logged.</div></div>
-  <div class="tiles" id="tiles"></div>
   <!-- PO CHART -->
   <div class="card">
     <h2>PO volume per feed
@@ -348,23 +351,14 @@
     </table></div>
     <div class="row" style="margin-top:10px">
       <button class="btn ghost" id="moreBtn">Show more</button>
-      <button class="btn ghost" id="csvBtn">Copy all data as CSV</button>
-      <span class="msg" id="csvMsg"></span>
     </div>
-    <textarea id="csvBox" readonly></textarea>
-  </div>
-  <div class="card">
-    <details><summary>Import data (CSV)</summary>
-      <div class="note">Paste a CSV copied from "Copy all data as CSV" (this app or the earlier Claude version). Weights overwrite the same night; feeds already here are skipped.</div>
-      <textarea id="impBox" style="display:block" placeholder="datetime,twin,type,value,unit,..."></textarea>
-      <div class="row" style="margin-top:8px"><button class="btn ghost" id="impGo">Import</button><span class="msg" id="impMsg"></span></div>
-    </details>
   </div>
   <div class="card">
     <label class="f">Your name on entries (this phone's account)<input id="myName" type="text" maxlength="20" placeholder="e.g. Dad"></label>
     <div class="note" style="margin-top:4px">Shown next to feeds and milk you log, and in the alert the other phone gets.</div>
   </div>
-  <div class="card"><h2>This phone</h2>
+  <details class="card settings"><summary>Data &amp; settings</summary>
+  <div class="sect"><h2>This phone</h2>
     <div class="prefs">
       <div class="pr"><span>Weights shown in</span><div class="seg small" id="pfUnits"><button data-v="g">grams</button><button data-v="lb">lb / oz</button></div></div>
       <div class="pr"><span>Time</span><div class="seg small" id="pfClock"><button data-v="12">2:30p</button><button data-v="24">14:30</button></div></div>
@@ -373,6 +367,18 @@
     </div>
     <div class="note">Only affects this phone. Weights are still entered in grams, like the NICU charts them.</div>
   </div>
+  <div class="sect"><h2>Export</h2>
+    <div class="row"><button class="btn ghost" id="csvBtn">Copy all data as CSV</button><span class="msg" id="csvMsg"></span></div>
+    <textarea id="csvBox" readonly></textarea>
+  </div>
+  <div class="sect">
+    <details><summary>Import data (CSV)</summary>
+      <div class="note">Paste a CSV copied from "Copy all data as CSV" (this app or the earlier Claude version). Weights overwrite the same night; feeds already here are skipped.</div>
+      <textarea id="impBox" style="display:block" placeholder="datetime,twin,type,value,unit,..."></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn ghost" id="impGo">Import</button><span class="msg" id="impMsg"></span></div>
+    </details>
+  </div>
+  </details>
   <div class="card">
   <div class="sub" id="subtitle"></div>
     <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button><span><span class="msg" id="who" style="font-size:12px"></span> <button class="link" id="signOut">Sign out</button></span></div>
@@ -470,27 +476,6 @@
     m.goal=FULL[tw]*FEEDS_PER_DAY; m.poPct=m.po24/m.goal*100;
     m.avg24 = m.n24 ? m.po24/m.n24 : null;
     return m;
-  }
-
-  // ---------- tiles ----------
-  function renderTiles(){
-    const C=COLORS();
-    $("tiles").innerHTML = shown().map(tw=>{
-      const m=metrics(tw);
-      const wt = m.cur ? `<div class="v">${wtMain(m.cur.v)}${m.cur.approx?' <span class="muted" style="font-size:13px">≈</span>':""}</div><div class="s">${wtSub(m.cur.v)} · night of ${md(m.cur.date)}</div>` : `<div class="v">—</div>`;
-      const dl = m.cur ? `<div class="v">${sgn(m.delta)} g</div><div class="s">${m.prev?`vs ${md(m.prev.date)} (${fmtG(m.prev.v)} g)`:"vs birth"}</div>` : `<div class="v">—</div>`;
-      const vb = m.cur ? `<div class="v">${m.pct>=0?"+":"−"}${Math.abs(m.pct).toFixed(1)}%</div><div class="s">${m.cur.v<BIRTH[tw].g?`${fmtG(BIRTH[tw].g-m.cur.v)} g to regain`:"back to birth weight"}${m.gain!=null?` · ${sgn(m.gain)} g/day = ${m.gain>=0?"+":"−"}${Math.abs(m.gain/(m.cur.v/1000)).toFixed(1)} g/kg/day (3-night trend)`:""}</div>` : `<div class="v">—</div>`;
-      const po = `<div class="v">${Math.round(m.po24)} <span style="font-size:13px;font-weight:500" class="muted">/ ${m.goal} mL</span></div>
-        <div class="bar"><i style="width:${Math.min(100,m.poPct)}%;background:${C[tw]}"></i></div>
-        <div class="s">${Math.round(m.poPct)}% PO · ${m.n24} feeds${m.avg24!=null?` · avg ${Math.round(m.avg24)} mL (${Math.round(m.avg24/FULL[tw]*100)}%)`:""}</div>`;
-      return `<div class="card twin"><h3><span><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</span><small>full feed ${FULL[tw]} mL</small></h3>
-        <div class="stats">
-          <div class="stat"><div class="k">Last weight</div>${wt}</div>
-          <div class="stat"><div class="k">Night over night</div>${dl}</div>
-          <div class="stat"><div class="k">vs birth (${fmtG(BIRTH[tw].g)} g)</div>${vb}</div>
-          <div class="stat"><div class="k">PO last 24 h</div>${po}</div>
-        </div></div>`;
-    }).join("");
   }
 
   // ---------- charts ----------
@@ -747,7 +732,8 @@
     return pick;
   }
   const nextPick={};   // per baby: a missed slot the parent chose to fill instead
-  let nextBusy=false;           // hold the box (and its ✓) steady while a save lands
+  let nextBusy=false;
+  const notesOpen=new Set();     // babies whose note chips are showing           // hold the box (and its ✓) steady while a save lands
   function renderNext(){
     if(TWINS[0]==="A" || nextBusy || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
     const C=COLORS(), now=new Date();
@@ -767,7 +753,8 @@
         <button class="btn ghost full" data-act="full" ${canWrite?"":"disabled"} aria-label="Log a full feed, ${FULL[tw]} mL">Full · ${FULL[tw]} mL</button>
         <button class="btn save" data-act="save" ${canWrite?"":"disabled"}>Save</button>
         <div class="quick"><button class="chip" data-act="tube" ${canWrite?"":"disabled"}>All by tube</button><button class="chip" data-act="skip" ${canWrite?"":"disabled"}>Skipped</button></div>
-        <div class="tags" role="group" aria-label="Notes for this feed">${TAGS.map(t=>`<button class="chip" data-act="tag" aria-pressed="false">${t}</button>`).join("")}</div>
+        <button class="link notetog" data-act="notes" aria-expanded="${notesOpen.has(tw)}">${notesOpen.has(tw)?"− Hide notes":"+ Note"}</button>
+        <div class="tags" role="group" aria-label="Notes for this feed" ${notesOpen.has(tw)?"":"hidden"}>${TAGS.map(t=>`<button class="chip" data-act="tag" aria-pressed="false">${t}</button>`).join("")}</div>
         <div class="missed">${others.length?`Not logged:`+others.map(x=>`<button class="chip warn" data-act="pick" data-day="${x.day}" data-i="${x.i}" aria-label="Fill in ${hm(x.t)} feed">${hm(x.t)}</button>`).join(""):""}</div>
         <div class="last">${lastTxt}</div><div class="ok"></div>${tb}</div>`;
     }).join("");
@@ -794,6 +781,14 @@
     const days=[...Array(7)].map((_,k)=>{ const d=keyDate(day); d.setDate(d.getDate()-6+k); return dKey(d); });
     const pcts=days.map(k=>{ const s=F.filter(f=>f.twin===tw && feedDay(f.t)===k); return s.length?Math.round(s.reduce((a,f)=>a+f.v,0)/goal*100):null; });
     const ws=wSeries(tw).slice(-7), last=ws[ws.length-1], first=ws[0];
+    if(state.view==="both"){
+      const pl=latestPlan(tw).today;
+      return `<div class="tday">
+        <div class="tsum"><b>${fd.length}</b>/${past} feeds · <b>${pct}%</b> by mouth today${pl?` · <span class="muted">plan: ${esc(pl.text)}</span>`:""}
+          <div class="bar"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div></div>
+        <div class="twt">${wRow}</div>
+        <button class="tgo" data-act="detail">All of ${esc(tw)}'s day ›</button></div>`;
+    }
     return `<div class="tday">
       <div class="tsum">Today so far: <b>${fd.length}</b>/${past} feeds · <b>${Math.round(po)}</b> / ${goal} mL by mouth (<b>${pct}%</b>)${(k=>k!=null?` · last 24 h <b>${k}</b> mL/kg/day`:"")(poPerKg(tw))}
         <div class="bar"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div></div>
@@ -839,6 +834,9 @@
   $("next").addEventListener("click",e=>{
     const b=e.target.closest("button[data-act]"); if(!b || nextBusy) return;
     const row=b.closest(".nx"), tw=row.dataset.tw, act=b.dataset.act;
+    if(act==="notes"){ const open=!notesOpen.has(tw); open?notesOpen.add(tw):notesOpen.delete(tw);
+      row.querySelector(".tags").hidden=!open; b.setAttribute("aria-expanded",open); b.textContent=open?"− Hide notes":"+ Note"; return; }
+    if(act==="detail"){ state.view=tw; try{ localStorage.setItem("view",tw); }catch{} restoreView(); sheetDirty=gridDirty=false; renderAll(); scrollTo(0,0); return; }
     if(act==="tag"){ b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")==="true"?"false":"true"); return; }
     if(act==="wsave"){ saveTodayWeight(row); return; }
     if(act==="plan"){ editPlan(tw); return; }
@@ -906,7 +904,7 @@
   $("dNext").addEventListener("click",()=>shiftDay(1));
   $("dToday").addEventListener("click",()=>{ state.day=feedDay(Date.now()); renderSheet(); });
 
-  function renderAll(){ renderNext(); renderMilk(); renderHome(); renderQs(); renderTiles(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
+  function renderAll(){ renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));

@@ -1,0 +1,11 @@
+{
+  "name": "twins-tracker-tests",
+  "private": true,
+  "description": "Smoke tests: run the app in headless Chromium against an in-memory Store with synthetic data. Needs Playwright with Chromium installed (npx playwright install chromium).",
+  "scripts": {
+    "test": "node smoke.js"
+  },
+  "devDependencies": {
+    "chart.js": "4.4.1"
+  }
+}
