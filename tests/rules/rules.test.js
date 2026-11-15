@@ -69,6 +69,76 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
   await t("the owner deletes all data and the family record", async () => { await assertSucceeds(deleteDoc(doc(eve, "households/h1/config/profile"))); await assertSucceeds(deleteDoc(doc(eve, "households/h1"))); });
   await t("paths outside households/users/invites are closed", () => assertFails(setDoc(doc(dad, "other/x"), { a: 1 })));
 
+  // ---- private subtrees (Phase 1): owner-only, with a narrow cleanup exception for removed members ----
+  const own = as("own", "own@example.net"), par = as("par", "par@example.net"), zed = as("zed", "zed@example.net");
+  const legacyDad = dad;   // allowlisted email for households/main
+  await env.withSecurityRulesDisabled(async c => { const d = c.firestore();
+    await setDoc(doc(d, "households/h3"), { owner: "own", code: "CODEHHHH", codeExp: exp, created: 1 });
+    await setDoc(doc(d, "households/h3/members/own"), { email: "own@example.net" });
+    await setDoc(doc(d, "households/h3/members/par"), { email: "par@example.net", code: "CODEHHHH" });
+    await setDoc(doc(d, "invites/CODEHHHH"), { hid: "h3", exp });
+    await setDoc(doc(d, "users/par"), { hid: "h3" });
+    await setDoc(doc(d, "households/h3/feeds/b0-9"), { v: 10 });
+    await setDoc(doc(d, "households/main/private/mom/checkins/m1"), { mood: 3, by: "parent2@example.com" });
+  });
+  const P1 = "households/h3/private/own/checkins", P2 = "households/h3/private/par/checkins";
+  await t("a parent creates, reads, updates and deletes their own private data", async () => {
+    await assertSucceeds(setDoc(doc(own, P1 + "/c1"), { mood: 3 }));
+    await assertSucceeds(getDoc(doc(own, P1 + "/c1")));
+    await assertSucceeds(getDocs(collection(own, P1)));
+    await assertSucceeds(updateDoc(doc(own, P1 + "/c1"), { mood: 4 }));
+    await assertSucceeds(setDoc(doc(own, P1 + "/c2"), { mood: 2 }));
+    await assertSucceeds(deleteDoc(doc(own, P1 + "/c2")));
+    await assertSucceeds(setDoc(doc(par, P2 + "/p1"), { mood: 5 }));
+  });
+  await t("the other parent can't read, list or write a parent's private data", async () => {
+    await assertFails(getDoc(doc(par, P1 + "/c1")));
+    await assertFails(getDocs(collection(par, P1)));
+    await assertFails(setDoc(doc(par, P1 + "/x"), { mood: 1 }));
+    await assertFails(updateDoc(doc(par, P1 + "/c1"), { mood: 1 }));
+    await assertFails(deleteDoc(doc(par, P1 + "/c1")));
+  });
+  await t("a stranger can't touch private data", async () => {
+    await assertFails(getDoc(doc(zed, P1 + "/c1"))); await assertFails(getDocs(collection(zed, P1)));
+    await assertFails(setDoc(doc(zed, P1 + "/x"), {})); await assertFails(deleteDoc(doc(zed, P1 + "/c1")));
+  });
+  await t("the legacy allowlist doesn't open another person's private data in main", async () => {
+    await assertFails(getDoc(doc(legacyDad, "households/main/private/mom/checkins/m1")));
+    await assertFails(getDocs(collection(legacyDad, "households/main/private/mom/checkins")));
+    await assertFails(setDoc(doc(legacyDad, "households/main/private/mom/checkins/x"), {}));
+    await assertFails(deleteDoc(doc(legacyDad, "households/main/private/mom/checkins/m1")));
+  });
+  await t("the shared-data catch-all still works for members", async () => {
+    await assertSucceeds(getDoc(doc(par, "households/h3/feeds/b0-9"))); await assertSucceeds(setDoc(doc(par, "households/h3/events/e1"), { title: "x" }));
+  });
+  // The owner removes the partner the way Store.removeMember does: delete the membership, then rotate the invite code.
+  await assertSucceeds(deleteDoc(doc(own, "households/h3/members/par")));
+  await assertSucceeds(updateDoc(doc(own, "households/h3"), { code: "CODEJJJJ", codeExp: exp }));
+  await assertSucceeds(setDoc(doc(own, "invites/CODEJJJJ"), { hid: "h3", exp }));
+  await assertSucceeds(deleteDoc(doc(own, "invites/CODEHHHH")));
+  await t("a removed parent loses family data", async () => {
+    await assertFails(getDoc(doc(par, "households/h3/feeds/b0-9"))); await assertFails(getDocs(collection(par, "households/h3/feeds")));
+    await assertFails(setDoc(doc(par, "households/h3/feeds/b0-10"), { v: 1 })); await assertFails(getDoc(doc(par, "households/h3")));
+  });
+  await t("a removed parent can't rejoin or re-point their account", async () => {
+    await assertFails(setDoc(doc(par, "households/h3/members/par"), { email: "par@example.net", code: "CODEHHHH" }));
+    await assertFails(setDoc(doc(par, "users/par"), { hid: "h3" }));
+  });
+  await t("a removed parent can still read and list their own private data (cleanup)", async () => {
+    await assertSucceeds(getDoc(doc(par, P2 + "/p1"))); await assertSucceeds(getDocs(collection(par, P2)));
+  });
+  await t("a removed parent can't create or update private data", async () => {
+    await assertFails(setDoc(doc(par, P2 + "/p2"), { mood: 1 })); await assertFails(updateDoc(doc(par, P2 + "/p1"), { mood: 1 }));
+  });
+  await t("a removed parent can't reach the other parent's private data", async () => {
+    await assertFails(getDoc(doc(par, P1 + "/c1"))); await assertFails(getDocs(collection(par, P1))); await assertFails(deleteDoc(doc(par, P1 + "/c1")));
+  });
+  await t("the remaining parent and strangers can't read the removed parent's private data", async () => {
+    await assertFails(getDoc(doc(own, P2 + "/p1"))); await assertFails(getDocs(collection(own, P2)));
+    await assertFails(getDoc(doc(zed, P2 + "/p1"))); await assertFails(getDoc(doc(zed, P1 + "/c1")));
+  });
+  await t("a removed parent deletes their own private data", () => assertSucceeds(deleteDoc(doc(par, P2 + "/p1"))));
+
   await env.cleanup();
   console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

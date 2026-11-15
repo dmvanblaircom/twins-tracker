@@ -4,11 +4,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   initializeAuth, browserLocalPersistence, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
   sendPasswordResetEmail, indexedDBLocalPersistence,
-  deleteUser, reauthenticateWithCredential, EmailAuthProvider
+  deleteUser, reauthenticateWithCredential, EmailAuthProvider, connectAuthEmulator
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  collection, doc, onSnapshot, setDoc, deleteDoc, getDoc, getDocs, updateDoc
+  collection, doc, onSnapshot, setDoc, deleteDoc, getDoc, getDocs, updateDoc, getDocFromServer, getDocsFromServer, connectFirestoreEmulator
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -20,12 +20,32 @@ if (!window.Store) {
   const db = initializeFirestore(app, {
     localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
   });
+  // Tests only (tests/rules/store.test.js): point at the local emulators. The app never sets this.
+  const EMU = window.__FIREBASE_EMULATORS__;
+  if (EMU) { connectAuthEmulator(auth, `http://${EMU.host}:${EMU.auth}`, { disableWarnings: true }); connectFirestoreEmulator(db, EMU.host, EMU.firestore); }
   let HID = null, H = null;                      // current family: households/{HID}
   const setHid = hid => { HID = hid; H = `households/${hid}`; try { localStorage.setItem("hid:" + auth.currentUser.uid, hid); } catch {} };
   const denied = e => String(e && e.code || "").includes("permission");
   const me = () => auth.currentUser;
   const email = () => (me()?.email || "").toLowerCase();
-  const DATA = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions"], CONFIG = ["profile", "diet", "people", "milk"];
+  // The one place collection names live. Later phases add a name here once (e.g. photos, photoData, private photos);
+  // deletion, cleanup and backup (index.html reads Store.lists) all follow.
+  const SHARED = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions", "events", "needs"];
+  const PRIVATE = ["checkins"];                  // households/{hid}/private/{uid}/{name}: owner-only (see firestore.rules)
+  const CONFIG = ["profile", "diet", "people", "milk"];
+  const notReady = () => Object.assign(new Error("Not signed in to a family yet."), { code: "no-family" });
+  // Private collection of the signed-in person. The uid always comes from Firebase Auth, never from the caller.
+  const priv = name => { const u = me(); if (!u || !HID) throw notReady(); return collection(db, "households", HID, "private", u.uid, name); };
+  // Delete every private document this person has in family `hid` (explicit collection list; no recursive delete).
+  // Reads from the server so a stale offline cache can't make cleanup look finished; throws if anything is left.
+  async function purgePrivate(hid, uid) {
+    for (const name of PRIVATE) {
+      const ref = collection(db, "households", hid, "private", uid, name);
+      const snap = await getDocsFromServer(ref);
+      for (const d of snap.docs) await deleteDoc(d.ref);
+      if (!(await getDocsFromServer(ref)).empty) throw Object.assign(new Error("Private data cleanup didn't finish."), { code: "cleanup-pending" });
+    }
+  }
   const WEEK = 7 * 864e5, ALPHA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   const newCode = () => { const a = crypto.getRandomValues(new Uint32Array(8)); return [...a].map(n => ALPHA[n % ALPHA.length]).join(""); };
 
@@ -52,9 +72,20 @@ if (!window.Store) {
     }
     if (snap.exists() && snap.data().hid) {
       const hid = snap.data().hid;
-      try { const m = await getDoc(doc(db, "households", hid, "members", u.uid)); if (!m.exists()) { await deleteDoc(doc(db, "users", u.uid)).catch(() => {}); return null; } }
-      catch (e) { if (denied(e)) { await deleteDoc(doc(db, "users", u.uid)).catch(() => {}); return null; } }   // removed from that family
-      setHid(hid); return { hid };
+      // Membership is checked against the server only. If that can't be confirmed (offline, timeout, any error),
+      // nothing is deleted and the family reopens from cache as before.
+      let m;
+      try { m = await getDocFromServer(doc(db, "households", hid, "members", u.uid)); }
+      catch { setHid(hid); return { hid }; }
+      if (m.exists()) { setHid(hid); return { hid }; }
+      // Confirmed: the owner removed this person. Delete their own private data first (allowed by the narrow
+      // cleanup rule), and only then drop the family pointer. If cleanup fails, keep the pointer so the next
+      // open retries, and report it rather than pretending it finished.
+      try { await purgePrivate(hid, u.uid); }
+      catch (e) { throw Object.assign(new Error("Finishing your removal from the family needs a connection. Reopen the app with signal."), { code: "cleanup-pending", cause: e }); }
+      await deleteDoc(doc(db, "users", u.uid));
+      try { localStorage.removeItem("hid:" + u.uid); } catch {}
+      HID = H = null; return null;
     }
     // The original family (households/main) is claimed by the emails in the rules' allowlist.
     try {
@@ -95,12 +126,21 @@ if (!window.Store) {
     await setDoc(doc(db, "invites", code), { hid: HID, exp });
     return { code, codeExp: exp };
   }
-  const removeMember = uid => deleteDoc(doc(db, "households", HID, "members", uid));
+  // Owner only (rules). Revokes access at once, then replaces the invite code so the removed person can't rejoin with
+  // the code they used. The removed person's private data is deleted by their own app on its next open (family()).
+  async function removeMember(uid) {
+    await deleteDoc(doc(db, "households", HID, "members", uid));
+    await newInvite();
+  }
+  // Leave: private data first (while still a member), then ownership, then the pointer and membership.
+  // Needs a connection; if cleanup fails nothing else changes and the error is passed on.
   async function leave() {
     const u = me(), info = await familyInfo(), others = info.members.filter(m => m.uid !== u.uid);
+    await purgePrivate(HID, u.uid);
     if (info.owner === u.uid && others.length) await updateDoc(doc(db, "households", HID), { owner: others[0].uid });
     await deleteDoc(doc(db, "users", u.uid));
     await deleteDoc(doc(db, "households", HID, "members", u.uid));
+    try { localStorage.removeItem("hid:" + u.uid); } catch {}
     return others.length;
   }
   // Leaves the family; the last person out deletes all of the family's data. Then deletes the sign-in itself.
@@ -110,7 +150,8 @@ if (!window.Store) {
     if (HID) {
       const info = await familyInfo(), others = info.members.filter(m => m.uid !== u.uid);
       if (!others.length) {
-        for (const c of DATA) { const s = await getDocs(collection(db, H, c)); for (const d of s.docs) await deleteDoc(d.ref); }
+        await purgePrivate(HID, u.uid);
+        for (const c of SHARED) { const s = await getDocsFromServer(collection(db, H, c)); for (const d of s.docs) await deleteDoc(d.ref); }
         for (const k of CONFIG) await deleteDoc(doc(db, H, "config", k)).catch(() => {});
         if (info.code) await deleteDoc(doc(db, "invites", info.code)).catch(() => {});
         await deleteDoc(doc(db, "users", u.uid)).catch(() => {});
@@ -130,6 +171,7 @@ if (!window.Store) {
     signOut: () => signOut(auth),
     reset: e => sendPasswordResetEmail(auth, e),
     family, createFamily, joinFamily, familyInfo, newInvite, removeMember, leave, deleteAccount,
+    lists: Object.freeze({ shared: SHARED.slice(), private: PRIVATE.slice(), config: CONFIG.slice() }),
     watchWeights: (cb, err) => watchCol("weights", cb, err),
     watchFeeds: (cb, err) => watchCol("feeds", cb, err),
     watchDiet: (cb, err) => onSnapshot(doc(db, H, "config", "diet"), d => cb(d.exists() ? d.data().text : null), err),
@@ -145,7 +187,18 @@ if (!window.Store) {
     put: (name, id, rec) => w(setDoc(doc(db, H, name, id), { by: email(), ...rec })),
     remove: (name, id) => w(deleteDoc(doc(db, H, name, id))),
     watchConfig: (name, cb, err) => onSnapshot(doc(db, H, "config", name), d => cb(d.exists() ? d.data() : null), err),
-    setConfig: (name, v) => w(setDoc(doc(db, H, "config", name), v))
+    setConfig: (name, v) => w(setDoc(doc(db, H, "config", name), v)),
+    // patch(name, id, fields): merge only these fields into an existing family document. Uses updateDoc, so it
+    // fails (store-error) instead of recreating a document the other parent deleted; `by` is never changed.
+    patch: (name, id, fields) => { const { by, ...f } = fields || {}; return w(updateDoc(doc(db, H, name, id), f)); },
+    // Private collections of the signed-in person only: households/{hid}/private/{auth uid}/{name}.
+    watchPrivate: (name, cb, err) => {
+      if (!me() || !HID) { setTimeout(() => cb([], { fromCache: true, pending: false })); return () => {}; }
+      return onSnapshot(priv(name), { includeMetadataChanges: true },
+        snap => cb(snap.docs.map(d => [d.id, d.data()]), { fromCache: snap.metadata.fromCache, pending: snap.metadata.hasPendingWrites }), err);
+    },
+    putPrivate: (name, id, rec) => w(setDoc(doc(priv(name), id), { by: email(), ...rec })),
+    removePrivate: (name, id) => w(deleteDoc(doc(priv(name), id)))
   };
   window.dispatchEvent(new Event("store-ready"));
 }

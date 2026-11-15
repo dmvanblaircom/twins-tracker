@@ -557,7 +557,7 @@
   </section>
 
   <section class="tab" data-tab="more">
-  <nav class="subnav" aria-label="Records sections"><div class="seg" id="moreNav"><button data-v="records">Records</button><button data-v="care">Care</button><button data-v="settings">Settings</button></div></nav>
+  <nav class="subnav" aria-label="More sections"><div class="seg" id="moreNav"><button data-v="records">Records</button><button data-v="care">Care</button><button data-v="settings">Settings</button></div></nav>
 
   <div class="msec" data-sec="records">
   <div class="card">
@@ -651,8 +651,8 @@
   <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Today</span></button>
   <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Growth</span></button>
   <button data-tab="milk"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></svg><span>Milk</span></button>
-  <button data-tab="trends"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4.5-5 3.5 3 6-7"/></svg><span>Progress</span></button>
-  <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Records</span></button>
+  <button data-tab="trends"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4.5-5 3.5 3 6-7"/></svg><span>Journey</span></button>
+  <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
 </nav>
 </div>
 
@@ -1349,14 +1349,20 @@
     try{ await navigator.clipboard.writeText(csv); $("csvMsg").textContent="Copied."; }
     catch{ const tb=$("csvBox"); tb.style.display="block"; tb.value=csv; tb.select(); $("csvMsg").textContent="Select all and copy."; }
   });
-  const BK_COLS=["weights","feeds","pumps","drops","checklist","plans","questions"], BK_CFG=["profile","diet","people","milk"];
+  // Collection names come from Store.lists (one place, firebase-store.js); the fallback matches it.
+  const bkCols = () => (window.Store&&Store.lists&&Store.lists.shared) || ["weights","feeds","pumps","drops","checklist","plans","questions","events","needs"];
+  const bkPriv = () => (window.Store&&Store.lists&&Store.lists.private) || ["checkins"];
+  const BK_CFG=["profile","diet","people","milk"], BK_APPS=["twins-tracker","niculog"], BK_FORMATS=[1,2];
+  const rawOf = c => c==="weights"?rawW:c==="feeds"?rawF:RAW[c]||[];
+  // Format 2: shared collections (incl. events, needs), config, and ONLY the signed-in person's own private data.
   function backupData(){
-    const data={}; BK_COLS.forEach(c=>{ data[c]={}; (c==="weights"?rawW:c==="feeds"?rawF:RAW[c]||[]).forEach(([id,d])=>data[c][id]=d); });
+    const data={}; bkCols().forEach(c=>{ data[c]={}; rawOf(c).forEach(([id,d])=>data[c][id]=d); });
     data.config={}; BK_CFG.forEach(k=>{ const v=k==="profile"?profile:RAWC[k]; if(v) data.config[k]=v; });
-    return {app:"twins-tracker", format:1, exported:new Date().toISOString(), data};
+    data.private={}; bkPriv().forEach(n=>{ data.private[n]={}; (RAWP[n]||[]).forEach(([id,d])=>data.private[n][id]=d); });
+    return {app:"twins-tracker", format:2, exported:new Date().toISOString(), data};
   }
   $("bkGo").addEventListener("click", async ()=>{
-    const b=backupData(), n=BK_COLS.reduce((a,c)=>a+Object.keys(b.data[c]).length,0), name=`twins-tracker-backup-${dKey(new Date())}.json`;
+    const b=backupData(), n=bkCols().reduce((a,c)=>a+Object.keys(b.data[c]).length,0)+bkPriv().reduce((a,c)=>a+Object.keys(b.data.private[c]).length,0), name=`twins-tracker-backup-${dKey(new Date())}.json`;
     const file=new File([JSON.stringify(b)], name, {type:"application/json"});
     try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Twins Tracker backup"}); $("bkMsg").textContent=`Backup ready · ${n} records.`; return; } }
     catch(err){ if(err&&err.name==="AbortError") return; }
@@ -1367,16 +1373,20 @@
   $("rsFile").addEventListener("change", async ()=>{
     const f=$("rsFile").files[0]; $("rsFile").value=""; if(!f) return;
     let b; try{ b=JSON.parse(await f.text()); }catch{ $("bkMsg").textContent="That file isn't a backup from this app."; return; }
-    if(!b||b.app!=="twins-tracker"||!b.data){ $("bkMsg").textContent="That file isn't a backup from this app."; return; }
-    const have=c=>new Set((c==="weights"?rawW:c==="feeds"?rawF:RAW[c]||[]).map(([id])=>id));
-    const todo=[]; BK_COLS.forEach(c=>{ const h=have(c), src=b.data[c]||{}; Object.entries(src).forEach(([id,d])=>{ if(!h.has(id) && d && typeof d==="object") todo.push([c,id,d]); }); });
+    if(!b||!BK_APPS.includes(b.app)||!b.data||typeof b.data!=="object"){ $("bkMsg").textContent="That file isn't a backup from this app."; return; }
+    if(!BK_FORMATS.includes(b.format??1)){ $("bkMsg").textContent="That backup is from a newer version of the app. Update the app, then try again."; return; }
+    const have=c=>new Set(rawOf(c).map(([id])=>id));
+    const todo=[]; bkCols().forEach(c=>{ const h=have(c), src=b.data[c]||{}; Object.entries(src).forEach(([id,d])=>{ if(!h.has(id) && d && typeof d==="object") todo.push([c,id,d]); }); });
+    // Private items go only into the signed-in person's own private area (Store.putPrivate derives the uid).
+    const pv=b.data.private&&typeof b.data.private==="object"?b.data.private:{};
+    bkPriv().forEach(n=>{ const h=new Set((RAWP[n]||[]).map(([id])=>id)); Object.entries(pv[n]||{}).forEach(([id,d])=>{ if(!h.has(id) && d && typeof d==="object") todo.push(["private:"+n,id,d]); }); });
     const cfg=BK_CFG.filter(k=>b.data.config&&b.data.config[k]&&!(k==="profile"?profile:RAWC[k]));
     if(!todo.length && !cfg.length){ $("bkMsg").textContent="Nothing to restore — everything in that backup is already here."; return; }
     if(!confirm(`Restore ${todo.length} record${todo.length===1?"":"s"}${cfg.length?` and ${cfg.join(", ")}`:""} that aren't here?\n\nNothing already here will be changed or deleted.`)) return;
     $("rsGo").disabled=true; let n=0;
     try{
       for(const k of cfg){ if(k==="profile") await Store.setProfile(b.data.config.profile); else await Store.setConfig(k,b.data.config[k]); }
-      for(const [c,id,d] of todo){ await (c==="weights"?Store.setWeight(id,d):c==="feeds"?Store.setFeed(id,d):Store.put(c,id,d)); n++; }
+      for(const [c,id,d] of todo){ await (c.startsWith("private:")?Store.putPrivate(c.slice(8),id,d):c==="weights"?Store.setWeight(id,d):c==="feeds"?Store.setFeed(id,d):Store.put(c,id,d)); n++; }
       $("bkMsg").textContent=`Restored ${n} record${n===1?"":"s"}.`;
     }catch(err){ failWrite(err); $("bkMsg").textContent=`Stopped after ${n} records — run Restore again to finish.`; }
     finally{ $("rsGo").disabled=false; }
@@ -1715,7 +1725,7 @@
   });
   $("signOut").addEventListener("click", ()=>Store && Store.signOut());
 
-  let rawW=[], rawF=[]; const RAW={}, RAWC={};   // raw docs for the full backup
+  let rawW=[], rawF=[]; const RAW={}, RAWC={}, RAWP={};   // raw docs for the full backup (RAWP: my private data only)
   function rebuild(){ // (re)filter raw docs against the current names
     W={}; rawW.forEach(([id,d])=>{const w=cleanW(d,id); if(w && !(W[w.twin+"|"+w.date]&&W[w.twin+"|"+w.date].hasI&&!w.hasI)) W[w.twin+"|"+w.date]=w;});
     F=rawF.map(([id,d])=>cleanF(id,d)).filter(Boolean);
@@ -1745,6 +1755,9 @@
       unsubs.push(Store.watch("drops",list=>{ RAW.drops=list; D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
       unsubs.push(Store.watch("checklist",list=>{ RAW.checklist=list; CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); if(document.querySelector("#ckBabies [data-ck]")) patchChecklists(); else { renderFam(); renderBabyChecklists(); renderNext(); } }, ()=>{}));
       unsubs.push(Store.watch("plans",list=>{ RAW.plans=list; PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
+      // Collections with no screen yet (events, needs: Phase 2+) are watched only so backups carry them.
+      bkCols().filter(c=>!["weights","feeds","pumps","drops","checklist","plans","questions"].includes(c)).forEach(c=>unsubs.push(Store.watch(c,list=>{ RAW[c]=list; }, ()=>{})));
+      if(Store.watchPrivate) bkPriv().forEach(n=>unsubs.push(Store.watchPrivate(n,list=>{ RAWP[n]=list; }, ()=>{})));
       unsubs.push(Store.watch("questions",list=>{ RAW.questions=list; QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ RAWC.milk=c; milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
     }
@@ -1846,7 +1859,8 @@
     try{ await Store.removeMember(b.dataset.rm); renderFamily(); }catch(err){ failWrite(err); } });
   $("fmLeave").addEventListener("click", async ()=>{
     if(!confirm("Leave this family?\n\nYou'll stop seeing these babies on this account. Everyone else keeps everything.")) return;
-    try{ await Store.leave(); location.reload(); }catch(err){ failWrite(err); } });
+    try{ await Store.leave(); location.reload(); }
+    catch(err){ const c=String(err&&err.code||""); flash(/unavailable|cleanup|network/.test(c)||!navigator.onLine?"Leaving the family needs a connection. Nothing changed — try again with signal.":"Couldn't leave the family — nothing changed. Try again."); } });
   $("fmDelete").addEventListener("click", async ()=>{
     const alone=famInfo && famInfo.members.filter(m=>m.uid!==famInfo.me).length===0;
     if(!confirm(alone ? "Delete your account and all of this family's data?\n\nYou're the only one in the family, so every feed, weight, note and setting is deleted for good. Save a full backup first if you want a copy."
@@ -1864,9 +1878,9 @@
         $("login").style.display="none"; $("who").textContent=user.email||""; myEmail=(user.email||"").toLowerCase();
         if(!Store.family){ enterFamily(); return; }
         Store.family().then(f=>{ if(f) enterFamily(); else showFamily(); })
-          .catch(()=>banner("Couldn't reach your family's data. Check your connection and reopen the app."));
+          .catch(err=>banner(err&&err.code==="cleanup-pending"?err.message:"Couldn't reach your family's data. Check your connection and reopen the app."));
       } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null;
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
         $("setup").style.display="none"; $("family").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
       }
     });

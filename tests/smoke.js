@@ -308,6 +308,21 @@ async function main() {
     await p.evaluate(() => scrollTo(0, 200)); await p.waitForTimeout(100);
     check("Log feed button tucks away while scrolling down and returns on scroll up", tucked && !(await p.$eval("#fab", e => e.classList.contains("tuck"))));
     await p.evaluate(() => scrollTo(0, 0)); await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
+    // ---- Store additions: patch + private (stub contract) ----
+    await db(p, () => { Store.put("events", "e-1", { title: "First hold", note: "keep me", by: "parent2@example.com" }); });
+    await db(p, () => Store.patch("events", "e-1", { title: "First cuddle", by: "someone-else" }));
+    check("Store.patch merges fields and keeps the original author", await db(p, () => { const e = __db.events["e-1"]; return e.title === "First cuddle" && e.note === "keep me" && e.by === "parent2@example.com"; }));
+    const errs0 = await db(p, () => { window.__se = 0; addEventListener("store-error", () => window.__se++); return 0; });
+    await db(p, () => Store.patch("events", "e-gone", { title: "x" })); await p.waitForTimeout(50);
+    check("Store.patch never recreates a missing record (reports an error instead)", await db(p, () => !__db.events["e-gone"] && window.__se === 1));
+    await db(p, () => { __db.private.u2.checkins = { "c-partner": { mood: 1, by: "parent2@example.com" } }; Store.putPrivate("checkins", "c-mine", { mood: 4 }); Store.putPrivate("checkins", "c-temp", { mood: 2 }); });
+    const seen = await p.evaluate(() => new Promise(res => { const un = Store.watchPrivate("checkins", list => { un(); res(list.map(([id]) => id).sort().join()); }); }));
+    check("Store.watchPrivate shows only my own private records", seen === "c-mine,c-temp", seen);
+    check("Store.putPrivate writes only to my private area, with my name on it", await db(p, () => __db.private.u1.checkins["c-mine"].by === "parent1@example.com" && !__db.private.u2.checkins["c-mine"] && !__db.checkins));
+    await db(p, () => Store.removePrivate("checkins", "c-temp"));
+    check("Store.removePrivate deletes only my record", await db(p, () => !__db.private.u1.checkins["c-temp"] && !!__db.private.u1.checkins["c-mine"] && !!__db.private.u2.checkins["c-partner"]));
+    check("Store.lists names the shared, private and config collections in one place", await db(p, () => Store.lists.shared.includes("events") && Store.lists.shared.includes("needs") && Store.lists.private.join() === "checkins"));
+
     // ---- full backup + merge-only restore ----
     await p.evaluate(() => { document.querySelector("details.settings").open = true; });
     const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#bkGo")]);
@@ -323,6 +338,23 @@ async function main() {
     check("restoring the same backup again changes nothing", (await p.textContent("#bkMsg")).startsWith("Nothing to restore"));
     await p.setInputFiles("#rsFile", { name: "x.json", mimeType: "application/json", buffer: Buffer.from('{"hello":1}') }); await p.waitForTimeout(200);
     check("a file from somewhere else is refused", (await p.textContent("#bkMsg")).includes("isn't a backup"));
+    // format 2 specifics
+    check("backup is format 2 with events, needs and a private section", bk.format === 2 && "events" in bk.data && "needs" in bk.data && !!bk.data.private && "checkins" in bk.data.private && bk.data.events["e-1"]);
+    check("backup carries my private data and never the other parent's", !!bk.data.private.checkins["c-mine"] && !bk.data.private.checkins["c-partner"] && !JSON.stringify(bk).includes("c-partner"));
+    const tmp = (name, obj) => { const f = path.join(SHOTS, name); fs.writeFileSync(f, JSON.stringify(obj)); return f; };
+    await db(p, () => { Store.removePrivate("checkins", "c-mine"); Store.remove("events", "e-1"); }); await p.waitForTimeout(150);
+    p.answers = [true]; await p.setInputFiles("#rsFile", await dl.path()); await p.waitForTimeout(400);
+    check("format 2 restore brings back events and my private data — into my private area only", await db(p, () => !!__db.events["e-1"] && !!__db.private.u1.checkins["c-mine"] && !__db.private.u2.checkins["c-mine"] && !__db.checkins), await p.textContent("#bkMsg"));
+    check("restore leaves the other parent's private data alone", await db(p, () => Object.keys(__db.private.u2.checkins).join() === "c-partner"));
+    const f1 = JSON.parse(JSON.stringify(bk)); f1.format = 1; delete f1.data.events; delete f1.data.needs; delete f1.data.private;
+    const lost2 = Object.keys(bk.data.pumps)[1]; await db(p, id => Store.remove("pumps", id), lost2); await p.waitForTimeout(150);
+    p.answers = [true]; await p.setInputFiles("#rsFile", tmp("bk-format1.json", f1)); await p.waitForTimeout(400);
+    check("a format 1 backup still restores", await db(p, id => !!__db.pumps[id], lost2), await p.textContent("#bkMsg"));
+    const fn = JSON.parse(JSON.stringify(bk)); fn.app = "niculog"; await db(p, id => Store.remove("pumps", id), lost2); await p.waitForTimeout(150);
+    p.answers = [true]; await p.setInputFiles("#rsFile", tmp("bk-niculog.json", fn)); await p.waitForTimeout(400);
+    check("a backup tagged niculog is accepted", await db(p, id => !!__db.pumps[id], lost2));
+    const f3 = JSON.parse(JSON.stringify(bk)); f3.format = 3; await p.setInputFiles("#rsFile", tmp("bk-format3.json", f3)); await p.waitForTimeout(200);
+    check("a backup from a newer format is refused in plain language", (await p.textContent("#bkMsg")).includes("newer version"));
     await p.evaluate(() => { document.querySelector("details.settings").open = false; });
 
     // ---- more: export ----
@@ -359,6 +391,7 @@ async function main() {
     await tab(q, "more"); await q.click('#moreNav button[data-v="settings"]'); check("Data & settings starts collapsed", !(await q.$eval("details.settings", d => d.open)));
     await importData(q); await tab(q, "feed");
     check("A++ text: baby names in the selector are never truncated", await q.$$eval("#view .nm0,#view .nm1", els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && getComputedStyle(e).textOverflow !== "ellipsis")));
+    check("A++ text: tab labels fit without wrapping or clipping", await q.$$eval("#tabbar button span", s => s.every(e => e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height < 30)));
     check("24-hour clock", (await q.textContent(`${A} .when`)).includes("02:00"));
     for (const t of ["feed", "weight", "milk", "trends", "more"]) {
       await tab(q, t);
@@ -403,6 +436,38 @@ async function main() {
       check("sign-in screen offers account creation", (await f.textContent("#lGo")) === "Create account");
       check("no page errors in family settings", f.errors.length === 0, f.errors.join(" | "));
       await f.context().close(); }
+
+    // ---- navigation (D1): Today · Growth · Milk · Journey · More, ids unchanged ----
+    { const N = await newPage(browser, base); await importData(N);
+    check("tab bar reads Today · Growth · Milk · Journey · More", (await N.$$eval("#tabbar button", b => b.map(x => x.dataset.tab + ":" + x.textContent.trim()).join())) === "feed:Today,weight:Growth,milk:Milk,trends:Journey,more:More");
+    await tab(N, "trends");
+    check("Journey shows the existing Progress experience", await N.isVisible(".glance") && (await N.textContent(".glance h2")) === "Progress at a glance" && await N.isVisible("#ckBabies"));
+    await tab(N, "more"); await N.click('#moreNav button[data-v="records"]'); await N.waitForTimeout(150);
+    check("More opens Records / Care / Settings", await N.isVisible("#moreNav") && (await N.$$eval("#moreNav button", b => b.map(x => x.textContent).join())) === "Records,Care,Settings" && await N.isVisible("#logBody"));
+    await tab(N, "trends"); await N.reload(); await N.waitForTimeout(700);
+    check("the chosen tab is remembered (stored id 'trends' still valid)", await N.$eval("#tabbar .on", b => b.dataset.tab) === "trends" && await N.isVisible(".glance"));
+      check("no page errors in navigation", N.errors.length === 0, N.errors.join(" | "));
+      await N.context().close(); }
+
+    // ---- Phase 1 lifecycle: leave / removal / account deletion clean only the right private data ----
+    { const L = await newPage(browser, base);
+      await L.evaluate(() => { __db.private.u2.checkins = { "c-partner": { mood: 1 } }; return Store.putPrivate("checkins", "c-mine", { mood: 3 }); });
+      await L.evaluate(() => Store.leave());   // the Leave button runs this, then reloads the page (which would reset the stub)
+      check("leaving deletes my private data and leaves the other parent's", await L.evaluate(() => Object.keys(__db.private.u1.checkins || {}).length === 0 && !!__db.private.u2.checkins["c-partner"]));
+      await L.context().close(); }
+    { const R = await newPage(browser, base, { init: () => { window.__TEST_REMOVED = true; } });
+      check("a removed parent lands on join / start a family", await R.isVisible("#family") && !(await R.isVisible("#main")));
+      await R.context().close(); }
+    { const R2 = await newPage(browser, base, { init: () => { window.__TEST_REMOVED = true; window.__TEST_CLEANUP_FAILS = true; } });
+      check("if removal cleanup can't finish, the app says so instead of pretending", (await R2.textContent("#banner")).includes("needs a connection") && !(await R2.isVisible("#family")));
+      await R2.context().close(); }
+    { const D = await newPage(browser, base);
+      await D.evaluate(() => { __fam.members = [{ uid: "u1", email: "parent1@example.com" }]; __db.private.u2.checkins = { "c-partner": { mood: 1 } };
+        Store.put("events", "e-9", { title: "x" }); Store.put("needs", "n-1", { text: "meals" }); return Store.putPrivate("checkins", "c-mine", { mood: 3 }); });
+      await tab(D, "more"); await D.click('#moreNav button[data-v="settings"]'); await D.waitForTimeout(250);
+      D.answers = [true, "pw"]; await D.click("#fmDelete"); await D.waitForTimeout(400);
+      check("the last member deleting their account removes events, needs and their own private data", await D.evaluate(() => !__db.events && !__db.needs && !Object.keys(__db.private.u1.checkins || {}).length && !!__db.private.u2.checkins["c-partner"]));
+      await D.context().close(); }
 
     // ---- appearance: system / light / dark ----
     const bgOf = pg => pg.evaluate(() => getComputedStyle(document.body).backgroundColor);

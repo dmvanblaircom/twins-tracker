@@ -55,9 +55,24 @@ service cloud.firestore {
         allow delete: if signedIn() && (request.auth.uid == uid || owner(hid));
       }
 
-      // All tracker data: feeds, weights, pumps, drops, checklist, plans, questions, config.
+      // All shared family data: feeds, weights, pumps, drops, checklist, plans, questions, events, needs, config.
+      // `members` and `private` are excluded here on purpose: Firestore rules are additive, so if this catch-all
+      // matched them, any family member could read another member's private subtree regardless of the rules below.
       match /{col}/{rest=**} {
-        allow read, write: if col != 'members' && inFamily(hid);
+        allow read, write: if !(col in ['members', 'private']) && inFamily(hid);
+      }
+
+      // Each person's private subtree: households/{hid}/private/{uid}/{collection}/{doc}
+      // (e.g. Parent Support check-ins). Only the person whose uid is in the path can touch it — never the other
+      // parent, never a stranger, and never via the legacy allowlist for households/main.
+      match /private/{uid}/{name}/{docId} {
+        // Read (get + list) and delete need only "it's my uid", NOT current membership. This is the narrow
+        // removed-member cleanup exception: when the owner removes a parent, that parent loses all family access,
+        // but the app must still be able to find and delete their own private documents the next time they open it
+        // (product decision D10). It grants nothing outside this person's own subtree and never restores membership.
+        allow read, delete: if signedIn() && request.auth.uid == uid;
+        // Creating or changing private data still requires being an active member of the family.
+        allow create, update: if signedIn() && request.auth.uid == uid && member(hid);
       }
     }
 
