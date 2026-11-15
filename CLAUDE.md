@@ -5,7 +5,7 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 **This repo is public. Never commit names, birth dates/times, weights or any feed data.** All personal details live in Firestore (`households/main/config/profile`), entered on the in-app setup screen.
 
 ## NICUlog direction
-The app is evolving into **NICUlog**. Approved decisions and phases: `docs/NICULOG-PLAN.md` (source of truth). Phase 0 audit: `docs/niculog-phase0-audit.md`. Phase prompts: `docs/prompts/`. Earlier status summary: `docs/STATUS-2026-11-15.md`.
+The app is evolving into **NICUlog**. Approved decisions and phases: `docs/NICULOG-PLAN.md` (source of truth). Phase 0 audit: `docs/niculog-phase0-audit.md`. Phase prompts are written by the product owner (with ChatGPT) from the plan. Earlier status summary: `docs/STATUS-2026-11-15.md`.
 
 ## Files
 - `index.html` — the whole app (UI, charts via Chart.js 4.4.1 from cdnjs, all logic). Talks to the backend only through `window.Store`.

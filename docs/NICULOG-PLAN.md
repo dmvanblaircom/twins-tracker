@@ -47,7 +47,6 @@ Last updated: Nov 15, 2026.
 Each phase ends shippable, keeps all existing tests green, adds tests, updates `CLAUDE.md`, and **stops for product-owner approval**.
 
 ### Phase 1 — Foundations
-Detailed prompt: `docs/prompts/phase-1.md`.
 - **Rules:** the catch-all data rule excludes `private`, and a new owner-only `private/{uid}/**` match is added. Emulator tests cover it.
 - **`window.Store` additions:** `patch` (merge write), `watchPrivate` / `putPrivate` / `removePrivate`. The test stub mirrors them.
 - **Account deletion and leaving** cover the new collections (`events`, `needs`, later `photos` / `photoData`) and the leaver's own private subtree (D10).
