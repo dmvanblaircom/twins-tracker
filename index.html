@@ -236,7 +236,8 @@
       <label class="f full">Birth date<input id="suBorn" type="date"></label>
       <label class="f full">Gestational age at birth (optional)<input id="suGA" type="text" placeholder="e.g. 36w0d"></label>
       <label class="f">Feeds every<select id="suEvery" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="2">2 hours</option><option value="3">3 hours</option><option value="4">4 hours</option></select></label>
-      <label class="f">Feed day starts<select id="suStart" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option><option value="3">3 AM</option><option value="4">4 AM</option><option value="5">5 AM</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option><option value="11">11 AM</option><option value="12">12 PM</option></select></label>
+      <label class="f">First feed of the day<select id="suStart" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option><option value="3">3 AM</option><option value="4">4 AM</option><option value="5">5 AM</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option><option value="11">11 AM</option><option value="12">12 PM</option><option value="13">1 PM</option><option value="14">2 PM</option><option value="15">3 PM</option><option value="16">4 PM</option><option value="17">5 PM</option><option value="18">6 PM</option><option value="19">7 PM</option><option value="20">8 PM</option><option value="21">9 PM</option><option value="22">10 PM</option><option value="23">11 PM</option></select></label>
+      <label class="f">Day starts (shift change)<select id="suDay" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option><option value="3">3 AM</option><option value="4">4 AM</option><option value="5">5 AM</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option><option value="11">11 AM</option><option value="12">12 PM</option></select></label>
       <div class="full" style="margin-top:6px;font-weight:650"><span class="dot" style="background:var(--t0)"></span>Baby A</div>
       <label class="f">Name<input id="suN0" type="text"></label>
       <label class="f">Birth time<input id="suT0" type="time"></label>
@@ -631,12 +632,15 @@
   }
 
   // ---------- feed slots ----------
-  // Feed day starts 8 AM. Each baby feeds every 3 h from 8 AM, offset by her SLOT_M minutes.
-  let SLOT_H = [8,11,14,17,20,23,26,29];   // hours from the feed-day's midnight; >24 = next morning
-  let DAY_START_H = 8;
-  function setSchedule(everyH,startH){
-    everyH=[2,3,4].includes(+everyH)?+everyH:3; startH=Number.isInteger(+startH)&&+startH>=0&&+startH<=12?+startH:8;
-    DAY_START_H=startH; FEEDS_PER_DAY=24/everyH; SLOT_H=[...Array(FEEDS_PER_DAY)].map((_,k)=>startH+k*everyH);
+  // A "day" runs shift change to shift change (default 7 AM–7 AM), independent of feed times.
+  // Feeds every everyH hours on the clock grid anchored at startH (first feed), offset per baby by SLOT_M (0/30 min).
+  let SLOT_H = [8,11,14,17,20,23,26,29];   // feed hours from the day's midnight, in [DAY_START_H, DAY_START_H+24)
+  let DAY_START_H = 7;
+  const hrOk = (h,lo,hi,def) => Number.isInteger(+h)&&+h>=lo&&+h<=hi ? +h : def;
+  function setSchedule(everyH,startH,dayH){
+    everyH=[2,3,4].includes(+everyH)?+everyH:3; startH=hrOk(startH,0,23,8); DAY_START_H=hrOk(dayH,0,12,7);
+    FEEDS_PER_DAY=24/everyH;
+    SLOT_H=[...Array(24)].map((_,k)=>DAY_START_H+k).filter(h=>((h-startH)%everyH+everyH)%everyH===0);
   }
   const feedDay = t => { const d=new Date(t); if(d.getHours()<DAY_START_H) d.setDate(d.getDate()-1); return dKey(d); };
   const slotT = (tw,day,i) => { const d=keyDate(day); d.setHours(SLOT_H[i], SLOT_M[tw], 0, 0); return d.getTime(); };
@@ -1237,7 +1241,7 @@
   function applyProfile(p){
     profile=p; const tw=p.twins;
     TWINS=[tw[0].name, tw[1].name];
-    setSchedule(p.schedule&&p.schedule.everyH, p.schedule&&p.schedule.startH);
+    setSchedule(p.schedule&&p.schedule.everyH, p.schedule&&p.schedule.startH, p.schedule&&p.schedule.dayH);
     COLOR_KEY=[tw[0].color||"blue", tw[1].color||"orange"]; applyColors();
     const [y,m,d]=p.born.split("-").map(Number);
     FIRST_NIGHT=new Date(y,m-1,d);
@@ -1268,7 +1272,7 @@
     $("suCancel").style.display=editing?"":"none"; $("suMsg").textContent="";
     const p=profile;
     $("suBorn").value=p?p.born:""; $("suGA").value=p?p.ga||"":"";
-    $("suEvery").value=String(p&&p.schedule&&p.schedule.everyH||3); $("suStart").value=String(p&&p.schedule&&p.schedule.startH!=null?p.schedule.startH:8);
+    $("suEvery").value=String(p&&p.schedule&&p.schedule.everyH||3); $("suStart").value=String(p&&p.schedule&&p.schedule.startH!=null?p.schedule.startH:8); $("suDay").value=String(p&&p.schedule&&p.schedule.dayH!=null?p.schedule.dayH:7);
     [0,1].forEach(i=>{ const t=p?p.twins[i]:null;
       $("suN"+i).value=t?t.name:""; $("suT"+i).value=t?t.birthTime||"":""; $("suW"+i).value=t?t.birthG:"";
       $("suF"+i).value=t&&t.fullMl?t.fullMl:""; $("suM"+i).value=t?String(t.slotMin||0):(i?"30":"0"); swatches(i, t&&t.color || (i?"orange":"blue")); });
@@ -1279,7 +1283,7 @@
   $("editProfile").addEventListener("click",()=>showSetup(true));
   $("suCancel").addEventListener("click",hideSetup);
   $("suSave").addEventListener("click", async ()=>{
-    const p={born:$("suBorn").value, ga:$("suGA").value.trim().slice(0,20), schedule:{everyH:+$("suEvery").value, startH:+$("suStart").value}, twins:[0,1].map(i=>({
+    const p={born:$("suBorn").value, ga:$("suGA").value.trim().slice(0,20), schedule:{everyH:+$("suEvery").value, startH:+$("suStart").value, dayH:+$("suDay").value}, twins:[0,1].map(i=>({
       name:$("suN"+i).value.trim().slice(0,30), birthTime:$("suT"+i).value||"00:00",
       birthG:Math.round(+$("suW"+i).value), fullMl:+$("suF"+i).value||null, slotMin:+$("suM"+i).value, color:$("suC"+i).querySelector('[aria-checked="true"]')?.dataset.k||(i?"orange":"blue")}))};
     if(!validProfile(p)){ $("suMsg").textContent="Need a birth date, two different names and both birth weights."; return; }

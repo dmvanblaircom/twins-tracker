@@ -36,7 +36,7 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - Charts render only when their tab is visible (`draw` skips hidden canvases; `showTab` re-renders).
 
 ## Domain rules
-- Feeds every `everyH` h (default 3) from `startH` (default 8 AM) — `setSchedule` builds `SLOT_H`, `FEEDS_PER_DAY`, `DAY_START_H` from the profile; each baby offset by `slotMin` (0 or 30). Feed day = startH to startH.
+- A day runs `dayH` to `dayH` (default 7 AM–7 AM, matching NICU shifts) and never depends on feed times. Feeds every `everyH` h (default 3) on the grid anchored at `startH` (default 8 AM); `setSchedule` builds `SLOT_H` (hours within the day window), `FEEDS_PER_DAY`, `DAY_START_H`. Each baby offset by `slotMin` (0 or 30). Daily totals count feeds by clock time (`feedDay`), so changing feed times never moves the day.
 - Only PO volume is tracked. Full feed default = 150 mL/kg/day × birth weight ÷ 8, overridable per baby.
 
 ## Status / next steps

@@ -82,6 +82,7 @@ async function importData(p) {
     // ---- boot + import ----
     const p = await newPage(browser, base);
     check("boots to the app with both names", (await p.textContent("#title")) === "Ada Rose & Bea Joy");
+    check("day runs 7 AM–7 AM by default", (await p.textContent("#dayRun")) === "7 AM–7 AM", await p.textContent("#dayRun"));
     check("age line (day of life + corrected age)", (await p.textContent("#ageLine")).includes("day 10 · 37w3d"), await p.textContent("#ageLine"));
     const msg = await importData(p);
     check("CSV import", /Imported 18 weights, \d+ feeds\./.test(msg), msg);
@@ -204,6 +205,18 @@ async function importData(p) {
     check("no page errors on night/4-hour", r.errors.length === 0, r.errors.join(" | "));
     await r.context().close();
 
+    // ---- 7 AM day boundary, independent of feed times ----
+    PROFILE.schedule = { everyH: 3, startH: 6 };   // feeds at 6a/9a/...: the day still flips at 7
+    const v = await newPage(browser, base, { now: "2026-02-11T07:20:00-05:00" });
+    await v.evaluate(() => { Store.setFeed("Ada Rose-a", { twin: "Ada Rose", t: new Date("2026-02-11T06:00:00-05:00").getTime(), v: 30, note: "", diet: "" }); });
+    await tab(v, "feed"); await v.waitForTimeout(200);
+    check("at 7:20 AM the sheet is on the new day", (await v.textContent("#dLabel")).startsWith("Today · Wed, 2/11"), await v.textContent("#dLabel"));
+    check("a 6 AM feed counts toward the day before (7 AM boundary)", (await v.textContent('.nx[data-tw="Ada Rose"] .tsum')).includes("0 of 8"), await v.textContent('.nx[data-tw="Ada Rose"] .tsum'));
+    const firstSlot = await v.$$eval("#sheet .tw", t => t[0].querySelector("label").textContent);
+    check("6 AM feeds land at the end of the day (first slot 9a, last 6a)", firstSlot === "9a", firstSlot);
+    check("no page errors on 7 AM boundary", v.errors.length === 0, v.errors.join(" | "));
+    await v.context().close();
+
     // ---- 2-hour schedule, "36+0" age format ----
     PROFILE.schedule = { everyH: 2, startH: 8 }; PROFILE.ga = "36+0";
     const u = await newPage(browser, base);
@@ -213,6 +226,7 @@ async function importData(p) {
     const filled = await u.$$eval("#sheet .tw", t => [...t[0].querySelectorAll("input")].filter(i => i.value).length);
     check("2-hour schedule: an off-slot feed counts once", filled === 1, `${filled} slots show it`);
     check("no page errors on 2-hour", u.errors.length === 0, u.errors.join(" | "));
+    check("2-hour schedule from 8 AM inside a 7 AM day: 12 slots, 8a..6a", (await u.$$eval("#sheet .tw", t => [...t[0].querySelectorAll("label")].map(l => l.textContent))).join(" ") === "8a 10a 12p 2p 4p 6p 8p 10p 12a 2a 4a 6a");
     await u.context().close();
   } catch (e) { fails.push("crashed: " + e.message); console.error(e); }
   await browser.close(); srv.close();
