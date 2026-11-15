@@ -45,8 +45,9 @@
     --font:"Inter",-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     --fs-xs:12px; --fs-sm:13.5px; --fs-md:15px; --fs-body:16px; --fs-lg:17px; --fs-h2:16px; --fs-title:22px; --fs-metric:24px;
   }
+  /* Dark: used when Appearance = Dark, or Appearance = System and the phone is in Dark mode. Night overrides both. */
   @media (prefers-color-scheme: dark){
-    :root:not([data-theme="night"]){
+    :root:not([data-theme="night"]):not([data-look="light"]){
       --bg:#0E1A26; --surface:#142433; --surface-2:#102030; --track:#1A2C3D;
       --line:#22364A; --grid:#1B2D3F; --field:#5A7590;
       --text:#E4ECF3; --title:#F2F6FA; --text2:#A9BACB; --muted:#97AABD; --seg-off:#B5C4D2;
@@ -57,6 +58,17 @@
       --t0:#8FB2DE; --t1:#E5A47F;
       --shadow-1:0 1px 2px rgba(0,0,0,.35); --shadow-2:0 8px 24px rgba(0,0,0,.5);
     }
+  }
+  :root[data-look="dark"]:not([data-theme="night"]){
+    --bg:#0E1A26; --surface:#142433; --surface-2:#102030; --track:#1A2C3D;
+    --line:#22364A; --grid:#1B2D3F; --field:#5A7590;
+    --text:#E4ECF3; --title:#F2F6FA; --text2:#A9BACB; --muted:#97AABD; --seg-off:#B5C4D2;
+    --accent:#9CC2E4; --on-accent:#0E1A26; --primary:#8DB8DE; --focus:rgba(141,184,222,.5); --brand:#9CC2E4;
+    --success:#4FB394; --success-ink:#7FD1B5; --success-tint:#12302A;
+    --warning:#D9A35A; --warning-ink:#E7BB7E; --warning-tint:#33270F;
+    --danger:#E58784;  --danger-ink:#F0A3A0;  --danger-tint:#3A1C1F;
+    --t0:#8FB2DE; --t1:#E5A47F;
+    --shadow-1:0 1px 2px rgba(0,0,0,.35); --shadow-2:0 8px 24px rgba(0,0,0,.5);
   }
   /* Night: deep blue-black with warm, low-glare text for 2 AM feeds */
   :root[data-theme="night"]{
@@ -421,6 +433,7 @@
       <div class="pr"><span>Weights shown in</span><div class="seg small" id="pfUnits"><button data-v="g">grams</button><button data-v="lb">lb / oz</button></div></div>
       <div class="pr"><span>Time</span><div class="seg small" id="pfClock"><button data-v="12">2:30p</button><button data-v="24">14:30</button></div></div>
       <div class="pr"><span>Text size</span><div class="seg small" id="pfText"><button data-v="1">A</button><button data-v="1.15">A+</button><button data-v="1.3">A++</button></div></div>
+      <div class="pr"><span>Appearance</span><div class="seg small" id="pfLook"><button data-v="system">System</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
       <div class="pr"><span>Night mode</span><div class="seg small" id="pfNight"><button data-v="manual">Moon button</button><button data-v="auto">9 PM–7 AM</button></div></div>
     </div>
     <div class="note">Only affects this phone. Weights are still entered in grams, like the NICU charts them.</div>
@@ -470,8 +483,16 @@
   const PALETTE = {pink:["#B0506F","#E58FAA","#CFA0AC"], purple:["#6B58A6","#AE9EE3","#ADA1C9"], blue:["#3E6A9C","#8FB2DE","#93A9C4"],
     orange:["#A85B35","#E5A47F","#CC9C7E"], green:["#4A7D4C","#92C494","#98B293"], teal:["#2D777B","#7DC4C7","#8BB2B3"]};   // [light, dark, night], all ≥4.5:1 on their surface
   let COLOR_KEY = ["blue","orange"];
+  // Appearance (per phone): system follows the phone; light/dark force it. Night mode overrides either.
+  const isDark = () => PREF.look==="dark" || (PREF.look!=="light" && matchMedia("(prefers-color-scheme: dark)").matches);
+  function applyLook(){
+    if(PREF.look==="light"||PREF.look==="dark") document.documentElement.dataset.look=PREF.look; else delete document.documentElement.dataset.look;
+    const night=document.documentElement.dataset.theme==="night";
+    document.querySelector('meta[name="theme-color"]').content = night ? "#070C11" : isDark() ? "#0E1A26" : "#F3F6F9";
+    applyColors();
+  }
   function applyColors(){
-    const mode = document.documentElement.dataset.theme==="night" ? 2 : matchMedia("(prefers-color-scheme: dark)").matches ? 1 : 0;
+    const mode = document.documentElement.dataset.theme==="night" ? 2 : isDark() ? 1 : 0;
     COLOR_KEY.forEach((k,i)=>document.documentElement.style.setProperty("--t"+i, (PALETTE[k]||PALETTE[i?"orange":"blue"])[mode]));
   }
   function swatches(i,sel){
@@ -488,7 +509,7 @@
   const md = k => { const d=keyDate(k); return `${d.getMonth()+1}/${d.getDate()}`; };
   const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   // Per-phone display preferences (localStorage; never synced)
-  const PREF = (()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem("prefs")||"{}")||{}; }catch{} return {units:"g",clock:"12",text:"1",night:"manual",...p}; })();
+  const PREF = (()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem("prefs")||"{}")||{}; }catch{} return {units:"g",clock:"12",text:"1",night:"manual",look:"system",...p}; })();
   const savePrefs = () => { try{ localStorage.setItem("prefs",JSON.stringify(PREF)); }catch{} };
   const clock = (h,m,short) => PREF.clock==="24" ? `${pad(h)}:${pad(m)}` : `${h%12||12}${m||!short?":"+pad(m):""}${short?(h<12?"a":"p"):(h<12?" AM":" PM")}`;
   const hmH = h => PREF.clock==="24" ? clock(h%24,0,false) : clock(h%24,0,false).replace(":00","");
@@ -944,8 +965,7 @@
   function setNight(on){
     if(on) document.documentElement.dataset.theme="night"; else delete document.documentElement.dataset.theme;
     $("nightBtn").setAttribute("aria-pressed",on?"true":"false");
-    document.querySelector('meta[name="theme-color"]').content = on ? "#070C11" : "#F3F6F9";
-    store.set("night",on?"1":"0"); applyColors();
+    store.set("night",on?"1":"0"); applyLook();
   }
   $("nightBtn").addEventListener("click",()=>{
     if(PREF.night==="auto"){ PREF.night="manual"; savePrefs(); [...$("pfNight").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v==="manual"); b.setAttribute("aria-pressed",b.dataset.v==="manual"?"true":"false"); }); }
@@ -961,6 +981,7 @@
   prefSeg("pfClock","clock",()=>{ $("dayRun").textContent=`${hmH(DAY_START_H)}–${hmH(DAY_START_H)}`; TWINS[0]!=="A"&&renderAll(); });
   prefSeg("pfText","text",applyText);
   prefSeg("pfNight","night",()=>{ if(PREF.night==="auto") setNight(nightDue()); });
+  prefSeg("pfLook","look",()=>{ applyLook(); if(TWINS[0]!=="A") renderAll(); });
   applyText();
   setNight(PREF.night==="auto" ? nightDue() : store.get("night")==="1");
   showTab(store.get("tab")||"feed");
@@ -1012,7 +1033,7 @@
     try{ await navigator.clipboard.writeText(csv); $("csvMsg").textContent="Copied."; }
     catch{ const tb=$("csvBox"); tb.style.display="block"; tb.value=csv; tb.select(); $("csvMsg").textContent="Select all and copy."; }
   });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{ applyColors(); renderAll(); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{ applyLook(); renderAll(); });
 
   // ---------- data ----------
   function banner(t){ const b=$("banner"); b.textContent=t||""; b.style.display=t?"block":"none"; }

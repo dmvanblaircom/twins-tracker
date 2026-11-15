@@ -197,6 +197,21 @@ async function main() {
     check("no page errors with prefs", q.errors.length === 0, q.errors.join(" | "));
     await q.context().close();
 
+    // ---- appearance: system / light / dark ----
+    const bgOf = pg => pg.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const sysDark = await newPage(browser, base, { ctx: { colorScheme: "dark" } });
+    check("System appearance follows a dark phone", await bgOf(sysDark) === "rgb(14, 26, 38)", await bgOf(sysDark));
+    await sysDark.context().close();
+    const forcedLight = await newPage(browser, base, { ctx: { colorScheme: "dark" }, prefs: { look: "light" } });
+    check("Appearance = Light stays light on a dark phone", await bgOf(forcedLight) === "rgb(243, 246, 249)", await bgOf(forcedLight));
+    await tab(forcedLight, "more"); await forcedLight.evaluate(() => { document.querySelector("details.settings").open = true; });
+    await forcedLight.click('#pfLook button[data-v="dark"]'); await forcedLight.waitForTimeout(150);
+    check("switching Appearance to Dark applies immediately", await bgOf(forcedLight) === "rgb(14, 26, 38)", await bgOf(forcedLight));
+    await forcedLight.click("#nightBtn"); await forcedLight.waitForTimeout(150);
+    check("night mode still overrides Appearance", await bgOf(forcedLight) === "rgb(7, 12, 17)", await bgOf(forcedLight));
+    check("no page errors on appearance", forcedLight.errors.length === 0, forcedLight.errors.join(" | "));
+    await forcedLight.context().close();
+
     // ---- night mode + 4-hour schedule ----
     PROFILE.schedule = { everyH: 4, startH: 9 };
     const r = await newPage(browser, base, { prefs: { night: "auto" } });
