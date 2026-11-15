@@ -23,6 +23,8 @@ if (!window.Store) {
   // Tests only (tests/rules/store.test.js): point at the local emulators. The app never sets this.
   const EMU = window.__FIREBASE_EMULATORS__;
   if (EMU) { connectAuthEmulator(auth, `http://${EMU.host}:${EMU.auth}`, { disableWarnings: true }); connectFirestoreEmulator(db, EMU.host, EMU.firestore); }
+  // Tests only: make one named lifecycle step fail (EMU.fail = ["household"], …) to prove cleanup fails closed.
+  const fault = name => { const f = EMU && EMU.fail; if (Array.isArray(f) && f.includes(name)) throw Object.assign(new Error("Injected failure: " + name), { code: "injected" }); };
   let HID = null, H = null;                      // current family: households/{HID}
   const setHid = hid => { HID = hid; H = `households/${hid}`; try { localStorage.setItem("hid:" + auth.currentUser.uid, hid); } catch {} };
   const denied = e => String(e && e.code || "").includes("permission");
@@ -119,27 +121,65 @@ if (!window.Store) {
     return { hid: HID, owner: d.owner || null, code: d.code || null, codeExp: d.codeExp || 0, me: me().uid,
       members: ms ? ms.docs.map(m => ({ uid: m.id, email: m.data().email || "" })) : [] };
   }
-  async function newInvite() {
-    const ref = doc(db, "households", HID), h = await getDoc(ref), code = newCode(), exp = Date.now() + WEEK;
-    if (h.exists()) { const old = h.data().code; await updateDoc(ref, { code, codeExp: exp }); if (old) await deleteDoc(doc(db, "invites", old)).catch(() => {}); }
+  // Strict view of the family for lifecycle decisions: server reads, errors propagate. (familyInfo() stays lenient
+  // for the Settings card.) Deciding "I'm the last member" from a failed read would delete everyone's data.
+  // The invite rules read the document being deleted, so deleting one that's already gone is refused. Check first, so
+  // a retried removal or account deletion doesn't get stuck on an invite an earlier attempt already removed.
+  async function deleteInvite(code) { const ref = doc(db, "invites", code); if ((await getDocFromServer(ref)).exists()) await deleteDoc(ref); }
+  async function familyStrict() {
+    const h = await getDocFromServer(doc(db, "households", HID));
+    const ms = await getDocsFromServer(collection(db, "households", HID, "members"));
+    const d = h.exists() ? h.data() : {};
+    return { exists: h.exists(), owner: d.owner || null, code: d.code || null, members: ms.docs.map(m => ({ uid: m.id, email: m.data().email || "" })) };
+  }
+  // Replace the invite code. The household's code is what the rules check when someone joins, so changing it is what
+  // invalidates the old code; the old invites/{code} lookup doc is then deleted. With strict = true (removal) every
+  // step must succeed and the new code is read back from the server before returning.
+  async function rotateInvite(strict) {
+    const ref = doc(db, "households", HID), h = await getDocFromServer(ref), code = newCode(), exp = Date.now() + WEEK;
+    const old = h.exists() ? h.data().code : null;
+    fault("rotate");
+    if (h.exists()) await updateDoc(ref, { code, codeExp: exp });
     else await setDoc(ref, { owner: me().uid, code, codeExp: exp, created: Date.now() });   // original family: first invite creates the family record
     await setDoc(doc(db, "invites", code), { hid: HID, exp });
+    fault("verify");
+    const now = await getDocFromServer(ref);
+    if (!now.exists() || now.data().code !== code) throw Object.assign(new Error("The invite code didn't change."), { code: "rotate-failed" });
+    if (old && old !== code) {
+      if (strict) { fault("invalidate"); await deleteInvite(old); }
+      else await deleteInvite(old).catch(() => {});
+    }
     return { code, codeExp: exp };
   }
-  // Owner only (rules). Revokes access at once, then replaces the invite code so the removed person can't rejoin with
-  // the code they used. The removed person's private data is deleted by their own app on its next open (family()).
+  const newInvite = () => rotateInvite(false);
+  // Owner only (rules). Order matters (fails closed — any error stops before access is revoked, and is reported):
+  //   1. publish a new invite code and read it back,  2. delete the old invite,
+  //   3. original family only: record a revocation for their email, so the legacy allowlist can't let them back in,
+  //   4. delete their membership.
+  // The removed person's private data is deleted by their own app on its next open (family()).
   async function removeMember(uid) {
+    const info = await familyStrict(), target = info.members.find(m => m.uid === uid);
+    if (!target) throw Object.assign(new Error("They're not in this family."), { code: "not-member" });
+    await rotateInvite(true);
+    if (HID === "main") {
+      fault("revoke");
+      if (!target.email) throw Object.assign(new Error("Can't revoke an account without an email."), { code: "revoke-failed" });
+      await setDoc(doc(db, "households", HID, "revoked", target.email.toLowerCase()), { uid, by: email(), t: Date.now() });
+    }
+    fault("remove");
     await deleteDoc(doc(db, "households", HID, "members", uid));
-    await newInvite();
   }
   // Leave: private data first (while still a member), then ownership, then the pointer and membership.
   // Needs a connection; if cleanup fails nothing else changes and the error is passed on.
+  // Order: private data → ownership → membership → family pointer. The pointer goes last so that a failure part-way
+  // leaves it in place: the next open either finds the membership (try again) or a confirmed removal (family() finishes
+  // the cleanup). Any error stops and is passed on.
   async function leave() {
-    const u = me(), info = await familyInfo(), others = info.members.filter(m => m.uid !== u.uid);
-    await purgePrivate(HID, u.uid);
-    if (info.owner === u.uid && others.length) await updateDoc(doc(db, "households", HID), { owner: others[0].uid });
-    await deleteDoc(doc(db, "users", u.uid));
-    await deleteDoc(doc(db, "households", HID, "members", u.uid));
+    const u = me(), info = await familyStrict(), others = info.members.filter(m => m.uid !== u.uid);
+    fault("purge"); await purgePrivate(HID, u.uid);
+    if (info.owner === u.uid && others.length) { fault("transfer"); await updateDoc(doc(db, "households", HID), { owner: others[0].uid }); }
+    fault("member"); await deleteDoc(doc(db, "households", HID, "members", u.uid));
+    fault("pointer"); await deleteDoc(doc(db, "users", u.uid));
     try { localStorage.removeItem("hid:" + u.uid); } catch {}
     return others.length;
   }
@@ -147,21 +187,28 @@ if (!window.Store) {
   async function deleteAccount(password) {
     const u = me();
     await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, password));
+    // Fails closed: every step is awaited with no swallowed errors, and the sign-in itself is deleted only after all of
+    // the Firestore cleanup has succeeded. Each step is safe to repeat, so "Delete my account" can simply be retried.
     if (HID) {
-      const info = await familyInfo(), others = info.members.filter(m => m.uid !== u.uid);
+      const info = await familyStrict(), others = info.members.filter(m => m.uid !== u.uid);
       if (!others.length) {
-        await purgePrivate(HID, u.uid);
-        for (const c of SHARED) { const s = await getDocsFromServer(collection(db, H, c)); for (const d of s.docs) await deleteDoc(d.ref); }
-        for (const k of CONFIG) await deleteDoc(doc(db, H, "config", k)).catch(() => {});
-        if (info.code) await deleteDoc(doc(db, "invites", info.code)).catch(() => {});
-        await deleteDoc(doc(db, "users", u.uid)).catch(() => {});
-        await deleteDoc(doc(db, "households", HID, "members", u.uid)).catch(() => {});
-        await deleteDoc(doc(db, "households", HID)).catch(() => {});
+        fault("purge"); await purgePrivate(HID, u.uid);
+        fault("shared"); for (const c of SHARED) { const s = await getDocsFromServer(collection(db, H, c)); for (const d of s.docs) await deleteDoc(d.ref); }
+        fault("config"); for (const k of CONFIG) await deleteDoc(doc(db, H, "config", k));
+        if (info.code) { fault("invite"); await deleteInvite(info.code); }
+        if (info.exists) {   // the original family may never have had a family record
+          fault("household");
+          const rv = await getDocsFromServer(collection(db, "households", HID, "revoked")); for (const d of rv.docs) await deleteDoc(d.ref);
+          await deleteDoc(doc(db, "households", HID));
+        }
+        fault("member"); await deleteDoc(doc(db, "households", HID, "members", u.uid));
+        fault("pointer"); await deleteDoc(doc(db, "users", u.uid));
       } else await leave();
     }
+    fault("auth");
+    await deleteUser(u);
     try { localStorage.removeItem("hid:" + u.uid); } catch {}
     HID = H = null;
-    await deleteUser(u);
   }
 
   window.Store = {

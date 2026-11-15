@@ -139,6 +139,50 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
   });
   await t("a removed parent deletes their own private data", () => assertSucceeds(deleteDoc(doc(par, P2 + "/p1"))));
 
+  // ---- legacy allowlist revocation (original family `main`) ----
+  await env.withSecurityRulesDisabled(async c => { const d = c.firestore();
+    await setDoc(doc(d, "households/main"), { owner: "dad", code: "CODEMMMM", codeExp: exp, created: 1 });
+    await setDoc(doc(d, "households/main/members/dad"), { email: "parent1@example.com" });
+    await setDoc(doc(d, "households/main/members/mom"), { email: "parent2@example.com" });
+    await setDoc(doc(d, "households/main/members/zed"), { email: "zed@example.net" });
+    await setDoc(doc(d, "users/mom"), { hid: "main" });
+  });
+  await t("only the owner can revoke, and only in the original family", async () => {
+    await assertFails(setDoc(doc(mom, "households/main/revoked/parent1@example.com"), { uid: "dad" }));
+    await assertFails(setDoc(doc(zed, "households/main/revoked/parent2@example.com"), { uid: "mom" }));
+    await assertFails(setDoc(doc(own, "households/h3/revoked/par@example.net"), { uid: "par" }));
+    await assertSucceeds(setDoc(doc(dad, "households/main/revoked/parent2@example.com"), { uid: "mom", by: "parent1@example.com" }));
+  });
+  await assertSucceeds(deleteDoc(doc(dad, "households/main/members/mom")));
+  await t("a revoked allowlisted email loses all family data", async () => {
+    await assertFails(getDoc(doc(mom, "households/main/feeds/b0-1"))); await assertFails(getDocs(collection(mom, "households/main/feeds")));
+    await assertFails(setDoc(doc(mom, "households/main/feeds/b0-77"), { v: 1 })); await assertFails(getDoc(doc(mom, "households/main")));
+  });
+  await t("a revoked allowlisted email can't reclaim membership or re-point their account", async () => {
+    await assertFails(setDoc(doc(mom, "households/main/members/mom"), { email: "parent2@example.com" }));
+    await assertFails(setDoc(doc(mom, "users/mom"), { hid: "main" }));
+    await assertFails(setDoc(doc(mom, "households/main/config/profile"), { born: "x" }));
+  });
+  await t("nobody but the owner can lift a revocation", async () => {
+    await assertFails(deleteDoc(doc(mom, "households/main/revoked/parent2@example.com")));
+    await assertFails(deleteDoc(doc(zed, "households/main/revoked/parent2@example.com")));
+    await assertFails(updateDoc(doc(dad, "households/main/revoked/parent2@example.com"), { uid: "x" }));
+  });
+  await t("a revoked parent can still clean up only their own private data", async () => {
+    await assertSucceeds(getDocs(collection(mom, "households/main/private/mom/checkins")));
+    await assertFails(setDoc(doc(mom, "households/main/private/mom/checkins/new"), { mood: 1 }));
+    await assertSucceeds(deleteDoc(doc(mom, "households/main/private/mom/checkins/m1")));
+    await assertFails(getDocs(collection(mom, "households/main/private/dad/checkins")));
+  });
+  await t("the remaining allowlisted parent keeps normal access", async () => {
+    await assertSucceeds(getDoc(doc(dad, "households/main/feeds/b0-1"))); await assertSucceeds(setDoc(doc(dad, "households/main/feeds/b0-78"), { v: 2 }));
+    await assertSucceeds(getDoc(doc(dad, "households/main/revoked/parent2@example.com")));
+  });
+  await t("the owner can deliberately re-invite a revoked parent with the current code", async () => {
+    await assertSucceeds(setDoc(doc(mom, "households/main/members/mom"), { email: "parent2@example.com", code: "CODEMMMM" }));
+    await assertSucceeds(getDoc(doc(mom, "households/main/feeds/b0-1")));
+  });
+
   await env.cleanup();
   console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

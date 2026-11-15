@@ -7,8 +7,11 @@ service cloud.firestore {
     // The original family (households/main) can still be claimed by the two emails below.
     // Put your real emails here in the Firebase console only (lowercase) — never in this public repo.
     function signedIn() { return request.auth != null; }
+    // An allowlisted email the owner has removed is revoked for good: households/main/revoked/{email} blocks the
+    // allowlist path (membership claim, data access, creating the family record). Re-inviting them with a code still works.
     function legacy() {
-      return signedIn() && request.auth.token.email in ['parent1@example.com', 'parent2@example.com'];
+      return signedIn() && request.auth.token.email in ['parent1@example.com', 'parent2@example.com']
+        && !exists(/databases/$(database)/documents/households/main/revoked/$(request.auth.token.email.lower()));
     }
     function house(hid) { return /databases/$(database)/documents/households/$(hid); }
     function member(hid) {
@@ -56,10 +59,20 @@ service cloud.firestore {
       }
 
       // All shared family data: feeds, weights, pumps, drops, checklist, plans, questions, events, needs, config.
-      // `members` and `private` are excluded here on purpose: Firestore rules are additive, so if this catch-all
+      // `members`, `private` and `revoked` are excluded here on purpose: Firestore rules are additive, so if this catch-all
       // matched them, any family member could read another member's private subtree regardless of the rules below.
       match /{col}/{rest=**} {
-        allow read, write: if !(col in ['members', 'private']) && inFamily(hid);
+        allow read, write: if !(col in ['members', 'private', 'revoked']) && inFamily(hid);
+      }
+
+      // Revocations (original family only): written by the owner when removing an allowlisted member. Members can't
+      // edit or delete them; only the owner can (to undo a revocation, or when deleting the family).
+      match /revoked/{em} {
+        allow get: if inFamily(hid) || (signedIn() && request.auth.token.email.lower() == em);
+        allow list: if inFamily(hid);
+        allow create: if hid == 'main' && owner(hid) && em == em.lower();
+        allow update: if false;
+        allow delete: if owner(hid);
       }
 
       // Each person's private subtree: households/{hid}/private/{uid}/{collection}/{doc}

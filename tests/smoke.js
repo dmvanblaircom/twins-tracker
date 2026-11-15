@@ -429,6 +429,9 @@ async function main() {
       check("the owner can remove someone", !(await f.textContent("#fmList")).includes("parent2@example.com"));
       f.answers = [true, "nope"]; await f.click("#fmDelete"); await f.waitForTimeout(200);
       check("a wrong password deletes nothing", !(await f.evaluate(() => window.__deleted)) && (await f.textContent("#banner")).includes("didn't match"));
+      await f.evaluate(() => { window.__TEST_DELETE_FAILS = true; }); f.answers = [true, "pw"]; await f.click("#fmDelete"); await f.waitForTimeout(250);
+      check("if account deletion can't finish, the app says the account still exists and stays signed in", (await f.textContent("#banner")).includes("still exists") && !(await f.isVisible("#login")) && !(await f.evaluate(() => window.__deleted)));
+      await f.evaluate(() => { window.__TEST_DELETE_FAILS = false; });
       f.answers = [true, "pw"]; await f.click("#fmDelete"); await f.waitForTimeout(300);
       check("the last member deleting their account removes the family's data and signs out", await f.evaluate(() => window.__deleted && !Object.keys(__db.feeds || {}).length && !__db.config.profile) && await f.isVisible("#login"));
       check("deleting warns that everything goes when you're the only one", f.dialogs.some(d => d.includes("only one in the family")));

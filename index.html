@@ -1856,7 +1856,8 @@
     try{ await navigator.clipboard.writeText(text); flash("Invite copied."); }catch{ prompt("Copy this invite:", text); } });
   $("fmList").addEventListener("click", async e=>{ const b=e.target.closest("[data-rm]"); if(!b) return;
     if(!confirm(`Remove ${b.dataset.em} from this family?\n\nThey'll lose access on their next open. Their past entries stay.`)) return;
-    try{ await Store.removeMember(b.dataset.rm); renderFamily(); }catch(err){ failWrite(err); } });
+    try{ await Store.removeMember(b.dataset.rm); renderFamily(); flash("Removed. They no longer have access."); }
+    catch(err){ renderFamily(); flash("Couldn't finish removing them — they still have access. Try again with a connection."); } });
   $("fmLeave").addEventListener("click", async ()=>{
     if(!confirm("Leave this family?\n\nYou'll stop seeing these babies on this account. Everyone else keeps everything.")) return;
     try{ await Store.leave(); location.reload(); }
@@ -1867,7 +1868,8 @@
       : "Delete your account?\n\nYou'll leave the family; everyone else keeps all the data.")) return;
     const pw=prompt("Enter your password to confirm"); if(!pw) return;
     try{ await Store.deleteAccount(pw); flash("Account deleted."); }
-    catch(err){ const c=(err&&err.code)||""; flash(/wrong-password|invalid-credential/.test(c)?"Password didn't match — nothing was deleted.":"Couldn't delete the account — try again with signal."); } });
+    catch(err){ const c=(err&&err.code)||""; flash(/wrong-password|invalid-credential/.test(c)?"Password didn't match — nothing was deleted."
+      :"Couldn't finish deleting your account. You're still signed in and the account still exists — try Delete my account again with a connection to finish."); } });
 
   function boot(S){
     Store=S;

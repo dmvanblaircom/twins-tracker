@@ -43,6 +43,7 @@
     removeMember: async uid => { fam.members = fam.members.filter(m => m.uid !== uid); },
     leave: async () => { purgeMine(); fam.members = fam.members.filter(m => m.uid !== "u1"); fam.hid = null; return fam.members.length; },
     deleteAccount: async pw => { if (pw !== "pw") throw Object.assign(new Error("wrong"), { code: "auth/wrong-password" });
+      if (window.__TEST_DELETE_FAILS) throw Object.assign(new Error("Injected failure"), { code: "injected" });
       purgeMine();
       if (fam.members.length <= 1) Object.keys(db).forEach(k => k === "config" ? (db.config = {}) : k === "private" ? 0 : delete db[k]);
       fam.hid = null; window.__deleted = true; authCb && authCb(null); },
