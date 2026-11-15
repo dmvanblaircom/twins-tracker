@@ -250,6 +250,35 @@
   .calc li .amt{font-weight:700;color:var(--title);white-space:nowrap}
   .calc li.total{color:var(--title);font-weight:650}
   .calc li .badge{margin-left:4px}
+  /* ===== Progress + Records (Phase 3) ===== */
+  .glance .lead{margin:0 0 var(--sp-3);font-size:var(--fs-md);color:var(--text)}
+  .keys{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:var(--fs-xs);color:var(--text2)}
+  .keys li{display:flex;align-items:center;gap:6px}
+  .mk{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:650;background:var(--track);color:var(--text2);white-space:nowrap}
+  .mk.done,.mk.on{background:color-mix(in srgb,var(--accent) 14%,var(--surface));color:var(--title);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 40%,transparent)}
+  .mk.open{background:var(--surface);color:var(--text2);box-shadow:inset 0 0 0 1px var(--field)}
+  .ind{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--grid)}
+  .ind:last-child{border-bottom:0}
+  .ind .k{font-size:var(--fs-sm);font-weight:600;color:var(--text)}
+  .ind .v{font-size:var(--fs-lg);font-weight:750;color:var(--title);letter-spacing:-.01em}
+  .ind .s{grid-column:1/-1;font-size:var(--fs-xs);color:var(--muted)}
+  .ind .mk{grid-row:1 / span 2;grid-column:2;align-self:start}
+  .ckmeta{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 var(--sp-2)}
+  .ck .dt{font-size:var(--fs-xs);color:var(--muted);text-align:right;white-space:nowrap}
+  .subnav{margin:0 0 var(--sp-3)} .subnav .seg{display:flex;width:100%} .subnav .seg button{flex:1;min-height:44px;font-size:var(--fs-md)}
+  .msec{display:none} .msec.on{display:block}
+  #recF{margin:0 0 var(--sp-2)}
+  .rec td{vertical-align:top} .rec td:first-child{white-space:nowrap;font-size:var(--fs-xs);color:var(--text2)}
+  .rec .rk{display:flex;flex-direction:column;gap:2px;min-width:72px} .rec .rk b{font-size:var(--fs-sm);color:var(--title);white-space:nowrap}
+  .rec .rt{font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--text2)}
+  .rec td.num{white-space:nowrap;font-weight:650;color:var(--title)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .carelist{list-style:none;margin:0;padding:0}
+  .carelist li{padding:10px 0;border-bottom:1px solid var(--grid);font-size:var(--fs-md)}
+  .carelist li:last-child{border-bottom:0}
+  .carelist .meta{display:block;font-size:var(--fs-xs);color:var(--muted);margin-top:2px}
+  .carelist .ans{display:block;margin-top:4px;padding:6px 10px;border-left:3px solid var(--field);background:var(--surface-2);border-radius:0 var(--r-xs) var(--r-xs) 0;font-size:var(--fs-sm);color:var(--text)}
+  .carelist .act{margin-top:4px}
   .cl{margin-top:10px;display:grid;gap:2px}
   .cl h4{margin:var(--sp-2) 0 2px;font-size:11.5px;font-weight:650;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;display:flex;justify-content:space-between}
   .ck{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:6px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--grid);color:var(--text);font:inherit;font-size:14.5px;min-height:44px;padding:4px 0;cursor:pointer}
@@ -471,56 +500,88 @@
   </section>
 
   <section class="tab" data-tab="trends">
-  <div class="card"><h2>Going home</h2><div id="home"></div><div id="famList"></div>
-    <div class="note">NICUs usually want all feeds by mouth for 24–48 h, steady weight gain and several days with no breathing events before discharge. Your team sets the actual criteria; this only reflects what you've logged.</div></div>
+  <div class="card glance">
+    <h2>Progress at a glance</h2>
+    <p class="lead">Family tracking indicators worked out from what you've logged. They are <b>not clinical discharge criteria</b> — when the babies go home is decided by the NICU care team.</p>
+    <ul class="keys"><li><span class="mk">Logged</span> calculated from your entries</li><li><span class="mk done">Marked done</span> checked off by your family</li><li><span class="mk open">Open</span> still to follow up</li></ul>
+  </div>
+  <div id="home"></div>
+  <div id="famList"></div>
+  <div id="ckBabies"></div>
   <!-- PO CHART -->
   <div class="card">
-    <h2>PO volume per feed
-    </h2>
+    <h2>By mouth per feed <span class="muted" style="font-size:var(--fs-xs);font-weight:600">mL</span></h2>
     <div class="chartbox"><canvas id="cFeed" aria-label="PO volume per feed" role="img"></canvas></div>
-    <div class="legend"><span>● each feed</span><span>— 24-hr average</span><span id="fullLegend"></span></div>
+    <div class="legend"><span>● each feed (mL)</span><span>— 24-hour average</span><span id="fullLegend"></span></div>
+    <div class="note">Tap the chart to see that feed.</div>
   </div>
   <!-- DAILY PO -->
   <div class="card">
-    <h2>Daily PO, % of full-feed goal</h2>
+    <h2>By mouth per day <span class="muted" style="font-size:var(--fs-xs);font-weight:600">% of configured target</span></h2>
     <div class="chartbox"><canvas id="cDaily" aria-label="Daily PO total as percent of goal" role="img"></canvas></div>
-    <div class="note">Goal = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
+    <div class="note">Target = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
   </div>
   </section>
 
   <section class="tab" data-tab="more">
-  <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Current diet</span>
-    <input id="diet" type="text" style="flex:1;min-width:200px;font-size:15px;padding:7px 9px" value="22 kcal/oz · Enfamil NeuroPro EnfaCare">
-    <span class="msg" id="dietMsg"></span>
-  </div>
-  <!-- FEED LOG -->
+  <nav class="subnav" aria-label="Records sections"><div class="seg" id="moreNav"><button data-v="records">Records</button><button data-v="care">Care</button><button data-v="settings">Settings</button></div></nav>
+
+  <div class="msec" data-sec="records">
   <div class="card">
-    <h2>Feed log
-    </h2>
-    <div style="overflow-x:auto"><table>
-      <thead><tr><th>Time</th><th>Twin</th><th class="num">PO</th><th class="num">% full</th><th>Note</th><th>By</th><th></th></tr></thead>
+    <h2>All records <span class="muted" id="recCount" style="font-size:var(--fs-xs);font-weight:600"></span></h2>
+    <div class="seg small" id="recF" role="group" aria-label="Show"><button data-v="all">All</button><button data-v="feed">Feeds</button><button data-v="weight">Weights</button><button data-v="milk">Milk</button></div>
+    <div class="note">Newest first. Feeds and weights follow the baby selector; milk is shared. Tap a note to edit it. Tap × twice to delete — Undo appears for 8 seconds.</div>
+    <div style="overflow-x:auto"><table class="rec">
+      <thead><tr><th>When</th><th>Record</th><th class="num">Amount</th><th>Note</th><th>By</th><th><span class="sr">Delete</span></th></tr></thead>
       <tbody id="logBody"></tbody>
     </table></div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn ghost" id="moreBtn">Show more</button>
-    </div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost" id="moreBtn">Show more</button></div>
+  </div>
+  </div>
+
+  <div class="msec" data-sec="care">
+  <div class="card">
+    <h2>Diet &amp; feeding instructions</h2>
+    <label class="f">Current diet (entered by your family)
+    <input id="diet" type="text" value="22 kcal/oz · Enfamil NeuroPro EnfaCare">
+    <span class="msg" id="dietMsg"></span></label>
+    <div class="note">Stamped onto each new feed so the charts show when it changed. The NICU team's orders are the source of truth.</div>
   </div>
   <div class="card">
-    <label class="f">Your name on entries (this phone's account)<input id="myName" type="text" maxlength="20" placeholder="e.g. Dad"></label>
-    <div class="note" style="margin-top:4px">Shown next to feeds and milk you log, and in the alert the other phone gets.</div>
+    <h2>Plans from rounds</h2>
+    <div id="careP"></div>
+    <div class="note">Written down by your family after rounds.</div>
   </div>
-  <details class="card settings"><summary>Data &amp; settings</summary>
-  <div class="sect"><h2>This phone</h2>
+  <div class="card">
+    <h2>Questions &amp; answers</h2>
+    <div id="careQ"></div>
+    <button class="tgo" id="careAddQ" type="button"><span>Add a question on <b>Today</b></span><span class="chev" aria-hidden="true">›</span></button>
+    <div class="note">Answers are the care team's replies as written down by your family.</div>
+  </div>
+  </div>
+
+  <div class="msec" data-sec="settings">
+  <div class="card">
+    <h2>You</h2>
+    <label class="f">Your name on entries (this phone's account)<input id="myName" type="text" maxlength="20" placeholder="e.g. Dad"></label>
+    <div class="note">Shown next to what you log and in the alert the other phone gets.</div>
+  </div>
+  <div class="card"><h2>This phone</h2>
     <div class="prefs">
-      <div class="pr"><span>Weights shown in</span><div class="seg small" id="pfUnits"><button data-v="g">grams</button><button data-v="lb">lb / oz</button></div></div>
-      <div class="pr"><span>Time</span><div class="seg small" id="pfClock"><button data-v="12">2:30p</button><button data-v="24">14:30</button></div></div>
-      <div class="pr"><span>Text size</span><div class="seg small" id="pfText"><button data-v="1">A</button><button data-v="1.15">A+</button><button data-v="1.3">A++</button></div></div>
       <div class="pr"><span>Appearance</span><div class="seg small" id="pfLook"><button data-v="system">System</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
       <div class="pr"><span>Night mode</span><div class="seg small" id="pfNight"><button data-v="manual">Moon button</button><button data-v="auto">9 PM–7 AM</button></div></div>
+      <div class="pr"><span>Text size</span><div class="seg small" id="pfText"><button data-v="1">A</button><button data-v="1.15">A+</button><button data-v="1.3">A++</button></div></div>
+      <div class="pr"><span>Weights shown in</span><div class="seg small" id="pfUnits"><button data-v="g">grams</button><button data-v="lb">lb / oz</button></div></div>
+      <div class="pr"><span>Time</span><div class="seg small" id="pfClock"><button data-v="12">2:30p</button><button data-v="24">14:30</button></div></div>
     </div>
-    <div class="note">Only affects this phone. Weights are still entered in grams, like the NICU charts them.</div>
+    <div class="note">Only affects this phone. Weights are always entered in grams, as the NICU charts them.</div>
   </div>
+  <div class="card">
+    <h2>Babies &amp; account</h2>
+    <div class="sub" id="subtitle"></div>
+    <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button><span><span class="msg" id="who" style="font-size:12px"></span> <button class="link" id="signOut">Sign out</button></span></div>
+  </div>
+  <details class="card settings"><summary>Data · CSV export &amp; import</summary>
   <div class="sect"><h2>Export</h2>
     <div class="row"><button class="btn ghost" id="csvBtn">Copy all data as CSV</button><span class="msg" id="csvMsg"></span></div>
     <textarea id="csvBox" readonly></textarea>
@@ -533,11 +594,8 @@
     </details>
   </div>
   </details>
-  <div class="card">
-  <div class="sub" id="subtitle"></div>
-    <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button><span><span class="msg" id="who" style="font-size:12px"></span> <button class="link" id="signOut">Sign out</button></span></div>
+  <div class="note">Tracking aid only — the NICU team's charting and orders are the source of truth.</div>
   </div>
-  <div class="note">Tracking aid only — the NICU team's charting and targets are the source of truth.</div>
   </section>
 <button class="fab" id="fab" aria-label="Log a feed">+ Log feed</button>
 <nav class="tabbar" id="tabbar" aria-label="Screens">
@@ -545,7 +603,7 @@
   <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Growth</span></button>
   <button data-tab="milk"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></svg><span>Milk</span></button>
   <button data-tab="trends"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4.5-5 3.5 3 6-7"/></svg><span>Progress</span></button>
-  <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
+  <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Records</span></button>
 </nav>
 </div>
 
@@ -606,7 +664,7 @@
   let W = {};        // weights: key "Twin|YYYY-MM-DD" -> {twin,date,v,approx,note}
   let F = [];        // feeds: {id,twin,t,v,note}
   let canWrite=true;
-  const state = {wMode:"g", view:"both", logN:16};
+  const state = {wMode:"g", view:"both", logN:30};
   const shown = () => state.view==="both" ? TWINS : [state.view];
 
   function nights(){ // 11/3 .. today
@@ -738,7 +796,7 @@
       ds.push({type:"scatter",label:tw,tw,data:f.map(p=>({x:p.t,y:p.v,note:p.note,diet:p.diet})),backgroundColor:C[tw]+"88",borderColor:C[tw],borderWidth:1,pointRadius:3.5,pointHoverRadius:6});
       ds.push({type:"line",label:`${tw} 24-hr avg`,tw,data:rolling(f),borderColor:C[tw],borderWidth:2.5,pointRadius:0,pointHoverRadius:4,tension:.25});
     });
-    const o=baseOpts("mL PO");
+    const o=baseOpts("mL by mouth");
     o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=60;
     { const ts=F.map(f=>f.t), now=Date.now(); o.scales.x.min=Math.min(now-2*DAY,...ts); o.scales.x.max=Math.max(now,...ts)+2*3600e3; }
     o.plugins.tooltip={callbacks:{
@@ -758,13 +816,13 @@
         backgroundColor:C[tw], borderRadius:4, borderSkipped:"start", maxBarThickness:26};
     });
     const dc=dietChanges().map(m=>({x:days.indexOf(feedDay(m.x)),text:m.text})).filter(m=>m.x>=0);
-    const o=baseOpts("% of daily goal");
+    const o=baseOpts("% of configured target");
     o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted")}};
     o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=110;
     o.interaction={mode:"index",intersect:false};
     o.datasets={bar:{categoryPercentage:.7,barPercentage:.85}};
     o.plugins.tooltip={callbacks:{label:it=>`${it.dataset.label}: ${it.dataset.ml[it.dataIndex]} / ${it.dataset.goal} mL (${it.raw}%)`}};
-    draw("cDaily",{type:"bar",data:{labels:days.map(md),datasets:ds},options:o,plugins:[vLine(dc),hLine([{y:100,color:css("--muted"),label:"goal"}])]});
+    draw("cDaily",{type:"bar",data:{labels:days.map(md),datasets:ds},options:o,plugins:[vLine(dc),hLine([{y:100,color:css("--muted"),label:"target"}])]});
   }
 
   // ---------- weight grid ----------
@@ -805,17 +863,59 @@
   });
   function flash(t){ $("banner").textContent=t; $("banner").style.display="block"; setTimeout(()=>{ if($("banner").textContent===t) banner(""); },3500); }
 
-  // ---------- feed log ----------
+  // ---------- records: one chronological list over the existing collections (no new storage) ----------
   function renderLog(){
-    const C=COLORS(), list=F.filter(f=>shown().includes(f.twin)).sort((a,b)=>b.t-a.t);
-    $("logBody").innerHTML = list.slice(0,state.logN).map(f=>`<tr>
-      <td>${fmtWhen(f.t)}</td><td><span class="dot" style="background:${C[f.twin]}"></span>${esc(f.twin)}</td>
-      <td class="num">${f.v} mL</td><td class="num">${Math.round(f.v/FULL[f.twin]*100)}%</td>
-      <td>${canWrite?`<button class="notebtn" data-note="${esc(f.id)}" aria-label="Edit note for ${esc(f.twin)} at ${fmtWhen(f.t)}">${esc(f.note)||"+ note"}</button>`:esc(f.note)}</td>
-      <td class="muted">${esc(whoName(f.by))}</td><td>${canWrite?`<button class="x" data-id="${esc(f.id)}" title="Delete" aria-label="Delete ${esc(f.twin)} feed at ${fmtWhen(f.t)}">×</button>`:""}</td></tr>`).join("")
-      || `<tr><td colspan="7" class="muted">No feeds logged yet.</td></tr>`;
-    $("moreBtn").style.display = list.length>state.logN ? "" : "none";
+    if(TWINS[0]==="A") return;
+    const C=COLORS(), f=state.recF||"all", sh=shown(), rows=[];
+    if(f==="all"||f==="feed") F.filter(x=>sh.includes(x.twin)).forEach(x=>rows.push({kind:"feed",t:x.t,tw:x.twin,id:x.id,v:x.v,note:x.note,by:x.by}));
+    if(f==="all"||f==="weight") Object.values(W).filter(w=>sh.includes(w.twin)).forEach(w=>rows.push({kind:"weight",t:nightT(w.date),tw:w.twin,id:`${w.twin}-${w.date}`,key:`${w.twin}|${w.date}`,v:w.v,approx:w.approx,by:w.by}));
+    if(f==="all"||f==="milk"){ P.forEach(x=>rows.push({kind:"pump",t:x.t,id:x.id,v:x.v,by:x.by})); D.forEach(x=>rows.push({kind:"drop",t:x.t,id:x.id,v:x.v,by:x.by}));
+      if(milkCfg) rows.push({kind:"count",t:milkCfg.t,v:milkCfg.count}); }
+    rows.sort((a,b)=>b.t-a.t);
+    $("recCount").textContent=`${rows.length} record${rows.length===1?"":"s"}`;
+    const who=r=>r.tw?`<b><span class="dot" style="background:${C[r.tw]}"></span>${esc(r.tw)}</b>`:"";
+    const lbl={feed:"Feed",weight:"Weight",pump:"Pumped",drop:"To NICU",count:"NICU count"};
+    $("logBody").innerHTML = rows.slice(0,state.logN).map(r=>{
+      const amt = r.kind==="feed" ? (!r.v&&MARK.test(r.note||"") ? (r.note.startsWith("Skip")?"skipped":"tube") : `${r.v} mL<br><span class="muted" style="font-weight:500;font-size:var(--fs-xs)">${Math.round(r.v/FULL[r.tw]*100)}% of ${FULL[r.tw]}</span>`)
+        : r.kind==="weight" ? `${fmtG(r.v)} g${r.approx?' <span class="badge warn">est.</span>':""}` : `${fmtG(r.v)} mL`;
+      const note = r.kind==="feed" ? (canWrite?`<button class="notebtn" data-note="${esc(r.id)}" aria-label="Edit note for ${esc(r.tw)} at ${fmtWhen(r.t)}">${esc(r.note)||"+ note"}</button>`:esc(r.note))
+        : r.kind==="count" ? '<span class="badge ok">Counted</span>' : "";
+      const del = canWrite && r.kind!=="count" ? `<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${lbl[r.kind]}${r.tw?" for "+esc(r.tw):""} at ${fmtWhen(r.t)}">×</button>` : "";
+      return `<tr data-kind="${r.kind}"><td>${r.kind==="weight"?`${md(dKey(new Date(r.t)))}<br>8 PM`:fmtWhen(r.t).replace(" ","<br>")}</td>
+        <td><div class="rk">${who(r)}<span class="rt">${lbl[r.kind]}</span></div></td><td class="num">${amt}</td><td>${note}</td><td class="muted">${r.kind==="count"?"":esc(whoName(r.by))}</td><td>${del}</td></tr>`;
+    }).join("") || `<tr><td colspan="6" class="muted">Nothing here yet.</td></tr>`;
+    $("moreBtn").style.display = rows.length>state.logN ? "" : "none";
   }
+  function renderCare(){
+    if(TWINS[0]==="A") return;
+    const C=COLORS(), sh=shown(), today=feedDay(Date.now());
+    const plans=Object.values(PLANS).filter(p=>sh.includes(TWINS[p.i])).sort((a,b)=>a.day<b.day?1:a.day>b.day?-1:a.i-b.i).slice(0,14);
+    $("careP").innerHTML = `<ul class="carelist">${plans.map(p=>{ const tw=TWINS[p.i];
+        return `<li><b><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</b> · ${keyDate(p.day).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}${p.day===today?" · today":""}<br>${esc(p.text)}<span class="meta">Entered by your family${p.by?` · ${esc(whoName(p.by))}`:""}</span></li>`; }).join("")
+      || '<li class="muted">No plans written down yet.</li>'}</ul>
+      <div class="row" style="margin-top:var(--sp-2)">${sh.map(tw=>`<button class="btn ghost" data-plan="${esc(tw)}">Today's plan · ${esc(tw)}</button>`).join("")}</div>`;
+    const qs=[...QS].sort((a,b)=>(a.done-b.done)||(b.t-a.t));
+    $("careQ").innerHTML = `<ul class="carelist">${qs.map(q=>`<li>${esc(q.text)} <span class="mk ${q.done?"done":"open"}">${q.done?"Answered":"Open"}</span>
+        ${q.ans?`<span class="ans">Team's answer: ${esc(q.ans)}</span>`:""}
+        <span class="meta">Asked ${fmtWhen(q.t)}${q.by?` by ${esc(whoName(q.by))}`:""}${q.done&&q.doneT?` · answered ${fmtWhen(q.doneT)}`:""}</span>
+        <span class="act"><button class="link" data-q="${esc(q.id)}">${q.done?"Mark open again":"Mark answered"}</button></span></li>`).join("")
+      || '<li class="muted">No questions yet.</li>'}</ul>`;
+  }
+  // Records sub-sections (remembered per phone) + record filter
+  function showMoreSec(sec){
+    if(!["records","care","settings"].includes(sec)) sec="records";
+    state.moreSec=sec; try{ localStorage.setItem("moreSec",sec); }catch{}
+    document.querySelectorAll(".msec").forEach(m=>m.classList.toggle("on",m.dataset.sec===sec));
+    [...$("moreNav").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v===sec); b.setAttribute("aria-pressed",b.dataset.v===sec?"true":"false"); });
+  }
+  $("moreNav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ showMoreSec(b.dataset.v); scrollTo(0,0); } });
+  showMoreSec((()=>{ try{ return localStorage.getItem("moreSec"); }catch{ return null; } })()||"records");
+  state.recF="all";
+  [...$("recF").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v==="all"); b.setAttribute("aria-pressed",b.dataset.v==="all"?"true":"false"); });
+  $("recF").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; state.recF=b.dataset.v; state.logN=30;
+    [...$("recF").children].forEach(x=>{ x.classList.toggle("on",x===b); x.setAttribute("aria-pressed",x===b?"true":"false"); }); renderLog(); });
+  $("careP").addEventListener("click",e=>{ const b=e.target.closest("[data-plan]"); if(b) editPlan(b.dataset.plan); });
+  $("careAddQ").addEventListener("click",()=>{ showTab("feed"); setTimeout(()=>{ $("qText").scrollIntoView({block:"center"}); $("qText").focus(); },150); });
 
   // ---------- feed slots ----------
   // A "day" runs shift change to shift change (default 7 AM–7 AM), independent of feed times.
@@ -1130,7 +1230,7 @@
   $("dNext").addEventListener("click",()=>shiftDay(1));
   $("dToday").addEventListener("click",()=>{ state.day=feedDay(Date.now()); renderSheet(); });
 
-  function renderAll(){ renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); }
+  function renderAll(){ renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -1156,9 +1256,14 @@
       return; }
     const b=e.target.closest("button.x"); if(!b) return;
     if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Delete?"; setTimeout(()=>{ if(b.isConnected){b.classList.remove("armed"); b.textContent="×";} },3000); return; }
-    const id=b.dataset.id, old=F.find(f=>f.id===id);
-    try{ await Store.delFeed(id); if(old) undoBar(`Deleted ${old.twin} · ${fmtWhen(old.t)}`, ()=>Store.setFeed(old.id,strip(old))); }
-    catch{ b.textContent="failed"; }
+    const id=b.dataset.id, kind=b.dataset.kind||"feed";
+    try{
+      if(kind==="feed"){ const old=F.find(f=>f.id===id); await Store.delFeed(id); if(old) undoBar(`Deleted ${old.twin} feed · ${fmtWhen(old.t)}`, ()=>Store.setFeed(old.id,strip(old))); }
+      else if(kind==="weight"){ const old=Object.values(W).find(w=>`${w.twin}-${w.date}`===id); await Store.delWeight(id);
+        if(old) undoBar(`Deleted ${old.twin} weight · ${md(old.date)}`, ()=>Store.setWeight(id,{twin:old.twin,date:old.date,v:old.v,approx:old.approx,...(old.by?{by:old.by}:{})})); }
+      else { const col=kind==="pump"?"pumps":"drops", list=kind==="pump"?P:D, old=list.find(x=>x.id===id); await Store.remove(col,id);
+        if(old){ const {id:_,...r}=old; undoBar(`Deleted ${kind==="pump"?"pumping":"drop-off"} · ${fmtWhen(old.t)}`, ()=>Store.put(col,id,r)); } }
+    }catch(err){ failWrite(err); b.textContent="failed"; }
   });
   $("moreBtn").addEventListener("click",()=>{ state.logN+=40; renderLog(); });
   $("csvBtn").addEventListener("click", async ()=>{
@@ -1177,7 +1282,7 @@
 
   // ---------- data ----------
   function banner(t){ const b=$("banner"); b.textContent=t||""; b.style.display=t?"block":"none"; }
-  function cleanW(d){ const tw=TWINS.includes(d.twin)?d.twin:null, v=Number(d.v); if(!tw||!/^\d{4}-\d\d-\d\d$/.test(d.date||"")||!isFinite(v)) return null; return {twin:tw,date:d.date,v,approx:!!d.approx}; }
+  function cleanW(d){ const tw=TWINS.includes(d.twin)?d.twin:null, v=Number(d.v); if(!tw||!/^\d{4}-\d\d-\d\d$/.test(d.date||"")||!isFinite(v)) return null; return {twin:tw,date:d.date,v,approx:!!d.approx,by:typeof d.by==="string"?d.by:""}; }
   function cleanF(id,d){ const tw=TWINS.includes(d.twin)?d.twin:null, t=Number(d.t), v=Number(d.v); if(!tw||!isFinite(t)||!isFinite(v)) return null; return {id,twin:tw,t,v,note:typeof d.note==="string"?d.note.slice(0,200):"",diet:typeof d.diet==="string"?d.diet.slice(0,120):"",by:typeof d.by==="string"?d.by:""}; }
 
   // ---------- import ----------
@@ -1232,28 +1337,34 @@
   }
   addEventListener("online",renderSync); addEventListener("offline",renderSync);
 
-  // ---------- going home ----------
+  // ---------- progress at a glance (family indicators; thresholds unchanged, shown as "family markers") ----------
   function renderHome(){
     if(TWINS[0]==="A") return;
-    const now=Date.now();
+    const now=Date.now(), C=COLORS();
+    const mk=(on)=>on?'<span class="mk on">Marker reached</span>':'<span class="mk">Not yet</span>';
+    const row=(k,v,sub,on)=>`<div class="ind"><div class="k">${k}</div>${mk(on)}<div class="v">${v}</div><div class="s">${sub}</div></div>`;
     $("home").innerHTML = shown().map(tw=>{
-      const f=fSeries(tw).filter(x=>x.t<=now), full=FULL[tw];
+      const f=fSeries(tw).filter(x=>x.t<=now), full=FULL[tw], letter=TWINS.indexOf(tw)?"B":"A";
       let streak=0; for(let k=f.length-1;k>=0 && f[k].v>=full;k--) streak++;
       const po=h=>{ const s=f.filter(x=>x.t>now-h*3600e3).reduce((a,x)=>a+x.v,0); return Math.round(s/(full*FEEDS_PER_DAY*h/24)*100); };
-      const p24=po(24), p48=po(48), m=metrics(tw);
+      const p24=po(24), p48=po(48), m=metrics(tw), k=poPerKg(tw);
       const gkg = m.gain!=null&&m.cur ? m.gain/(m.cur.v/1000) : null;
       const ev=f.filter(x=>/desat|brady/i.test(x.note||"")).pop();
       const evDays = ev ? Math.floor((now-ev.t)/DAY) : null;
-      const li=(ok,html)=>`<li><span class="${ok?"y":"n"}" aria-label="${ok?"met":"not yet"}">${ok?"✓":"○"}</span><span>${html}</span></li>`;
-      return `<div class="home" style="--c:${COLORS()[tw]}"><h3>${esc(tw)}</h3><ul>
-        ${li(streak>=FEEDS_PER_DAY, `<b>${streak}</b> full feed${streak===1?"":"s"} by mouth in a row <span class="muted">(${full} mL each)</span>`)}
-        ${li(p24>=100, `By mouth: <b>${p24}%</b> last 24 h · <b>${p48}%</b> last 48 h${(k=>k!=null?` · <b>${k}</b> mL/kg/day <span class="muted">(24 h, at ${fmtG(m.cur.v)} g)</span>`:"")(poPerKg(tw))}`)}
-        ${li(gkg!=null&&gkg>=10, gkg==null?"Weight trend: needs 2+ nights":`Gaining <b>${gkg>=0?"+":"−"}${Math.abs(gkg).toFixed(1)}</b> g/kg/day <span class="muted">(3 nights)</span>`)}
-        ${li(m.cur&&m.cur.v>=BIRTH[tw].g, m.cur?(m.cur.v>=BIRTH[tw].g?"Back to birth weight":`<b>${fmtG(BIRTH[tw].g-m.cur.v)} g</b> to birth weight`):"No weights yet")}
-        ${li(ev?evDays>=5:false, ev?`Last desat/brady noted <b>${evDays===0?"today":evDays+" day"+(evDays===1?"":"s")+" ago"}</b>`:"No desat/brady notes logged")}
-      </ul>${checklistHTML(tw)}</div>`;
+      return `<section class="bcard" style="--c:${C[tw]}" data-tw="${esc(tw)}">
+        <header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
+          <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div><span class="mk">Logged</span></header>
+        <div class="sec-h"><span>Feeding · by mouth</span></div>
+        ${row("Full feeds in a row", `${streak}`, `each ≥ ${full} mL · family marker: ${FEEDS_PER_DAY} in a row`, streak>=FEEDS_PER_DAY)}
+        ${row("By mouth, last 24 h", `${p24}%`, `of the configured target · last 48 h: ${p48}%${k!=null?` · ${k} mL/kg/day (24 h, at ${fmtG(m.cur.v)} g)`:""} · family marker: 100% over 24 h`, p24>=100)}
+        <div class="sec-h" style="margin-top:var(--sp-3)"><span>Weight</span></div>
+        ${row("Weight gain trend", gkg==null?"—":`${gkg>=0?"+":"−"}${Math.abs(gkg).toFixed(1)} g/kg/day`, gkg==null?"needs 2 or more nights":"over the last 3 nights · family marker: 10 g/kg/day", gkg!=null&&gkg>=10)}
+        ${row("Birth weight", m.cur?(m.cur.v>=BIRTH[tw].g?"Back to birth weight":`${fmtG(BIRTH[tw].g-m.cur.v)} g to go`):"—", m.cur?`birth ${fmtG(BIRTH[tw].g)} g · latest ${fmtG(m.cur.v)} g (${md(m.cur.date)})`:"no weights yet", !!(m.cur&&m.cur.v>=BIRTH[tw].g))}
+        <div class="sec-h" style="margin-top:var(--sp-3)"><span>Logged events</span></div>
+        ${row("Desat / brady notes", ev?(evDays===0?"Noted today":`${evDays} day${evDays===1?"":"s"} since`):"None logged", "counts only feeds you noted with Desat/brady · family marker: 5 days", ev?evDays>=5:false)}
+      </section>`;
     }).join("");
-    renderFam();
+    renderFam(); renderBabyChecklists();
   }
 
   // ---------- discharge checklist, rounds plan, questions ----------
@@ -1266,16 +1377,26 @@
   const twIdx = tw => TWINS.indexOf(tw);
   function ckRow(id,label,c){
     const st=CK[id], s=st&&st.s;
-    return `<div class="ckrow"><button class="ck ${s||""}" data-ck="${id}" style="${c?`--c:${c}`:""}" aria-pressed="${s==="done"}">
-      <span class="box2">${s==="done"?"✓":""}</span><span class="lb">${esc(label)}</span><span class="dt">${s==="done"?md(st.d):s==="na"?"n/a":""}</span></button>
+    return `<div class="ckrow"><button class="ck ${s||""}" data-ck="${id}" style="${c?`--c:${c}`:""}" aria-pressed="${s==="done"}" aria-label="${esc(label)}: ${s==="done"?"marked done":s==="na"?"not needed":"open"}">
+      <span class="box2">${s==="done"?"✓":""}</span><span class="lb">${esc(label)}</span><span class="dt">${s==="done"?`${md(st.d)}${st.by?` · ${esc(whoName(st.by))}`:""}`:s==="na"?"not needed":"open"}</span></button>
       <button class="na-btn" data-na="${id}" aria-label="Mark ${esc(label)} not needed">${s==="na"?"undo":"n/a"}</button></div>`;
   }
-  function ckSummary(tw){ const i=twIdx(tw), ids=DIS_BABY.map(([k])=>`b${i}-${k}`), open=DIS_BABY.filter(([k])=>!CK[`b${i}-${k}`]);
-    return {done:ids.filter(id=>CK[id]&&CK[id].s==="done").length, need:ids.filter(id=>!(CK[id]&&CK[id].s==="na")).length, next:open[0]&&open[0][1]}; }
-  function checklistHTML(tw){ const i=twIdx(tw), sm=ckSummary(tw), c=COLORS()[tw];
-    return `<div class="cl"><h4><span>Discharge checklist</span><span>${sm.done}/${sm.need}</span></h4>${DIS_BABY.map(([k,l])=>ckRow(`b${i}-${k}`,l,c)).join("")}</div>`; }
-  function renderFam(){ if(TWINS[0]==="A") return; const done=DIS_FAM.filter(([k])=>CK["f-"+k]&&CK["f-"+k].s==="done").length;
-    $("famList").innerHTML=`<div class="home" style="--c:var(--accent);margin-top:14px"><h3>For you two</h3><div class="cl"><h4><span>Before going home</span><span>${done}/${DIS_FAM.length}</span></h4>${DIS_FAM.map(([k,l])=>ckRow("f-"+k,l)).join("")}</div></div>`; }
+  function ckCounts(ids){ const done=ids.filter(id=>CK[id]&&CK[id].s==="done").length, na=ids.filter(id=>CK[id]&&CK[id].s==="na").length; return {done,na,open:ids.length-done-na,need:ids.length-na}; }
+  function ckSummary(tw){ const i=twIdx(tw), ids=DIS_BABY.map(([k])=>`b${i}-${k}`), open=DIS_BABY.filter(([k])=>!CK[`b${i}-${k}`]), c=ckCounts(ids);
+    return {done:c.done, need:c.need, next:open[0]&&open[0][1]}; }
+  const ckMeta=c=>`<div class="ckmeta"><span class="mk done">${c.done} marked done</span><span class="mk open">${c.open} open</span>${c.na?`<span class="mk">${c.na} not needed</span>`:""}</div>`;
+  function checklistHTML(tw){ const i=twIdx(tw), c=COLORS()[tw], ids=DIS_BABY.map(([k])=>`b${i}-${k}`), n=ckCounts(ids);
+    return `<div class="cl"><h4><span>Checklist</span><span>${n.done}/${n.need}</span></h4>${ckMeta(n)}${DIS_BABY.map(([k,l])=>ckRow(`b${i}-${k}`,l,c)).join("")}</div>`; }
+  function renderBabyChecklists(){
+    const C=COLORS();
+    $("ckBabies").innerHTML = shown().map(tw=>{ const letter=TWINS.indexOf(tw)?"B":"A";
+      return `<section class="bcard" style="--c:${C[tw]}"><header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
+        <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter} · checklist</div></div></header>${checklistHTML(tw)}
+        <div class="note">Items are marked by your family. The NICU team confirms each step.</div></section>`; }).join("");
+  }
+  function renderFam(){ if(TWINS[0]==="A") return; const ids=DIS_FAM.map(([k])=>"f-"+k), n=ckCounts(ids);
+    $("famList").innerHTML=`<section class="card"><h2>Family checklist <span class="muted" style="font-size:var(--fs-xs);font-weight:600">${n.done}/${n.need}</span></h2>${ckMeta(n)}
+      <div class="cl" style="margin-top:0">${DIS_FAM.map(([k,l])=>ckRow("f-"+k,l)).join("")}</div></section>`; }
   async function ckToggle(id,to){
     const old=CK[id]; const today=dKey(new Date());
     try{
@@ -1312,7 +1433,7 @@
     const id=`q-${Date.now()}`; try{ await Store.put("questions",id,{text,done:false,t:Date.now()}); $("qText").value=""; undoBar("Question added", ()=>Store.remove("questions",id)); }catch(err){ failWrite(err); } }
   $("qGo").addEventListener("click",addQ);
   $("qText").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); addQ(); } });
-  $("qList").addEventListener("click", async e=>{
+  async function qClick(e){
     const t=e.target.closest("[data-q]"), x=e.target.closest("[data-qx]");
     if(t){ const q=QS.find(z=>z.id===t.dataset.q); if(!q) return; const {id,by,...r}=q;
       if(!q.done){ const ans=prompt("Answer (optional) — what did the team say?",""); if(ans===null) return;
@@ -1321,7 +1442,9 @@
     if(x){ if(!x.classList.contains("armed")){ x.classList.add("armed"); x.textContent="Delete?"; setTimeout(()=>{ if(x.isConnected){x.classList.remove("armed"); x.textContent="×";} },3000); return; }
       const q=QS.find(z=>z.id===x.dataset.qx); if(!q) return; const {id,...r}=q;
       try{ await Store.remove("questions",id); undoBar("Question deleted", ()=>Store.put("questions",id,r)); }catch(err){ failWrite(err); } }
-  });
+  }
+  $("qList").addEventListener("click", qClick);
+  $("careQ").addEventListener("click", qClick);
 
   // ---------- milk log ----------
   let P=[], D=[], milkCfg=null, mkN=20;     // pumps, NICU drop-offs, {count,t} correction
@@ -1474,9 +1597,9 @@
     if(Store.watch){
       unsubs.push(Store.watch("pumps",list=>{ P=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
       unsubs.push(Store.watch("drops",list=>{ D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
-      unsubs.push(Store.watch("checklist",list=>{ CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:""}; }); renderAll(); }, ()=>{}));
-      unsubs.push(Store.watch("plans",list=>{ PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300)}; }); renderNext(); }, ()=>{}));
-      unsubs.push(Store.watch("questions",list=>{ QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); }, ()=>{}));
+      unsubs.push(Store.watch("checklist",list=>{ CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); renderAll(); }, ()=>{}));
+      unsubs.push(Store.watch("plans",list=>{ PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
+      unsubs.push(Store.watch("questions",list=>{ QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
     }
     unsubs.push(Store.watchDiet(t=>{ if(typeof t==="string" && document.activeElement!==$("diet")) $("diet").value=t.slice(0,120); }, ()=>{}));
@@ -1540,7 +1663,7 @@
       if(ws.length||fs.length){
         $("suMsg").textContent="Renaming… copying entries";
         await Promise.all([
-          ...ws.map(w=>Store.setWeight(`${map[w.twin]}-${w.date}`,{twin:map[w.twin],date:w.date,v:w.v,approx:w.approx})),
+          ...ws.map(w=>Store.setWeight(`${map[w.twin]}-${w.date}`,{twin:map[w.twin],date:w.date,v:w.v,approx:w.approx,...(w.by?{by:w.by}:{})})),
           ...fs.map(f=>{ const rec={twin:map[f.twin],t:f.t,v:f.v,note:f.note,diet:f.diet,...(f.by?{by:f.by}:{})}; return Store.setFeed(feedId(rec),rec); })]);
         $("suMsg").textContent="Renaming… switching names";
         await Store.setProfile(p);

@@ -10,6 +10,7 @@ const DAY = "2026-02-10T15:10:00-05:00", NIGHT = "2026-02-11T02:10:00-05:00";
 
 async function seed(p) {
   await importData(p);
+  if (await p.$("#moreNav")) await p.click('#moreNav button[data-v="records"]');   // import left Settings open
   await p.evaluate(() => {
     const now = Date.now(), h = 3600e3;
     [[-20, 110], [-17, 95], [-14, 120], [-11, 130], [-8, 150], [-5, 105], [-2, 115]].forEach(([d, v], k) => Store.put("pumps", "p-" + k, { t: now + d * h, v }));
@@ -42,6 +43,16 @@ const view = async (p, n) => { await p.click(`#view button:nth-child(${n})`); aw
     await view(p, 3);
     for (const [t, n] of [["weight", 5], ["milk", 6], ["trends", 7], ["more", 8]]) { await tab(p, t); await shot(p, `${theme}-${n}-${t === "trends" ? "progress" : t}`); }
     if (theme === "light") for (const [t, nm] of [["weight", "14-growth-full"], ["milk", "15-milk-full"]]) { await tab(p, t); await p.screenshot({ path: path.join(OUT, `light-${nm}.png`), fullPage: true }); }
+    if (theme === "light") {
+      await tab(p, "trends"); await p.screenshot({ path: path.join(OUT, "light-16-progress-full.png"), fullPage: true });
+      await tab(p, "more");
+      for (const [sec, nm] of [["records", "17-records-full"], ["care", "18-care-full"], ["settings", "19-settings-full"]]) {
+        if (await p.$("#moreNav")) { await p.click(`#moreNav button[data-v="${sec}"]`); await p.waitForTimeout(200); }
+        else if (sec !== "records") continue;   // older layout had one More page
+        await p.screenshot({ path: path.join(OUT, `light-${nm}.png`), fullPage: true });
+      }
+      if (await p.$("#moreNav")) await p.click('#moreNav button[data-v="records"]');
+    }
     if (p.errors.length) console.log(theme, "page errors:", p.errors);
     await p.context().close();
   }

@@ -64,10 +64,12 @@ async function newPage(browser, base, opts = {}) {
   await page.goto(base); await page.waitForTimeout(600);
   return page;
 }
-const tab = (p, t) => p.click(`#tabbar button[data-tab=${t}]`).then(() => p.waitForTimeout(250));
+// Press the tab button directly: Playwright mis-scales tap coordinates under CSS zoom (A+/A++), while real
+// taps hit the bar fine (elementFromPoint at the button returns the tab bar).
+const tab = (p, t) => p.$eval(`#tabbar button[data-tab=${t}]`, b => b.click()).then(() => p.waitForTimeout(250));
 const db = (p, f, arg) => p.evaluate(f, arg);
 async function importData(p) {
-  await tab(p, "more");
+  await tab(p, "more"); if (await p.$("#moreNav")) await p.click('#moreNav button[data-v="settings"]');   // older layouts had no sections
   await p.evaluate(() => { document.querySelector("details.settings").open = true; document.querySelector("#impBox").closest("details:not(.settings)").open = true; });
   await p.fill("#impBox", syntheticCSV()); await p.click("#impGo"); await p.waitForTimeout(800);
   return p.textContent("#impMsg");
@@ -209,8 +211,18 @@ async function main() {
     // ---- progress: checklist ----
     await tab(p, "trends");
     check("old summary tiles are gone", (await p.$$("#tiles")).length === 0);
+    check("Progress is framed as family indicators, not discharge criteria", (await p.textContent(".glance h2")) === "Progress at a glance" && (await p.textContent(".glance .lead")).includes("not clinical discharge criteria") && (await p.textContent(".glance .lead")).includes("NICU care team"));
+    check("no green check marks or 'Going home' wording on Progress", (await p.$$("[data-tab=trends] .y")).length === 0 && !(await p.textContent("[data-tab=trends]")).includes("Going home"));
+    check("each baby shows all five indicators with explicit periods", await p.$$eval('#home .bcard[data-tw="Ada Rose"] .ind', x => x.length) === 5 && /last 48 h: \d+%/.test(await p.textContent("#home")) && /over the last 3 nights/.test(await p.textContent("#home")));
+    check("indicator states are neutral words", await p.$$eval("#home .ind .mk", x => x.every(e => ["Marker reached", "Not yet"].includes(e.textContent))));
+    check("order: indicators, family checklist, baby checklists, charts", await p.evaluate(() => { const a = [...document.querySelectorAll("#home,#famList,#ckBabies,#cFeed")].map(e => e.getBoundingClientRect().top); return a[0] < a[1] && a[1] < a[2] && a[2] < a[3]; }));
     await p.click('[data-ck="b0-hearing"]'); await p.waitForTimeout(150); await p.click('[data-na="b0-rsv"]'); await p.waitForTimeout(150);
-    check("checklist check + n/a", (await p.$$eval(".home .cl h4", x => x[0].innerText)).includes("1/7"));
+    check("checklist check + n/a", (await p.$$eval("#ckBabies .cl h4", x => x[0].textContent)).includes("1/7"));
+    check("checklist marks persist to the database (ids unchanged)", await db(p, () => __db.checklist["b0-hearing"]?.s === "done" && __db.checklist["b0-rsv"]?.s === "na"));
+    check("checklist item shows when it was marked", /\d+\/\d+/.test(await p.textContent('[data-ck="b0-hearing"] .dt')), await p.textContent('[data-ck="b0-hearing"] .dt'));
+    check("checklist counts: marked done / open / not needed", /1 marked done/.test(await p.textContent("#ckBabies .ckmeta")) && /6 open/.test(await p.textContent("#ckBabies .ckmeta")) && /1 not needed/.test(await p.textContent("#ckBabies .ckmeta")), await p.textContent("#ckBabies .ckmeta"));
+    await p.click('[data-ck="f-cpr"]'); await p.waitForTimeout(150);
+    check("family checklist updates", await db(p, () => __db.checklist["f-cpr"]?.s === "done") && /1\/6/.test(await p.textContent("#famList h2")));
     await p.evaluate(() => document.querySelector("#cDaily").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
     const box = await p.$eval("#cDaily", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .4, y: r.y + r.height * .6 }; });
     const tip = () => p.evaluate(() => Chart.getChart("cDaily").tooltip.getActiveElements().length);
@@ -218,8 +230,40 @@ async function main() {
     await p.touchscreen.tap(20, 300); await p.waitForTimeout(200);
     check("chart callout opens on tap and closes on a tap elsewhere", opened > 0 && (await tip()) === 0);
 
+    // ---- records ----
+    await tab(p, "more"); await p.click('#moreNav button[data-v="records"]'); await p.waitForTimeout(150);
+    const kinds = await p.$$eval("#logBody tr[data-kind]", x => [...new Set(x.map(t => t.dataset.kind))].sort().join(","));
+    check("Records: one list covers feeds, weights, pumping, drop-offs and the NICU count", ["count", "drop", "feed", "pump", "weight"].every(k => kinds.includes(k)), kinds);
+    check("Records: newest first", await p.$$eval("#logBody tr[data-kind]", x => x.length > 5));
+    await p.click('#recF button[data-v="milk"]'); await p.waitForTimeout(150);
+    check("Records filter: Milk shows only milk", (await p.$$eval("#logBody tr[data-kind]", x => [...new Set(x.map(t => t.dataset.kind))])).every(k => ["pump", "drop", "count"].includes(k)));
+    await p.click('#recF button[data-v="weight"]'); await p.waitForTimeout(150);
+    check("Records filter: Weights shows estimates marked", (await p.$$eval("#logBody tr[data-kind]", x => x.every(t => t.dataset.kind === "weight"))) && (await p.textContent("#logBody")).includes("est."));
+    await p.click('#recF button[data-v="all"]'); await p.waitForTimeout(150);
+    check("Records show who entered them", /parent2|P/.test(await p.$$eval("#logBody tr td:nth-child(5)", x => x.map(t => t.textContent).join(" "))));
+    p.answers = ["Sleepy at the end"]; await p.click('#logBody tr[data-kind="feed"] .notebtn'); await p.waitForTimeout(200);
+    check("Records: feed note editable", await db(p, () => Object.values(__db.feeds).some(f => f.note === "Sleepy at the end")));
+    const pumpId = await p.$eval('#logBody tr[data-kind="pump"] button.x', b => b.dataset.id);
+    await p.click(`#logBody button.x[data-id="${pumpId}"]`); await p.click(`#logBody button.x[data-id="${pumpId}"]`); await p.waitForTimeout(200);
+    check("Records: two-tap delete removes a pumping entry", await db(p, id => !__db.pumps[id], pumpId));
+    await p.click("#toast button"); await p.waitForTimeout(200);
+    check("Records: Undo brings it back", await db(p, id => !!__db.pumps[id], pumpId));
+    const wId = await p.$eval('#logBody tr[data-kind="weight"] button.x', b => b.dataset.id);
+    await p.click(`#logBody button.x[data-id="${wId}"]`); await p.click(`#logBody button.x[data-id="${wId}"]`); await p.waitForTimeout(200);
+    const wGone = await db(p, id => !__db.weights[id], wId); await p.click("#toast button"); await p.waitForTimeout(200);
+    check("Records: weight delete + Undo keeps the value", wGone && await db(p, id => !!__db.weights[id], wId));
+    check("Records follow the baby filter", await (async () => { await p.click("#view button:nth-child(1)"); await p.waitForTimeout(200); const ok = await p.$$eval('#logBody tr[data-kind="feed"] .rk b', x => x.every(b => b.textContent.includes("Ada Rose"))); await p.click("#view button:nth-child(3)"); await p.waitForTimeout(200); return ok; })());
+    // ---- care ----
+    await p.click('#moreNav button[data-v="care"]'); await p.waitForTimeout(150);
+    check("Care: plans from rounds listed and labelled as family-entered", (await p.textContent("#careP")).includes("Try ad lib tomorrow") && (await p.textContent("#careP")).includes("Entered by your family"));
+    check("Care: questions show the team's answer", (await p.textContent("#careQ")).includes("Team's answer: Monday") && (await p.textContent("#careQ")).includes("Answered"));
+    check("Care: diet box lives here", await p.isVisible("#diet"));
+    // ---- settings ----
+    await p.click('#moreNav button[data-v="settings"]'); await p.waitForTimeout(150);
+    check("Settings: every preference is reachable", await p.evaluate(() => ["#pfLook", "#pfNight", "#pfText", "#pfUnits", "#pfClock", "#myName", "#editProfile", "#signOut"].every(id => document.querySelector(id).offsetParent)));
+
     // ---- more: export ----
-    await tab(p, "more");
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
     await p.evaluate(() => { document.querySelector("details.settings").open = true; });
     await p.click("#csvBtn"); await p.waitForTimeout(200);
     const csv = await p.evaluate(async () => document.querySelector("#csvBox").value || await navigator.clipboard.readText().catch(() => ""));
@@ -240,7 +284,7 @@ async function main() {
 
     // ---- per-phone prefs + large text ----
     const q = await newPage(browser, base, { prefs: { clock: "24", units: "lb", text: "1.3" } });
-    await tab(q, "more"); check("Data & settings starts collapsed", !(await q.$eval("details.settings", d => d.open)));
+    await tab(q, "more"); await q.click('#moreNav button[data-v="settings"]'); check("Data & settings starts collapsed", !(await q.$eval("details.settings", d => d.open)));
     await importData(q); await tab(q, "feed");
     check("A++ text: baby names in the selector are never truncated", await q.$$eval("#view .nm0,#view .nm1", els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && getComputedStyle(e).textOverflow !== "ellipsis")));
     check("24-hour clock", (await q.textContent(`${A} .when`)).includes("02:00"));
@@ -260,7 +304,7 @@ async function main() {
     await sysDark.context().close();
     const forcedLight = await newPage(browser, base, { ctx: { colorScheme: "dark" }, prefs: { look: "light" } });
     check("Appearance = Light stays light on a dark phone", await bgOf(forcedLight) === "rgb(243, 246, 249)", await bgOf(forcedLight));
-    await tab(forcedLight, "more"); await forcedLight.evaluate(() => { document.querySelector("details.settings").open = true; });
+    await tab(forcedLight, "more"); await forcedLight.click('#moreNav button[data-v="settings"]');
     await forcedLight.click('#pfLook button[data-v="dark"]'); await forcedLight.waitForTimeout(150);
     check("switching Appearance to Dark applies immediately", await bgOf(forcedLight) === "rgb(14, 26, 38)", await bgOf(forcedLight));
     await forcedLight.click("#nightBtn"); await forcedLight.waitForTimeout(150);
