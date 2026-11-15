@@ -88,15 +88,16 @@
   :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
   .wrap{max-width:960px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(160px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
   #login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
-  #login .card{width:100%;max-width:360px}
+  #login .card{width:100%;max-width:380px;padding:var(--sp-5)}
+  .ttl{margin:0;font-size:var(--fs-title);font-weight:750;color:var(--title);letter-spacing:-.01em}
   #login .f{margin-bottom:10px}
   .top{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3)}
   .brand{display:flex;align-items:center;gap:var(--sp-3);min-width:0}
   .brand .mark{flex:none;width:40px;height:40px;border-radius:var(--r-md);background:var(--brand);color:var(--on-accent);display:grid;place-items:center}
   .brand .mark svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .eyebrow{font-size:var(--fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-  .link{background:none;border:0;color:var(--primary);font:inherit;font-size:var(--fs-sm);font-weight:550;text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:4px 0;min-height:32px}
-  details summary{cursor:pointer;font-size:var(--fs-md);font-weight:650;color:var(--title)}
+  .link{background:none;border:0;color:var(--primary);font:inherit;font-size:var(--fs-sm);font-weight:550;text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:4px 0;min-height:44px;display:inline-flex;align-items:center}
+  details summary{cursor:pointer;font-size:var(--fs-md);font-weight:650;color:var(--title);padding:11px 0;line-height:22px}
   .nav{border:1px solid var(--line);background:var(--surface);color:var(--title);border-radius:var(--r-md);width:44px;height:44px;font-size:22px;cursor:pointer;box-shadow:var(--shadow-1)}
   .iconbtn{border:1px solid var(--line);background:var(--surface);color:var(--title);border-radius:var(--r-md);width:44px;height:44px;display:grid;place-items:center;cursor:pointer;box-shadow:var(--shadow-1);flex:none}
   .iconbtn svg,.tabbar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -169,12 +170,12 @@
   .feed .quick{grid-column:1/-1;display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:var(--sp-2)}
   .feed .quick .btn,.feed .quick .chip{min-height:46px;padding:0 6px;font-size:var(--fs-sm);white-space:nowrap;border-radius:var(--r-md)}
   .feed .btn.full{border:2px solid var(--c);color:var(--title);font-weight:700;background:var(--surface)}
-  .feed .notetog{grid-column:1/-1;justify-self:start;min-height:40px;font-size:var(--fs-sm)}
+  .feed .notetog{grid-column:1/-1;justify-self:start;min-height:44px;font-size:var(--fs-sm)}
   .feed .tags{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
   .feed .tags[hidden]{display:none}
-  .feed .tags .chip{min-height:40px;font-size:var(--fs-sm);padding:0 12px}
+  .feed .tags .chip{min-height:44px;font-size:var(--fs-sm);padding:0 12px}
   .feed .missed{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:var(--fs-xs);color:var(--danger-ink);font-weight:650;text-transform:uppercase;letter-spacing:.04em}
-  .feed .missed .chip{min-height:40px;font-size:var(--fs-sm);padding:0 12px;text-transform:none;letter-spacing:0}
+  .feed .missed .chip{min-height:44px;font-size:var(--fs-sm);padding:0 12px;text-transform:none;letter-spacing:0}
   .feed .missed:empty{display:none}
   .nx .ok{margin-top:var(--sp-2);padding:8px 12px;border-radius:var(--r-sm);background:var(--success-tint);color:var(--success-ink);font-size:var(--fs-sm);font-weight:650}
   .nx .ok:empty{display:none}
@@ -194,7 +195,7 @@
   .tsum.compact .row1{font-size:var(--fs-md);color:var(--text2)} .tsum.compact .row1 b{color:var(--title);font-size:var(--fs-lg)}
   .tsum.compact .bar{margin-top:var(--sp-2)}
   .feedsline.split{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
-  .feedsline.split .link{min-height:36px}
+  .feedsline.split .link{min-height:44px}
   .twt.inline{flex-wrap:nowrap}
   .twt.inline .wl{flex:1 1 auto;text-transform:none;letter-spacing:0;font-size:var(--fs-sm);font-weight:600;color:var(--text2)}
   .twt.inline .wv{font-size:var(--fs-lg)}
@@ -271,6 +272,11 @@
   .rec th,.rec td{padding:8px 3px} .rec td{vertical-align:top} .rec td:first-child{white-space:nowrap;font-size:var(--fs-xs);color:var(--text2)}
   .rec .rk{display:flex;flex-direction:column;gap:2px;min-width:0} .rec .rk b{font-size:var(--fs-sm);color:var(--title);white-space:nowrap}
   .rec .rt{font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--text2)}
+  .recwrap{container-type:inline-size}
+  @container (max-width:320px){   /* large text: each record becomes a two-line row instead of scrolling sideways */
+    .rec thead{display:none} .rec tr{display:grid;grid-template-columns:auto minmax(0,1fr) auto 44px;column-gap:var(--sp-2);border-bottom:1px solid var(--grid);padding:4px 0}
+    .rec td{border:0;padding:2px 0} .rec td:nth-child(4){grid-column:2/4;grid-row:2} .rec td:nth-child(5){grid-column:4;grid-row:1/3} .rec td[colspan]{grid-column:1/-1}
+    .rec .rk b{white-space:normal} }
   .rec .rby{font-size:var(--fs-xs);color:var(--muted)}
   .rec td.num{white-space:nowrap;font-weight:650;color:var(--title)}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -294,14 +300,15 @@
   .qs li.done{color:var(--muted)} .qs .ans{display:block;font-size:13px;color:var(--text2);margin-top:2px}
   .qs .who2{font-size:12px;color:var(--muted)}
   .qadd{display:grid;grid-template-columns:1fr auto;gap:8px}
-  details.settings>summary{font-size:15px;padding:4px 0;min-height:36px;display:flex;align-items:center}
+  details.settings>summary{font-size:15px;padding:4px 0;min-height:44px;display:flex;align-items:center}
   details.settings .sect{border-top:1px solid var(--grid);margin-top:12px;padding-top:12px}
   .prefs{display:grid;gap:10px}
   .pr{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:15px}
   .fab{position:fixed;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:7;border:0;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);
     font:inherit;font-size:var(--fs-lg);font-weight:700;min-height:56px;padding:0 22px;box-shadow:var(--shadow-2);cursor:pointer;display:none}
-  .fab.on{display:block}
-  .chip{border:1px solid var(--field);background:var(--surface);color:var(--text);border-radius:var(--r-pill);padding:0 var(--sp-3);min-height:40px;font:inherit;font-size:var(--fs-sm);font-weight:550;cursor:pointer}
+  .upd{position:fixed;left:12px;right:12px;top:calc(8px + env(safe-area-inset-top));z-index:11;min-height:48px;border:0;border-radius:var(--r-md);background:var(--brand);color:var(--on-accent);font:inherit;font-size:var(--fs-md);font-weight:650;box-shadow:var(--shadow-2);cursor:pointer}
+  .fab.on{display:block} .fab{transition:transform .2s ease,opacity .2s ease} .fab.tuck{transform:translateY(140%);opacity:0;pointer-events:none}
+  .chip{border:1px solid var(--field);background:var(--surface);color:var(--text);border-radius:var(--r-pill);padding:0 var(--sp-3);min-height:44px;font:inherit;font-size:var(--fs-sm);font-weight:550;cursor:pointer}
   .chip.warn{border-color:var(--danger);background:var(--danger-tint);color:var(--danger-ink);font-weight:650}
   .tw{border-left:4px solid var(--c);padding-left:var(--sp-3);border-radius:2px}
   #toast{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:9;display:none;align-items:center;justify-content:space-between;gap:12px;
@@ -309,9 +316,13 @@
   #toast.on{display:flex}
   #toast button{border:0;background:var(--bg);color:var(--title);border-radius:var(--r-sm);font:inherit;font-weight:700;min-height:44px;padding:0 16px;cursor:pointer}
   .tw{margin-top:10px}
+  .daynav{display:flex;align-items:center;gap:var(--sp-2);margin:var(--sp-2) 0 var(--sp-1)} .daynav #dLabel{flex:1;text-align:center;font-size:var(--fs-md);font-weight:650;color:var(--title)}
+  #sheet .tw{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:var(--r-md);padding:var(--sp-3);background:var(--surface)}
+  #sheet .slot input{border-radius:var(--r-md);background:var(--surface-2)}
   .tw + .tw{border-top:1px solid var(--grid);padding-top:10px}
   .twh{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;margin-bottom:6px}
   .twh b{font-weight:700;color:var(--title)}
+  #sheet .twh{flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:var(--sp-2)} #sheet .tws{font-size:var(--fs-sm);color:var(--text2)}
   .slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
   .slot{display:flex;flex-direction:column;gap:2px}
   .slot label{font-size:var(--fs-xs);font-weight:600;color:var(--text2);text-align:center}
@@ -333,14 +344,14 @@
   .viewbar .seg{display:flex;width:100%}
   .viewbar .seg button{flex:1;font-size:var(--fs-md);min-height:44px;min-width:0}
   .viewbar .seg button span:not(.dot){overflow-wrap:anywhere;line-height:1.15;text-align:center}   /* names wrap, never truncate: identity is never colour-only */
-  .seg.small button{padding:4px 10px;font-size:var(--fs-sm);min-height:36px}
+  .seg.small button{padding:4px 10px;font-size:var(--fs-sm);min-height:44px}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
   .badge{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:650;background:var(--track);color:var(--text2)}
   .badge.ok{background:var(--success-tint);color:var(--success-ink)} .badge.warn{background:var(--warning-tint);color:var(--warning-ink)} .badge.bad{background:var(--danger-tint);color:var(--danger-ink)}
   .form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .form .full{grid-column:1/-1}
   label.f{display:flex;flex-direction:column;gap:6px;font-size:var(--fs-xs);font-weight:600;letter-spacing:.02em;color:var(--text2)}
-  input,select{font:inherit;font-size:16px;padding:9px 11px;border:1px solid var(--field);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);width:100%}
+  input,select{font:inherit;font-size:16px;padding:9px 11px;border:1px solid var(--field);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);width:100%;min-height:44px}
   input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--focus)}
   input::placeholder{color:var(--muted);opacity:1}
   /* iOS Safari gives date/time inputs their own min width and ignores width:100%; reset it so they stay inside the card */
@@ -372,7 +383,7 @@
   th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--grid);vertical-align:middle}
   th{font-size:11.5px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
   td.num,th.num{text-align:right}
-  .wg input{width:100px;padding:9px 8px;font-size:18px;text-align:right}
+  .wg input{width:100%;min-width:64px;max-width:100px;padding:9px 8px;font-size:18px;text-align:right}
   .wg input.approx{color:var(--muted);font-style:italic}
   .wg input.missing{border-style:dashed}
   .wg .d{font-size:11.5px;color:var(--muted);display:block;text-align:right;margin-top:2px;min-height:14px}
@@ -388,7 +399,7 @@
 <body>
 <div id="login">
   <div class="card">
-    <h2 style="font-size:18px">Twins tracker</h2>
+    <div class="brand" style="margin-bottom:var(--sp-4)"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.4-7.5-10A4.5 4.5 0 0 1 12 7.6a4.5 4.5 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10z"/><path d="M8.5 12.5h2l1-2 1.6 4 1-2h1.4"/></svg></span><div><div class="eyebrow">NICU feeds &amp; growth</div><h1 class="ttl">Twins Tracker</h1></div></div>
     <div class="sub">Sign in with the account set up for you.</div>
     <label class="f">Email<input id="lEmail" type="email" autocomplete="username" inputmode="email"></label>
     <label class="f">Password<input id="lPw" type="password" autocomplete="current-password"></label>
@@ -398,27 +409,27 @@
 </div>
 <div id="setup" style="display:none" class="wrap">
   <div class="card">
-    <h2 style="font-size:18px">One-time setup</h2>
+    <div class="brand" style="margin-bottom:var(--sp-3)"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.4-7.5-10A4.5 4.5 0 0 1 12 7.6a4.5 4.5 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10z"/><path d="M8.5 12.5h2l1-2 1.6 4 1-2h1.4"/></svg></span><div><div class="eyebrow">Twins Tracker</div><h1 class="ttl">One-time setup</h1></div></div>
     <div class="note" style="margin-top:0">Saved privately in your database, not in the app's code. You can change it later from the bottom of the page.</div>
     <div class="form" style="margin-top:12px">
       <label class="f full">Birth date<input id="suBorn" type="date"></label>
       <label class="f full">Gestational age at birth (optional)<input id="suGA" type="text" placeholder="e.g. 36w0d"></label>
-      <label class="f">Feeds every<select id="suEvery" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="2">2 hours</option><option value="3">3 hours</option><option value="4">4 hours</option></select></label>
-      <label class="f">First feed of the day<select id="suStart" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option><option value="3">3 AM</option><option value="4">4 AM</option><option value="5">5 AM</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option><option value="11">11 AM</option><option value="12">12 PM</option><option value="13">1 PM</option><option value="14">2 PM</option><option value="15">3 PM</option><option value="16">4 PM</option><option value="17">5 PM</option><option value="18">6 PM</option><option value="19">7 PM</option><option value="20">8 PM</option><option value="21">9 PM</option><option value="22">10 PM</option><option value="23">11 PM</option></select></label>
-      <label class="f">Day starts (shift change)<select id="suDay" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option><option value="3">3 AM</option><option value="4">4 AM</option><option value="5">5 AM</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option><option value="11">11 AM</option><option value="12">12 PM</option></select></label>
+      <label class="f">Feeds every<select id="suEvery"><option value="2">2 hours</option><option value="3">3 hours</option><option value="4">4 hours</option></select></label>
+      <label class="f">First feed of the day<select id="suStart"><option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option><option value="3">3 AM</option><option value="4">4 AM</option><option value="5">5 AM</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option><option value="11">11 AM</option><option value="12">12 PM</option><option value="13">1 PM</option><option value="14">2 PM</option><option value="15">3 PM</option><option value="16">4 PM</option><option value="17">5 PM</option><option value="18">6 PM</option><option value="19">7 PM</option><option value="20">8 PM</option><option value="21">9 PM</option><option value="22">10 PM</option><option value="23">11 PM</option></select></label>
+      <label class="f">Day starts (shift change)<select id="suDay"><option value="0">12 AM</option><option value="1">1 AM</option><option value="2">2 AM</option><option value="3">3 AM</option><option value="4">4 AM</option><option value="5">5 AM</option><option value="6">6 AM</option><option value="7">7 AM</option><option value="8">8 AM</option><option value="9">9 AM</option><option value="10">10 AM</option><option value="11">11 AM</option><option value="12">12 PM</option></select></label>
       <div class="full" style="margin-top:6px;font-weight:650"><span class="dot" style="background:var(--t0)"></span>Baby A</div>
       <label class="f">Name<input id="suN0" type="text"></label>
       <label class="f">Birth time<input id="suT0" type="time"></label>
       <label class="f">Birth weight (g)<input id="suW0" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF0" type="number" inputmode="decimal" placeholder="auto"></label>
-      <label class="f full">Feed times<select id="suM0" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
+      <label class="f full">Feed times<select id="suM0"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
       <div class="f full">Color<div class="swatches" id="suC0" role="radiogroup" aria-label="Color"></div></div>
 <div class="full" style="margin-top:6px;font-weight:650"><span class="dot" style="background:var(--t1)"></span>Baby B</div>
       <label class="f">Name<input id="suN1" type="text"></label>
       <label class="f">Birth time<input id="suT1" type="time"></label>
       <label class="f">Birth weight (g)<input id="suW1" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF1" type="number" inputmode="decimal" placeholder="auto"></label>
-      <label class="f full">Feed times<select id="suM1" style="font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--field);border-radius:9px;background:var(--bg);color:var(--text)"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
+      <label class="f full">Feed times<select id="suM1"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
       <div class="f full">Color<div class="swatches" id="suC1" role="radiogroup" aria-label="Color"></div></div>
       <div class="full row"><button class="btn" id="suSave">Save</button><button class="btn ghost" id="suCancel" style="display:none">Cancel</button><span class="msg" id="suMsg"></span></div>
     </div>
@@ -444,14 +455,13 @@
   <button class="tmilk" id="todayMilk" type="button"></button>
   <!-- FEED SHEET -->
   <div class="card">
-    <h2>Feed sheet
-      <span class="row" style="gap:4px">
-        <button class="nav" id="dPrev" aria-label="Previous day">‹</button>
-        <span id="dLabel" style="min-width:118px;text-align:center;font-size:14px"></span>
-        <button class="nav" id="dNext" aria-label="Next day">›</button>
-        <button class="link" id="dToday" style="margin-left:6px">Today</button>
-      </span>
-    </h2>
+    <h2>Feed sheet</h2>
+    <div class="daynav">
+      <button class="nav" id="dPrev" aria-label="Previous day">‹</button>
+      <span id="dLabel"></span>
+      <button class="nav" id="dNext" aria-label="Next day">›</button>
+      <button class="chip" id="dToday">Today</button>
+    </div>
     <div id="sheet"></div>
     <div class="note">Tap a time and type the mL taken by mouth. Clear a box to remove it. A day runs <span id="dayRange">7 AM to 7 AM</span>, like NICU shifts.</div>
   </div>
@@ -532,7 +542,7 @@
     <h2>All records <span class="muted" id="recCount" style="font-size:var(--fs-xs);font-weight:600"></span></h2>
     <div class="seg small" id="recF" role="group" aria-label="Show"><button data-v="all">All</button><button data-v="feed">Feeds</button><button data-v="weight">Weights</button><button data-v="milk">Milk</button></div>
     <div class="note">Newest first. Feeds and weights follow the baby selector; milk is shared. Tap a note to edit it. Tap × twice to delete — Undo appears for 8 seconds.</div>
-    <div style="overflow-x:auto"><table class="rec">
+    <div class="recwrap" style="overflow-x:auto"><table class="rec">
       <thead><tr><th>When</th><th>Record</th><th class="num">Amount</th><th>Note</th><th><span class="sr">Delete</span></th></tr></thead>
       <tbody id="logBody"></tbody>
     </table></div>
@@ -599,6 +609,7 @@
   </div>
   </section>
 <button class="fab" id="fab" aria-label="Log a feed">+ Log feed</button>
+<button class="upd" id="upd" type="button" hidden>New version ready — tap to refresh</button>
 <nav class="tabbar" id="tabbar" aria-label="Screens">
   <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Today</span></button>
   <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Growth</span></button>
@@ -957,8 +968,8 @@
           <span class="p">${f?(MARK.test(f.note||"")&&!f.v?(f.note.startsWith("Skip")?"skipped":"tube"):Math.round(f.v/FULL[tw]*100)+"%"):""}</span></div>`;
       }).join("");
       const goal=FULL[tw]*FEEDS_PER_DAY;
-      return `<div class="tw" style="--c:${C[tw]}"><div class="twh"><span><span class="dot" style="background:${C[tw]}"></span><b>${esc(tw)}</b> <span class="muted">full ${FULL[tw]} mL</span></span>
-        <span>${Math.round(tot)} / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b> <span class="muted">(${n}/${SLOT_H.length})</span></span></div>
+      return `<div class="tw" style="--c:${C[tw]}"><div class="twh"><span class="twn"><span class="dot" style="background:${C[tw]}"></span><b>${esc(tw)}</b></span>
+        <span class="tws">${Math.round(tot)} / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b> · ${n} of ${SLOT_H.length} · full ${FULL[tw]} mL</span></div>
         <div class="slots">${cells}</div></div>`;
     }).join("");
   }
@@ -1208,7 +1219,10 @@
   function updateFab(){ const onFeed=$("next").closest(".tab.on"), r=$("nextCard").getBoundingClientRect();
     const tab=document.querySelector(".tab.on")?.dataset.tab;
     $("fab").classList.toggle("on", tab!=="milk" && tab!=="more" && (!onFeed || r.bottom<80)); }
-  addEventListener("scroll",updateFab,{passive:true});
+  let fabY=scrollY;
+  addEventListener("scroll",()=>{ const y=scrollY, d=y-fabY;
+    if(Math.abs(d)>6){ $("fab").classList.toggle("tuck", d>0 && y>40); fabY=y; }   // out of the way while reading down; back on any scroll up
+    updateFab(); },{passive:true});
   $("fab").addEventListener("click",()=>{ if(!$("next").closest(".tab.on")) showTab("feed"); scrollTo({top:0,behavior:"smooth"});
     setTimeout(()=>{ const inp=$("next").querySelector(".nx.due input")||$("next").querySelector("input"); inp&&inp.focus(); },350); });
   $("tabbar").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) showTab(b.dataset.tab); });
@@ -1257,7 +1271,7 @@
   }
 
   addEventListener("store-error",e=>failWrite(e.detail));
-  function failWrite(err){ console.error(err); flash(err&&String(err.code||"").includes("permission")?"This account isn't allowed to write — check the allowlist in the Firestore rules.":"Couldn't save — try again."); }
+  function failWrite(err){ console.error(err); flash(err&&String(err.code||"").includes("permission")?"Couldn't save — this account doesn't have permission. Sign out and back in with the account set up for you.":"Couldn't save — try again."); }
   const feedId = r => `${r.twin}-${r.t}`;   // one doc per twin per feed slot
 
   $("logBody").addEventListener("click", async e=>{
@@ -1454,7 +1468,7 @@
     const open=QS.filter(q=>!q.done).sort((a,b)=>a.t-b.t), recent=QS.filter(q=>q.done && now-(q.doneT||q.t)<2*DAY).sort((a,b)=>(b.doneT||0)-(a.doneT||0));
     $("qCount").textContent = open.length ? `${open.length} open` : "";
     $("qList").innerHTML = [...open,...recent].map(q=>`<li class="${q.done?"done":""}">
-      <button class="ck ${q.done?"done":""}" style="border:0;min-height:30px;padding:0" data-q="${esc(q.id)}" aria-label="${q.done?"Mark unanswered":"Mark answered"}"><span class="box2">${q.done?"✓":""}</span></button>
+      <button class="ck ${q.done?"done":""}" style="border:0;min-height:44px;min-width:44px;padding:0;justify-content:center" data-q="${esc(q.id)}" aria-label="${q.done?"Mark unanswered":"Mark answered"}"><span class="box2">${q.done?"✓":""}</span></button>
       <span>${esc(q.text)}${q.ans?`<span class="ans">→ ${esc(q.ans)}</span>`:""} <span class="who2">${esc(whoName(q.by))}</span></span>
       <button class="x" data-qx="${esc(q.id)}" aria-label="Delete question">×</button></li>`).join("") || `<li class="done" style="grid-template-columns:1fr">Nothing yet — jot questions here as they come up.</li>`;
   }
@@ -1614,7 +1628,7 @@
     unsubs.forEach(u=>u()); unsubs=[];
     let pending=2; const timer=setTimeout(()=>banner("Offline — showing saved data. New entries will sync when you're back online."),8000);
     const done=meta=>{ if(!meta.fromCache && --pending<=0){ clearTimeout(timer); banner(""); } };
-    const fail=err=>{ clearTimeout(timer); console.error(err); banner(String(err&&err.code||"").includes("permission")?"This account doesn't have access. Add its email to the allowlist in the Firestore rules.":"Sync stopped — reopen the app to reconnect."); };
+    const fail=err=>{ clearTimeout(timer); console.error(err); banner(String(err&&err.code||"").includes("permission")?"This account can't open the tracker. Sign out and sign in with the account set up for you.":"Sync stopped — reopen the app to reconnect."); };
     let seen=null;   // feed ids already shown; alert on new ones from the other parent
     unsubs.push(Store.watchWeights((list,m)=>{ rawW=list; rebuild(); meta.w=m; done(m); renderSync(); renderAll(); }, fail));
     unsubs.push(Store.watchFeeds((list,m)=>{ rawF=list; rebuild(); meta.f=m; done(m); renderSync();
@@ -1717,7 +1731,7 @@
           if(!validProfile(p)){ profile=null; showSetup(false); return; }
           applyProfile(p); hideSetup();
           if(!dataStarted){ dataStarted=true; startData(); } else { rebuild(); renderAll(); }
-        }, err=>{ console.error(err); banner("Couldn't load your setup — check the Firestore rules allowlist."); });
+        }, err=>{ console.error(err); banner("Couldn't load your babies' details. Check your connection and reopen the app."); });
       } else {
         unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null;
         $("setup").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
@@ -1726,7 +1740,12 @@
   }
   $("main").style.display="none";
   if(window.Store) boot(window.Store); else window.addEventListener("store-ready", ()=>boot(window.Store), {once:true});
-  if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+  if("serviceWorker" in navigator && location.protocol==="https:"){
+    const had=!!navigator.serviceWorker.controller;   // first install isn't an update
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(had) $("upd").hidden=false; });
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  }
+  $("upd").addEventListener("click",()=>location.reload());
 })();
 </script>
 <script type="module" src="firebase-store.js"></script>

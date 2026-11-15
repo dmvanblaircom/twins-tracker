@@ -285,6 +285,21 @@ async function main() {
     // ---- settings ----
     await p.click('#moreNav button[data-v="settings"]'); await p.waitForTimeout(150);
     check("Settings: every preference is reachable", await p.evaluate(() => ["#pfLook", "#pfNight", "#pfText", "#pfUnits", "#pfClock", "#myName", "#editProfile", "#signOut"].every(id => document.querySelector(id).offsetParent)));
+    const small = [];
+    for (const [t, sec] of [["feed"], ["weight"], ["milk"], ["trends"], ["more", "records"], ["more", "care"], ["more", "settings"]]) {
+      await tab(p, t); if (sec) await p.click(`#moreNav button[data-v="${sec}"]`); await p.waitForTimeout(150);
+      small.push(...await p.evaluate(() => [...document.querySelectorAll(".tab.on button, .tab.on input, .tab.on select, .tab.on summary, .top button, #view button")]
+        .filter(e => e.offsetParent && getComputedStyle(e).visibility !== "hidden").map(e => [e, e.getBoundingClientRect()]).filter(([e, b]) => b.height < 43.5 || b.width < 24)
+        .map(([e, b]) => `${e.tagName}.${e.className} "${(e.textContent || e.ariaLabel || "").trim().slice(0, 16)}" ${Math.round(b.width)}x${Math.round(b.height)}`)));
+    }
+    check("every control is at least 44 px tall", small.length === 0, small.slice(0, 5).join("; "));
+    check("error messages are plain language (no Firestore jargon)", !(await p.content()).includes("Firestore rules"));
+    check("update notice is wired and hidden until a new version loads", await p.$eval("#upd", e => e.hidden));
+    await tab(p, "weight"); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(100);
+    await p.evaluate(() => scrollTo(0, 400)); await p.waitForTimeout(100); const tucked = await p.$eval("#fab", e => e.classList.contains("tuck"));
+    await p.evaluate(() => scrollTo(0, 200)); await p.waitForTimeout(100);
+    check("Log feed button tucks away while scrolling down and returns on scroll up", tucked && !(await p.$eval("#fab", e => e.classList.contains("tuck"))));
+    await p.evaluate(() => scrollTo(0, 0)); await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
 
     // ---- more: export ----
     await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
@@ -317,6 +332,9 @@ async function main() {
       const over = await q.evaluate(() => [...document.querySelectorAll(".tab.on *")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.right > document.documentElement.clientWidth + 1 && !e.closest("[style*='overflow-x']"); }).length);
       check(`A++ text: no sideways overflow on ${t}`, over === 0, `${over} elements`);
     }
+    await tab(q, "weight"); const gw = await q.$eval("table.wg", e => e.parentElement.scrollWidth <= e.parentElement.clientWidth + 1);
+    await tab(q, "more"); await q.click('#moreNav button[data-v="records"]'); await q.waitForTimeout(150);
+    check("A++ text: growth grid and records need no sideways scroll", gw && await q.$eval("table.rec", e => e.parentElement.scrollWidth <= e.parentElement.clientWidth + 1));
     await q.screenshot({ path: path.join(SHOTS, "large-text.png") });
     check("no page errors with prefs", q.errors.length === 0, q.errors.join(" | "));
     await q.context().close();
