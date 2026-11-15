@@ -41,6 +41,7 @@ const view = async (p, n) => { await p.click(`#view button:nth-child(${n})`); aw
     await view(p, 2); await p.evaluate(() => scrollTo(0, 0)); await shot(p, `${theme}-4-today-baby2`);
     await view(p, 3);
     for (const [t, n] of [["weight", 5], ["milk", 6], ["trends", 7], ["more", 8]]) { await tab(p, t); await shot(p, `${theme}-${n}-${t === "trends" ? "progress" : t}`); }
+    if (theme === "light") for (const [t, nm] of [["weight", "14-growth-full"], ["milk", "15-milk-full"]]) { await tab(p, t); await p.screenshot({ path: path.join(OUT, `light-${nm}.png`), fullPage: true }); }
     if (p.errors.length) console.log(theme, "page errors:", p.errors);
     await p.context().close();
   }
@@ -48,6 +49,8 @@ const view = async (p, n) => { await p.click(`#view button:nth-child(${n})`); aw
   const q = await newPage(browser, base, { now: DAY, ctx: ctxOpts, prefs: { text: "1.3" } });
   await seed(q); await tab(q, "feed"); await shot(q, "light-9-today-large-text");
   await tab(q, "trends"); await shot(q, "light-10-progress-large-text");
+  await tab(q, "weight"); await shot(q, "light-12-growth-large-text");
+  await tab(q, "milk"); await shot(q, "light-13-milk-large-text");
   await q.context().setOffline(true); await q.waitForTimeout(300); await tab(q, "feed"); await shot(q, "light-11-offline");
   await q.context().close();
   await browser.close(); srv.close();

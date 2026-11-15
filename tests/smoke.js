@@ -157,10 +157,54 @@ async function main() {
     check("Milk time boxes stay inside their cards", await p.$$eval("#pmT,#dpT", els => els.every(e => e.getBoundingClientRect().right <= e.closest(".card").getBoundingClientRect().right)));
     check("baby bar hidden on Milk", !(await p.isVisible(".viewbar")));
     check("Log feed button hidden on Milk", !(await p.isVisible("#fab")));
+    check("Milk: no estimate before any drop-off or count", (await p.textContent("#mkInv")).includes("to start the estimate"));
+    const pumpsBefore = await db(p, () => Object.keys(__db.pumps || {}).length);
     await p.fill("#pmV", "120"); await p.click("#pmGo"); await p.waitForTimeout(150);
+    check("pump entry saves", await db(p, () => Object.keys(__db.pumps || {}).length) === pumpsBefore + 1);
+    check("Need & pumping shows daily need and 24 h pumped in mL", /Daily need\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")) && /Pumped 24 h\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")), (await p.textContent("#mkStats")).replace(/\s+/g, " "));
+    const dropAt = await p.evaluate(() => { const d = new Date(Date.now() - 4 * 3600e3), q = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${q(d.getMonth() + 1)}-${q(d.getDate())}T${q(d.getHours())}:${q(d.getMinutes())}`; });   // the page's clock, not the real one
+    await p.fill("#dpT", dropAt);
+    await p.fill("#dpV", "500"); await p.click("#dpGo"); await p.waitForTimeout(200);
+    const inv1 = await p.textContent("#mkInv");
+    const amt = re => { const m = inv1.replace(/\s+/g, " ").match(re); return m ? +m[1].replace(/,/g, "") : NaN; };
+    const start = amt(/before your first drop-off .*? ([\d,]+) mL/), added = amt(/Dropped off since.*? ([\d,]+) mL/), used = amt(/scheduled feeds since \(\d+\) ([\d,]+) mL/), est = amt(/Estimated now ([\d,]+) mL/);
+    check("drop-off starts an estimate whose working adds up (start + added − used = estimate)", est === Math.max(0, start + added - used) && start === 0 && added === 500, inv1.replace(/\s+/g, " "));
+    check("estimate is labelled as an estimate, not a count", (await p.textContent("#mkInvBadge")) === "Estimate" && !inv1.includes("Counted"));
     p.answers = ["1000"]; await p.click("#stkGo"); await p.waitForTimeout(200);
-    const stk = await p.$$eval("#mkStats .stat", x => x[2].innerText);
-    check("NICU stock from the nurses' count", /1,?000 mL|1000 mL/.test(stk), stk.replace(/\s+/g, " "));
+    const inv2 = (await p.textContent("#mkInv")).replace(/\s+/g, " ");
+    check("NICU count becomes the starting point, marked Counted", inv2.includes("NICU's count") && inv2.includes("Counted") && /1,000 mL/.test(inv2), inv2);
+    check("NICU count appears in the milk log", (await p.innerText("#mkBody")).includes("NICU count"));
+    await p.click("#toast button"); await p.waitForTimeout(200);
+    check("Undo of a NICU count restores the drop-off estimate", (await p.textContent("#mkInv")).includes("before your first drop-off"));
+    await p.context().setOffline(true); await p.waitForTimeout(200);
+    check("offline: sync pill says so", (await p.textContent("#sync")).startsWith("Offline"));
+    await p.fill("#pmV", "90"); await p.click("#pmGo"); await p.waitForTimeout(150);
+    check("offline: pump entry still saves locally", await db(p, () => Object.values(__db.pumps || {}).some(x => x.v === 90)));
+    await p.context().setOffline(false); await p.waitForTimeout(200);
+    p.answers = ["1000"]; await p.click("#stkGo"); await p.waitForTimeout(200);
+
+    // ---- growth ----
+    await tab(p, "weight");
+    check("Growth tab label", (await p.textContent('#tabbar button[data-tab=weight] span')) === "Growth");
+    const gA = await p.textContent('#grSum .bcard[data-tw="Ada Rose"]');
+    check("Growth: latest weight is the headline, in grams, with its night", /Latest weight\s*2,560 g/.test(gA) && /night of \w{3}, \w{3} \d+, 8 PM/.test(gA), gA.replace(/\s+/g, " "));
+    check("Growth: previous, change and since-birth shown", /Previous\s*[\d,]+ g/.test(gA) && /Change\s*[+−±]\d+ g/.test(gA) && /Since birth\s*[+−±]\d+ g/.test(gA), gA.replace(/\s+/g, " "));
+    check("Growth: both babies have summary cards in Both view", (await p.$$("#grSum .bcard")).length === 2);
+    check("Growth grid marks estimated weights", (await p.innerText("#wBody")).includes("est.") && await p.$$eval("#wBody input.approx", x => x.length) > 0);
+    check("Growth grid marks tonight", (await p.textContent("#wBody tr.tonight")).includes("Tonight"));
+    const cell = '#wBody input[data-k="Bea Joy|2026-02-08"]';
+    await p.fill(cell, "2712"); await p.press(cell, "Tab"); await p.waitForTimeout(300);
+    check("Growth grid edit saves (and clears the estimate flag)", await db(p, () => { const w = __db.weights["Bea Joy-2026-02-08"]; return w && w.v === 2712 && !w.approx; }));
+    await p.click("#toast button"); await p.waitForTimeout(300);
+    check("Undo restores the previous weight", await db(p, () => __db.weights["Bea Joy-2026-02-08"].v) === 2700);
+    await p.evaluate(() => document.querySelector("#cWeight").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
+    const wbox = await p.$eval("#cWeight", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .6, y: r.y + r.height * .5 }; });
+    await p.touchscreen.tap(wbox.x, wbox.y); await p.waitForTimeout(200);
+    const wt = await p.evaluate(() => { const c = Chart.getChart("cWeight"); return { n: c.tooltip.getActiveElements().length, title: (c.tooltip.title || []).join(" ") }; });
+    check("weight chart: one tap shows both babies that night", wt.n === 2 && /Night of|Birth/.test(wt.title), JSON.stringify(wt));
+    await p.click("#view button:nth-child(1)"); await p.waitForTimeout(250);
+    check("Growth follows the baby filter", (await p.$$("#grSum .bcard")).length === 1 && await p.$$eval("#wHead th", x => x.length) === 2);
+    await p.click("#view button:nth-child(3)"); await p.waitForTimeout(250);
 
     // ---- progress: checklist ----
     await tab(p, "trends");

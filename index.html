@@ -108,7 +108,7 @@
   .tabbar button svg{padding:3px 14px;box-sizing:content-box;border-radius:var(--r-pill);transition:background .15s}
   .tabbar button.on{color:var(--title)}
   .tabbar button.on svg{stroke-width:2.2;background:var(--track)}
-  :root[data-theme="night"] .nx .who{color:var(--text)}
+  :root[data-theme="night"] .nx .who,:root[data-theme="night"] .bcard .who{color:var(--text)}
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
   .swatches button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;background:var(--sw);cursor:pointer;outline-offset:2px}
   .swatches button[aria-checked="true"]{border-color:var(--title);box-shadow:inset 0 0 0 3px var(--surface)}
@@ -143,17 +143,17 @@
   .ctx-age{font-weight:650;color:var(--text2)}
   .ctx-now b{color:var(--title)}
   /* baby card */
-  .nx{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-1);
+  .nx,.bcard{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-1);
     padding:var(--sp-4) var(--sp-4) var(--sp-4) calc(var(--sp-4) + 2px);margin-bottom:var(--sp-3);container-type:inline-size;overflow:hidden}
-  .nx::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
+  .nx::before,.bcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
   .nx.saving{opacity:.85}
   .bh{display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)}
   .idtag{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:750;font-size:var(--fs-lg);
     background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c);box-shadow:inset 0 0 0 2px var(--c)}
   :root[data-theme="night"] .idtag{color:var(--text)}
   .bh-id{min-width:0;flex:1}
-  .nx .who{font-size:19px;font-weight:750;letter-spacing:-.01em;color:var(--c);line-height:1.15;overflow-wrap:anywhere}
-  :root[data-theme="night"] .nx .who{color:var(--text)}
+  .nx .who,.bcard .who{font-size:19px;font-weight:750;letter-spacing:-.01em;color:var(--c);line-height:1.15;overflow-wrap:anywhere}
+  :root[data-theme="night"] .nx .who,:root[data-theme="night"] .bcard .who{color:var(--text)}
   .bh-sub{font-size:var(--fs-xs);font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
   .nx .when{flex:none;padding:5px 10px;border-radius:var(--r-pill);background:var(--track);color:var(--text2);font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
   .nx .when b{color:var(--title);font-weight:750}
@@ -230,6 +230,26 @@
     .metrics{grid-template-columns:1fr 1fr}
     .bh{flex-wrap:wrap} .nx .when{order:3}
   }
+  /* ===== Growth + Milk (Phase 2) ===== */
+  .bh .badge{flex:none}
+  .gm{margin-bottom:var(--sp-3)}
+  .gm .k,.inv .k{font-size:11.5px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
+  .hero{font-size:38px;line-height:1.1;font-weight:750;letter-spacing:-.025em;color:var(--title);margin-top:2px}
+  .hero small{font-size:var(--fs-lg);font-weight:600;color:var(--text2);letter-spacing:0}
+  .gm .s,.inv .s{font-size:var(--fs-sm);color:var(--text2);margin-top:2px}
+  .chartbox.tall{height:300px}
+  .wg tr.tonight td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+  .wg td:first-child{white-space:nowrap;font-size:var(--fs-sm);color:var(--text2)} .wg td:first-child b{color:var(--title);display:block;font-size:var(--fs-sm)}
+  .wg .tn{display:inline-block;margin-top:2px;padding:0 6px;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+  .wg .d .est{color:var(--warning-ink);font-weight:650}
+  .inv{container-type:inline-size}
+  .inv .hero-row{display:flex;align-items:baseline;gap:var(--sp-3);flex-wrap:wrap}
+  .calc{margin:var(--sp-3) 0 0;padding:0;list-style:none;border-top:1px solid var(--grid)}
+  .calc li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:var(--sp-2);align-items:baseline;padding:9px 0;border-bottom:1px solid var(--grid);font-size:var(--fs-sm);color:var(--text2)}
+  .calc li .op{font-weight:750;color:var(--title);text-align:center}
+  .calc li .amt{font-weight:700;color:var(--title);white-space:nowrap}
+  .calc li.total{color:var(--title);font-weight:650}
+  .calc li .badge{margin-left:4px}
   .cl{margin-top:10px;display:grid;gap:2px}
   .cl h4{margin:var(--sp-2) 0 2px;font-size:11.5px;font-weight:650;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;display:flex;justify-content:space-between}
   .ck{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:6px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--grid);color:var(--text);font:inherit;font-size:14.5px;min-height:44px;padding:4px 0;cursor:pointer}
@@ -408,39 +428,45 @@
   </section>
 
   <section class="tab" data-tab="weight">
+  <div id="grSum"></div>
+  <div class="card">
+    <h2>Weight trend
+      <div class="seg small" id="wMode"><button data-v="g" class="on">Weight</button><button data-v="pct">% of birth</button></div>
+    </h2>
+    <div class="chartbox tall"><canvas id="cWeight" aria-label="Nightly weights over time" role="img"></canvas></div>
+    <div class="legend"><span><span class="dot" style="background:var(--t0)"></span><span class="nm0"></span></span><span><span class="dot" style="background:var(--t1)"></span><span class="nm1"></span></span><span>● recorded</span><span>○ estimated (dashed)</span></div>
+    <div class="note">Tap the chart to see each baby's weight that night.</div>
+  </div>
   <!-- WEIGHT GRID -->
   <div class="card">
-    <h2>Nightly weights · 8 PM <span class="muted" style="font-size:12px;font-weight:400">tap a cell to enter or fix (g)</span></h2>
+    <h2>Nightly weights <span class="muted" style="font-size:var(--fs-xs);font-weight:600">8 PM · grams</span></h2>
     <div style="overflow-x:auto"><table class="wg">
       <thead><tr id="wHead"></tr></thead>
       <tbody id="wBody"></tbody>
     </table></div>
-    <div class="note">Gray italic = estimated from the printed graph · dashed = no reading yet. Typing over a value replaces it; clearing a cell deletes it.</div>
-  </div>
-  <!-- WEIGHT CHART -->
-  <div class="card">
-    <h2>Weight
-      <div class="seg small" id="wMode"><button data-v="g" class="on">grams</button><button data-v="pct">% of birth</button></div>
-    </h2>
-    <div class="chartbox"><canvas id="cWeight" aria-label="Nightly weights" role="img"></canvas></div>
-    <div class="legend"><span><span class="dot" style="background:var(--t0)"></span><span class="nm0"></span></span><span><span class="dot" style="background:var(--t1)"></span><span class="nm1"></span></span><span>○ hollow = estimated from printout</span></div>
+    <div class="note">Tap a cell to enter or correct a weight in grams. <i>Italic</i> with “est.” = estimated from the printed graph; dashed = no weight yet. Typing over a value replaces it (Undo appears); clearing a cell deletes it.</div>
   </div>
   </section>
 
   <section class="tab" data-tab="milk">
-  <div class="card"><h2>Milk supply <span class="muted" id="mkAs" style="font-weight:400;font-size:13px"></span></h2><div class="stats" id="mkStats"></div>
-    <div class="note">Babies' need = both full feeds × 8 a day (by mouth + tube). NICU stock = milk dropped off minus each baby's full feed at every feed time since — an estimate; set the real count when the nurses tell you.</div></div>
+  <div class="card inv" id="mkInvCard">
+    <h2>Milk at the NICU <span class="badge warn" id="mkInvBadge">Estimate</span></h2>
+    <div id="mkInv"></div>
+    <div class="row" style="margin-top:var(--sp-3)"><button class="btn ghost" id="stkGo">Update with the NICU's count</button></div>
+    <div class="note">The estimate is not a count. It starts from the NICU's last count (or your first drop-off), adds drop-offs since, and subtracts each baby's full feed at every scheduled feed time since. Update it whenever the nurses give you a real number.</div>
+  </div>
+  <div class="card"><h2>Need &amp; pumping <span class="muted" id="mkAs" style="font-weight:600;font-size:var(--fs-xs)"></span></h2><div class="metrics" id="mkStats"></div></div>
   <div class="card"><h2>Log pumping</h2>
     <div class="mkrow"><div class="box"><input id="pmV" type="number" inputmode="decimal" min="0" step="any" placeholder="—" aria-label="Pumped mL"><span>mL</span></div><button class="btn save" id="pmGo">Save</button></div>
     <label class="f" style="margin-top:8px">When<input id="pmT" type="datetime-local"></label></div>
   <div class="card"><h2>Took milk to the NICU</h2>
     <div class="mkrow"><div class="box"><input id="dpV" type="number" inputmode="decimal" min="0" step="any" placeholder="—" aria-label="Dropped off mL"><span>mL</span></div><button class="btn save" id="dpGo">Save</button></div>
     <label class="f" style="margin-top:8px">When<input id="dpT" type="datetime-local"></label>
-    <div class="row" style="margin-top:10px"><button class="btn ghost" id="stkGo">NICU told us how much they have</button></div></div>
+  </div>
   <div class="card"><h2>Pumped per day</h2><div class="chartbox"><canvas id="cMilk" aria-label="Milk pumped per day vs babies' need" role="img"></canvas></div>
-    <div class="legend"><span>▮ pumped that day</span><span>- - babies' daily need</span></div></div>
+    <div class="legend"><span>▮ pumped that day (mL)</span><span>- - babies' estimated daily need</span></div></div>
   <div class="card"><h2>Milk log</h2>
-    <div style="overflow-x:auto"><table><thead><tr><th>Time</th><th>What</th><th class="num">mL</th><th>By</th><th></th></tr></thead><tbody id="mkBody"></tbody></table></div>
+    <div style="overflow-x:auto"><table><thead><tr><th>Time</th><th>Entry</th><th class="num">mL</th><th>By</th><th></th></tr></thead><tbody id="mkBody"></tbody></table></div>
     <div class="row" style="margin-top:10px"><button class="btn ghost" id="mkMore">Show more</button></div></div>
   </section>
 
@@ -516,7 +542,7 @@
 <button class="fab" id="fab" aria-label="Log a feed">+ Log feed</button>
 <nav class="tabbar" id="tabbar" aria-label="Screens">
   <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Today</span></button>
-  <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Weight</span></button>
+  <button data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 11h18l-1.8 6.2A2.5 2.5 0 0 1 16.8 19H7.2a2.5 2.5 0 0 1-2.4-1.8zM12 11V7M8 7h8"/></svg><span>Growth</span></button>
   <button data-tab="milk"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></svg><span>Milk</span></button>
   <button data-tab="trends"><svg viewBox="0 0 24 24"><path d="M3 20h18M5 16l4.5-5 3.5 3 6-7"/></svg><span>Progress</span></button>
   <button data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
@@ -662,20 +688,45 @@
     }};
   }
 
+  function renderGrowth(){   // per-baby summary: latest weight dominates; changes stay neutral (no good/bad colouring)
+    if(TWINS[0]==="A") return;
+    const C=COLORS();
+    $("grSum").innerHTML = shown().map(tw=>{
+      const ws=wSeries(tw), cur=ws[ws.length-1], prev=ws[ws.length-2], b=BIRTH[tw], letter=TWINS.indexOf(tw)?"B":"A";
+      const nightLbl=k=>keyDate(k).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+      const head=`<header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
+        <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div>
+        ${cur?(cur.approx?'<span class="badge warn">Estimated</span>':'<span class="badge">Recorded</span>'):""}</header>`;
+      if(!cur) return `<section class="bcard" style="--c:${C[tw]}" data-tw="${esc(tw)}">${head}<div class="gm"><div class="k">Latest weight</div><div class="hero">—</div><div class="s">No weights yet. Enter tonight's below or on Today.</div></div></section>`;
+      const lbSub = PREF.units==="lb" ? `${fmtG(cur.v)} g` : lbOz(cur.v);
+      return `<section class="bcard" style="--c:${C[tw]}" data-tw="${esc(tw)}">${head}
+        <div class="gm"><div class="k">Latest weight</div>
+          <div class="hero">${PREF.units==="lb"?esc(lbOz(cur.v)):`${fmtG(cur.v)}<small> g</small>`}</div>
+          <div class="s">${esc(lbSub)} · night of ${nightLbl(cur.date)}, 8 PM</div></div>
+        <div class="metrics">
+          <div class="m"><div class="k">Previous</div><div class="v">${prev?`${fmtG(prev.v)}<small> g</small>`:"—"}</div><div class="s">${prev?`${md(prev.date)}${prev.approx?" · est.":""}`:"none yet"}</div></div>
+          <div class="m"><div class="k">Change</div><div class="v">${prev?`${sgn(cur.v-prev.v)}<small> g</small>`:"—"}</div><div class="s">${prev?`since ${md(prev.date)}`:""}</div></div>
+          <div class="m"><div class="k">Since birth</div><div class="v">${sgn(cur.v-b.g)}<small> g</small></div><div class="s">birth ${fmtG(b.g)} g</div></div>
+        </div></section>`;
+    }).join("");
+  }
   function renderWeight(){
     const C=COLORS(), surf=css("--surface"), pct=state.wMode==="pct";
     const ds = shown().map(tw=>{
       const b=BIRTH[tw];
       const pts=[{x:b.t, g:b.g, approx:false, lbl:"birth"}].concat(wSeries(tw).map(w=>({x:nightT(w.date), g:w.v, approx:w.approx})));
       pts.forEach(p=>p.y = pct ? +(p.g/b.g*100).toFixed(1) : PREF.units==="lb" ? +(p.g/453.592).toFixed(3) : p.g);
-      return {label:tw, data:pts, borderColor:C[tw], backgroundColor:C[tw], borderWidth:2, tension:0, spanGaps:true,
-        pointRadius:4.5, pointHoverRadius:7, pointBorderWidth:2, pointBorderColor:C[tw],
-        pointBackgroundColor:pts.map(p=>p.approx?surf:C[tw])};
+      return {label:tw, data:pts, borderColor:C[tw], backgroundColor:C[tw], borderWidth:2.5, tension:0, spanGaps:true,
+        pointRadius:4.5, pointHoverRadius:8, pointHitRadius:14, pointBorderWidth:2, pointBorderColor:C[tw],
+        pointBackgroundColor:pts.map(p=>p.approx?surf:C[tw]),
+        segment:{borderDash:ctx=>(pts[ctx.p0DataIndex]?.approx||pts[ctx.p1DataIndex]?.approx)?[5,4]:undefined}};
     });
-    const o=baseOpts(pct?"% of birth weight":PREF.units==="lb"?"pounds":"grams");
+    const o=baseOpts(pct?"% of birth weight":PREF.units==="lb"?"Weight (lb)":"Weight (g)");
+    o.interaction={mode:"nearest",axis:"x",intersect:false};   // one tap: the nearest night, every baby weighed that night
+    o.scales.y.ticks.callback=v=>pct?v+"%":PREF.units==="lb"?(+v).toFixed(1):fmtG(v);
     o.plugins.tooltip={callbacks:{
-      title:it=>fmtWhen(it[0].raw.x),
-      label:it=>`${it.dataset.label}${it.raw.lbl?" (birth)":""}: ${fmtG(it.raw.g)} g · ${lbOz(it.raw.g)}${pct?` · ${it.raw.y}%`:""}${it.raw.approx?" · est.":""}`}};
+      title:it=>{ const r=it[0].raw; return r.lbl?`Birth · ${new Date(r.x).toLocaleDateString(undefined,{month:"short",day:"numeric"})}`:`Night of ${new Date(r.x).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})} · 8 PM`; },
+      label:it=>`${it.dataset.label}: ${fmtG(it.raw.g)} g (${lbOz(it.raw.g)})${pct?` · ${it.raw.y}%`:""}${it.raw.approx?" · estimated":""}`}};
     draw("cWeight",{type:"line",data:{datasets:ds},options:o,plugins:[hLine(pct?[{y:100,color:css("--muted"),label:"birth weight"}]:[])]});
   }
 
@@ -722,12 +773,13 @@
     gridDirty=false;
     const ns=nights().reverse(), C=COLORS();
     $("wHead").innerHTML = `<th>Night</th>`+shown().map(tw=>`<th class="num"><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</th>`).join("");
-    $("wBody").innerHTML = ns.map(k=>`<tr><td>${md(k)}</td>${shown().map(tw=>{
+    const tonight=feedDay(Date.now());
+    $("wBody").innerHTML = ns.map(k=>`<tr class="${k===tonight?"tonight":""}"><td><b>${md(k)}</b>${keyDate(k).toLocaleDateString(undefined,{weekday:"short"})}${k===tonight?'<br><span class="tn">Tonight</span>':""}</td>${shown().map(tw=>{
       const w=W[tw+"|"+k];
       const pd=keyDate(k); pd.setDate(pd.getDate()-1); const prevK=dKey(pd);
       const p=W[tw+"|"+prevK]; const base = k===dKey(FIRST_NIGHT) ? BIRTH[tw].g : (p?p.v:null);
-      const d = w && base!=null ? `${sgn(w.v-base)} g${k===dKey(FIRST_NIGHT)?" vs birth":""}` : "";
-      return `<td class="num"><input inputmode="numeric" type="number" aria-label="${esc(tw)} weight, night of ${md(k)}" ${canWrite?"":"disabled"} data-k="${esc(tw)}|${k}" value="${w?w.v:""}" class="${w?(w.approx?"approx":""):"missing"}" placeholder="—"><span class="d">${d}</span></td>`;
+      const d = (w && base!=null ? `${sgn(w.v-base)} g${k===dKey(FIRST_NIGHT)?" vs birth":""}` : "") + (w&&w.approx?` <span class="est">est.</span>`:"");
+      return `<td class="num"><input inputmode="numeric" type="number" aria-label="${esc(tw)} weight in grams, night of ${md(k)}${w&&w.approx?" (estimated)":""}" ${canWrite?"":"disabled"} data-k="${esc(tw)}|${k}" value="${w?w.v:""}" class="${w?(w.approx?"approx":""):"missing"}" placeholder="—"><span class="d">${d}</span></td>`;
     }).join("")}</tr>`).join("");
   }
   let gridDirty=false;
@@ -1078,7 +1130,7 @@
   $("dNext").addEventListener("click",()=>shiftDay(1));
   $("dToday").addEventListener("click",()=>{ state.day=feedDay(Date.now()); renderSheet(); });
 
-  function renderAll(){ renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderWeight(); renderGrid(); renderLog(); }
+  function renderAll(){ renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -1274,12 +1326,24 @@
   // ---------- milk log ----------
   let P=[], D=[], milkCfg=null, mkN=20;     // pumps, NICU drop-offs, {count,t} correction
   const need = () => TWINS.reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for both babies
-  function stock(){
+  // Same estimate as before, returned with its parts so the screen can show the working.
+  function stockParts(){
     const now=Date.now(), base=milkCfg&&isFinite(milkCfg.t)?milkCfg:null;
     const drops=[...D].sort((a,b)=>a.t-b.t); if(!base && !drops.length) return null;
     const start = base ? base.t : drops[0].t;
-    const added = drops.filter(d=> base ? d.t>start : true).reduce((a,d)=>a+d.v,0);
-    return Math.max(0, (base?base.count:0) + added - usedSince(start,now));
+    const after = drops.filter(d=> base ? d.t>start : true);
+    const added = after.reduce((a,d)=>a+d.v,0), used=usedSince(start,now);
+    return {base, start, first: base?null:drops[0], added, nDrops:after.length, used, nFeeds:feedsSince(start,now),
+      est: Math.max(0, (base?base.count:0) + added - used)};
+  }
+  function stock(){ const p=stockParts(); return p ? p.est : null; }
+  function feedsSince(start,end){   // how many scheduled feeds the estimate subtracted (display only)
+    let n=0, day=feedDay(start); const last=feedDay(end);
+    for(let guard=0; day<=last && guard<400; guard++){
+      TWINS.forEach(tw=>SLOT_H.forEach((_,i)=>{ const t=slotT(tw,day,i); if(t>start && t<=end) n++; }));
+      const d=keyDate(day); d.setDate(d.getDate()+1); day=dKey(d);
+    }
+    return n;
   }
   // Each scheduled feed uses that baby's full feed (by mouth + tube), taken out at the feed time.
   function usedSince(start,end){
@@ -1295,6 +1359,7 @@
     const slots=[day,dKey(d)].flatMap(k=>TWINS.flatMap(tw=>SLOT_H.map((_,i)=>({tw,t:slotT(tw,k,i)})))).filter(x=>x.t>now).sort((a,b)=>a.t-b.t);
     return slots.length ? {t:slots[0].t, tw:slots[0].tw, ml:FULL[slots[0].tw]} : null;
   }
+  const agoShort = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`; };
   const ago = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`; };
   function renderMilk(){
     if(TWINS[0]==="A") return;
@@ -1306,24 +1371,38 @@
     const firstDay=P.length?dKey(new Date(Math.min(...P.map(x=>x.t)))):null;   // first logged day is usually partial
     const have7=days7.filter(k=>byDay[k]!=null && k>firstDay), avg7=have7.length?have7.reduce((a,k)=>a+byDay[k],0)/have7.length:null;
     const pct=Math.round(tot24/n*100);
-    $("mkAs").textContent=`need ${Math.round(n)} mL/day`;
+    $("mkAs").textContent="";
+    const sp=stockParts(), whenFull=t=>`${new Date(t).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})} ${hm(t)}`;
+    $("mkInvBadge").textContent = "Estimate";
+    $("mkInv").innerHTML = !sp ? `<div class="k">Estimated stock</div><div class="hero">—</div><div class="s">Log a drop-off, or enter the NICU's count, to start the estimate.</div>`
+      : `<div class="k">Estimated stock now</div>
+        <div class="hero-row"><div class="hero">${fmtG(Math.round(sp.est))}<small> mL</small></div><div class="s">≈ ${(sp.est/n).toFixed(1)} days of feeds${(u=>u?` · next −${u.ml} mL at ${hm(u.t)}`:"")(nextUse())}</div></div>
+        <ul class="calc" aria-label="How the estimate is worked out">
+          <li><span class="op"></span> <span>${sp.base?`NICU's count <span class="badge ok">Counted</span> <br>${whenFull(sp.base.t)}`:`Start · before your first drop-off <br>${whenFull(sp.first.t)}`}</span> <span class="amt">${fmtG(sp.base?sp.base.count:0)} mL</span></li>
+          <li><span class="op">+</span> <span>Dropped off since${sp.nDrops?` (${sp.nDrops})`:""}</span> <span class="amt">${fmtG(Math.round(sp.added))} mL</span></li>
+          <li><span class="op">−</span> <span>Used by scheduled feeds since (${sp.nFeeds})</span> <span class="amt">${fmtG(Math.round(sp.used))} mL</span></li>
+          <li class="total"><span class="op">=</span> <span>Estimated now</span> <span class="amt">${fmtG(Math.round(sp.est))} mL</span></li>
+        </ul>`;
     $("mkStats").innerHTML=`
-      <div class="stat"><div class="k">Pumped last 24 h</div><div class="v ${pct<90?"low":""}">${Math.round(tot24)} <span class="muted" style="font-size:13px;font-weight:500">/ ${Math.round(n)} mL</span></div>
-        <div class="bar"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div><div class="s">${pct}% of what they drink · ${p24.length} sessions</div></div>
-      <div class="stat"><div class="k">Last pump</div><div class="v">${last?ago(last.t):"—"}</div><div class="s">${last?`${last.v} mL at ${hm(last.t)}`:"none logged yet"}</div></div>
-      <div class="stat"><div class="k">NICU stock (est.)</div><div class="v ${st!=null&&st<n?"low":""}">${st==null?"—":Math.round(st)+" mL"}</div>
-        <div class="s">${st==null?"log a drop-off to start":`≈ ${(st/n).toFixed(1)} days of feeds${(u=>u?` · next −${u.ml} at ${hm(u.t)}`:"")(nextUse())}`}</div></div>
-      <div class="stat"><div class="k">7-day average</div><div class="v">${avg7==null?"—":Math.round(avg7)+" mL"}</div><div class="s">${avg7==null?"needs a full day logged":`${Math.round(avg7/n*100)}% of daily need`}</div></div>`;
+      <div class="m"><div class="k">Daily need</div><div class="v">${fmtG(Math.round(n))}<small> mL</small></div><div class="s">both full feeds × ${FEEDS_PER_DAY}</div></div>
+      <div class="m"><div class="k">Pumped 24 h</div><div class="v">${fmtG(Math.round(tot24))}<small> mL</small></div><div class="s">${pct}% of need · ${p24.length} session${p24.length===1?"":"s"}</div></div>
+      <div class="m"><div class="k">Last pump</div><div class="v">${last?agoShort(last.t):"—"}</div><div class="s">${last?`${last.v} mL at ${hm(last.t)}`:"none logged yet"}</div></div>
+      <div class="m" style="grid-column:1/-1"><div class="bar" role="img" aria-label="Pumped ${pct}% of daily need in the last 24 hours"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div>
+        <div class="s" style="margin-top:6px">7-day average: ${avg7==null?"needs a full day logged":`${fmtG(Math.round(avg7))} mL/day (${Math.round(avg7/n*100)}% of need)`}</div></div>`;
     // log
-    const rows=[...P.map(x=>({...x,kind:"pump"})), ...D.map(x=>({...x,kind:"drop"}))].sort((a,b)=>b.t-a.t);
-    $("mkBody").innerHTML = rows.slice(0,mkN).map(r=>`<tr><td>${fmtWhen(r.t)}</td><td>${r.kind==="pump"?"Pumped":"To NICU"}</td><td class="num">${r.v}</td><td class="muted">${esc(whoName(r.by))}</td>
-      <td>${canWrite?`<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${r.kind==="pump"?"pump":"drop-off"} at ${fmtWhen(r.t)}">×</button>`:""}</td></tr>`).join("")
+    const rows=[...P.map(x=>({...x,kind:"pump"})), ...D.map(x=>({...x,kind:"drop"})), ...(milkCfg?[{t:milkCfg.t,v:milkCfg.count,kind:"count"}]:[])].sort((a,b)=>b.t-a.t);
+    const kindLbl={pump:"Pumped",drop:"To NICU",count:'NICU count <span class="badge ok">Counted</span>'};
+    $("mkBody").innerHTML = rows.slice(0,mkN).map(r=>`<tr><td>${fmtWhen(r.t)}</td><td>${kindLbl[r.kind]}</td><td class="num">${fmtG(r.v)}</td><td class="muted">${r.kind==="count"?"":esc(whoName(r.by))}</td>
+      <td>${canWrite&&r.kind!=="count"?`<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${r.kind==="pump"?"pump":"drop-off"} at ${fmtWhen(r.t)}">×</button>`:""}</td></tr>`).join("")
       || `<tr><td colspan="5" class="muted">Nothing logged yet.</td></tr>`;
     $("mkMore").style.display = rows.length>mkN ? "" : "none";
     // chart: last 14 days
     const days=[...Array(14)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-13+k); return dKey(d); });
-    const o=baseOpts("mL per day"); o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted")}}; o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=n*1.15;
-    o.plugins.tooltip={callbacks:{label:it=>`${it.raw} mL (${Math.round(it.raw/n*100)}% of need)${it.dataIndex===13?" · today so far":""}`}};
+    const o=baseOpts("Pumped (mL per day)"); o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted"),maxRotation:0,autoSkip:true,maxTicksLimit:7}}; o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=n*1.15;
+    o.scales.y.ticks.callback=v=>fmtG(v);
+    o.interaction={mode:"index",intersect:false};
+    o.plugins.tooltip={callbacks:{title:it=>days[it[0].dataIndex]?keyDate(days[it[0].dataIndex]).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}):"",
+      label:it=>`Pumped ${fmtG(it.raw)} mL (${Math.round(it.raw/n*100)}% of the ${fmtG(Math.round(n))} mL daily need)${it.dataIndex===13?" · today so far":""}`}};
     draw("cMilk",{type:"bar",data:{labels:days.map(md),datasets:[{label:"pumped",data:days.map(k=>Math.round(byDay[k]||0)),backgroundColor:css("--accent"),borderRadius:4,maxBarThickness:22}]},
       options:o,plugins:[hLine([{y:n,color:css("--danger"),label:`need ${Math.round(n)} mL`}])]});
   }
