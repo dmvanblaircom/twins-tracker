@@ -142,6 +142,7 @@ async function importData(p) {
 
     // ---- milk ----
     await tab(p, "milk");
+    check("Milk time boxes stay inside their cards", await p.$$eval("#pmT,#dpT", els => els.every(e => e.getBoundingClientRect().right <= e.closest(".card").getBoundingClientRect().right)));
     check("baby bar hidden on Milk", !(await p.isVisible(".viewbar")));
     check("Log feed button hidden on Milk", !(await p.isVisible("#fab")));
     await p.fill("#pmV", "120"); await p.click("#pmGo"); await p.waitForTimeout(150);
