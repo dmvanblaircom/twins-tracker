@@ -38,6 +38,7 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - Per-phone prefs (localStorage `prefs`): appearance `look` system|light|dark (sets `data-look`; system follows `prefers-color-scheme`; night overrides), units g|lb (display only; entry stays grams), clock 12|24, text size via CSS zoom (cards restack with container queries), night manual|auto 9 PM–7 AM.
 - Floating "+ Log feed" button on Weight/Progress, or on Today once the Next card scrolls away (hidden on Milk/More). Chart callouts close on a tap elsewhere, on scroll, or after 5 s (`hideTips`). Diet changes (from feeds' `diet`) draw dotted markers on the PO and daily charts.
 - Floating button tucks away (`.tuck`) while scrolling down and returns on any scroll up. Every control is ≥44 px tall (tested). `#upd` "New version ready — tap to refresh" shows on `controllerchange` when the page was already controlled (https only). Records table becomes two-line rows under a container query at large text; growth grid boxes flex. Sign-in and setup screens carry the brand mark. Error text is plain language (no rules/allowlist jargon).
+- Records/Care/Settings sub-nav uses underline tabs (distinct from the baby selector and filters). No text below 12 px. Saving setup with changed feed times asks first. Undo asks before replacing a change the other parent made after your save (undo fns may return false to cancel).
 - Charts render only when their tab is visible (`draw` skips hidden canvases; `showTab` re-renders).
 
 ## Design system (Phase 0)

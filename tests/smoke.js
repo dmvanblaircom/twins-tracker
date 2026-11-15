@@ -92,6 +92,8 @@ async function main() {
     // ---- Today: entry, undo, full, tube, notes ----
     await tab(p, "feed");
     check("next card shows the 2 AM feed as due", /^Due\s+2a$/.test((await p.textContent(`${A} .when`)).trim()), await p.textContent(`${A} .when`));
+    check("overnight context label is short", (await p.textContent("#ctxLabel")) === "Overnight · Both babies", await p.textContent("#ctxLabel"));
+    check("status banner is announced to screen readers", (await p.getAttribute("#banner", "role")) === "alert");
     check("context strip shows the date and both babies", (await p.textContent("#ctxLabel")).endsWith("Both babies") && /\w{3}, \w{3} \d+/.test(await p.textContent("#ctxDate")), await p.textContent("#ctxLabel"));
     check("each baby card names her and says Baby A/B", (await p.textContent(`${A} .bh`)).includes("Ada Rose") && (await p.textContent(`${A} .bh-sub`)) === "Baby A" && (await p.textContent('.nx[data-tw="Bea Joy"] .bh-sub')) === "Baby B");
     check("Full / tube / skipped are one tap each, side by side", (await p.$$(`${A} .quick [data-act]`)).length === 3);
@@ -105,6 +107,11 @@ async function main() {
     check("Undo removes it", await db(p, t => !__db.feeds[`Ada Rose-${t}`], slot2));
     await p.waitForTimeout(2700);
     check("sheet note shows the real day boundary (7 AM, not 8 AM)", /^7\s?a/i.test(await p.textContent("#dayRange")) && !(await p.textContent("#sheet")).includes("8 AM to 8 AM"), await p.textContent("#dayRange"));
+    await p.fill(`${A} .box input`, "42"); await p.click(`${A} [data-act=save]`); await p.waitForTimeout(200);
+    await db(p, t => Store.setFeed(`Ada Rose-${t}`, { twin: "Ada Rose", t, v: 44, note: "", diet: "", by: "parent2@example.com" }), slot2);
+    p.answers = [false]; await p.click("#toast button"); await p.waitForTimeout(200);
+    check("Undo asks before wiping the other parent's later change", p.dialogs.some(d => d.includes("changed this feed after you saved it")) && await db(p, t => __db.feeds[`Ada Rose-${t}`]?.v, slot2) === 44);
+    await db(p, t => Store.delFeed(`Ada Rose-${t}`), slot2); await p.waitForTimeout(2700);
     await p.fill(`${A} .box input`, "41");
     await db(p, t => Store.setFeed(`Ada Rose-${t}`, { twin: "Ada Rose", t, v: 30, note: "", diet: "", by: "parent2@example.com" }), slot2);
     p.answers = [false]; await p.click(`${A} [data-act=save]`); await p.waitForTimeout(200);
@@ -172,7 +179,7 @@ async function main() {
     const pmAt = await p.inputValue("#pmT");
     for (const v of ["30", "35"]) { await p.fill("#pmT", pmAt); await p.fill("#pmV", v); await p.click("#pmGo"); await p.waitForTimeout(150); }
     check("two pump entries in the same minute are both kept", await db(p, () => Object.keys(__db.pumps || {}).length) === pumpsBefore + 3);
-    check("Need & pumping shows daily need and 24 h pumped in mL", /Daily need\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")) && /Pumped 24 h\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")), (await p.textContent("#mkStats")).replace(/\s+/g, " "));
+    check("Need & pumping shows daily need and 24 h pumped in mL", /Est\. daily need\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")) && /Pumped 24 h\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")), (await p.textContent("#mkStats")).replace(/\s+/g, " "));
     const dropAt = await p.evaluate(() => { const d = new Date(Date.now() - 4 * 3600e3), q = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${q(d.getMonth() + 1)}-${q(d.getDate())}T${q(d.getHours())}:${q(d.getMinutes())}`; });   // the page's clock, not the real one
     await p.fill("#dpT", dropAt);
     await p.fill("#dpV", "500"); await p.click("#dpGo"); await p.waitForTimeout(200);
@@ -312,7 +319,11 @@ async function main() {
     // ---- rename moves everything ----
     const other = new Date("2026-02-10T20:00:00-05:00").getTime();
     await db(p, t => { const id = `Ada Rose-${t}`; Store.setFeed(id, { ...__db.feeds[id], by: "parent2@example.com" }); }, other);
-    await p.click("#editProfile"); await p.fill("#suN0", "Ada"); await p.fill("#suN1", "Bea");
+    await p.click("#editProfile"); await p.selectOption("#suEvery", "4");
+    p.answers = [false]; await p.click("#suSave"); await p.waitForTimeout(300);
+    check("changing feed times asks first (Cancel keeps the schedule)", p.dialogs.some(d => d.startsWith("Change feed times?")) && await db(p, () => __db.config?.profile?.schedule?.everyH ?? 3) === 3, p.dialogs.slice(-1)[0]);
+    await p.selectOption("#suEvery", "3");
+    await p.fill("#suN0", "Ada"); await p.fill("#suN1", "Bea");
     p.answers = [true]; await p.click("#suSave"); await p.waitForTimeout(800);
     const names = await db(p, () => [...new Set([...Object.values(__db.weights), ...Object.values(__db.feeds)].map(x => x.twin))].sort().join(","));
     check("rename moves every entry", names === "Ada,Bea", names);
