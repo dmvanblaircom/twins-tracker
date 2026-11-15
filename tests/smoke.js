@@ -58,6 +58,7 @@ async function newPage(browser, base, opts = {}) {
   await ctx.addInitScript(p => { window.__TEST_PROFILE = p; }, PROFILE);
   await ctx.route("https://cdnjs.cloudflare.com/**/chart.umd.min.js", r => r.fulfill({ path: CHART, contentType: "text/javascript" }));
   if (opts.prefs) await ctx.addInitScript(p => localStorage.setItem("prefs", JSON.stringify(p)), opts.prefs);
+  if (opts.init) await ctx.addInitScript(opts.init);
   const page = await ctx.newPage();
   page.errors = []; page.on("pageerror", e => page.errors.push(e.message));
   page.dialogs = []; page.on("dialog", d => { page.dialogs.push(d.message()); const a = page.answers && page.answers.shift(); a === false ? d.dismiss() : d.accept(typeof a === "string" ? a : undefined); });
@@ -370,6 +371,38 @@ async function main() {
     await q.screenshot({ path: path.join(SHOTS, "large-text.png") });
     check("no page errors with prefs", q.errors.length === 0, q.errors.join(" | "));
     await q.context().close();
+
+    // ---- families: start one, join with a code, invite, remove, delete account ----
+    { const n = await newPage(browser, base, { init: () => { window.__TEST_NOFAMILY = true; window.__TEST_PROFILE = null; } });
+      check("a new account is asked to join or start a family", await n.isVisible("#family") && !(await n.isVisible("#main")));
+      await n.fill("#fmCode", "WRONG-123"); await n.click("#fmJoin"); await n.waitForTimeout(200);
+      check("a wrong invite code is explained", (await n.textContent("#fmMsg")).includes("didn't match"), await n.textContent("#fmMsg"));
+      n.answers = [true]; await n.click("#fmNew"); await n.waitForTimeout(300);
+      check("starting a family leads to the one-time setup", await n.isVisible("#setup") && !(await n.isVisible("#family")));
+      check("no page errors starting a family", n.errors.length === 0, n.errors.join(" | "));
+      await n.context().close(); }
+    { const j = await newPage(browser, base, { init: () => { window.__TEST_NOFAMILY = true; } });
+      await j.fill("#fmCode", "test-code"); await j.click("#fmJoin"); await j.waitForTimeout(400);
+      check("joining with the partner's code opens the shared babies", await j.isVisible("#main") && (await j.textContent("#title")).includes("Ada Rose"));
+      await j.context().close(); }
+    { const f = await newPage(browser, base);
+      await tab(f, "more"); await f.click('#moreNav button[data-v="settings"]'); await f.waitForTimeout(200);
+      const list = await f.textContent("#fmList");
+      check("Settings lists the family with you and the owner marked", list.includes("parent1@example.com") && list.includes("you") && list.includes("owner") && list.includes("parent2@example.com"), list);
+      check("Settings shows the invite code", (await f.textContent("#fmInvite")) === "TEST-CODE");
+      await f.click("#fmRenew"); await f.waitForTimeout(200);
+      check("New code replaces the invite", (await f.textContent("#fmInvite")) === "NEWC-ODE2");
+      f.answers = [true]; await f.click('#fmList [data-rm="u2"]'); await f.waitForTimeout(200);
+      check("the owner can remove someone", !(await f.textContent("#fmList")).includes("parent2@example.com"));
+      f.answers = [true, "nope"]; await f.click("#fmDelete"); await f.waitForTimeout(200);
+      check("a wrong password deletes nothing", !(await f.evaluate(() => window.__deleted)) && (await f.textContent("#banner")).includes("didn't match"));
+      f.answers = [true, "pw"]; await f.click("#fmDelete"); await f.waitForTimeout(300);
+      check("the last member deleting their account removes the family's data and signs out", await f.evaluate(() => window.__deleted && !Object.keys(__db.feeds || {}).length && !__db.config.profile) && await f.isVisible("#login"));
+      check("deleting warns that everything goes when you're the only one", f.dialogs.some(d => d.includes("only one in the family")));
+      await f.click("#lMode");
+      check("sign-in screen offers account creation", (await f.textContent("#lGo")) === "Create account");
+      check("no page errors in family settings", f.errors.length === 0, f.errors.join(" | "));
+      await f.context().close(); }
 
     // ---- appearance: system / light / dark ----
     const bgOf = pg => pg.evaluate(() => getComputedStyle(document.body).backgroundColor);

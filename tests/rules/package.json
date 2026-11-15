@@ -1,0 +1,13 @@
+{
+  "name": "twins-tracker-rules-tests",
+  "private": true,
+  "description": "Firestore security rules tests against the local emulator (needs Java 11+).",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-twins \"node rules.test.js\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "3.0.4",
+    "firebase": "10.12.2",
+    "firebase-tools": "13.29.1"
+  }
+}

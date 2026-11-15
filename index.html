@@ -89,6 +89,10 @@
   .wrap{max-width:960px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(160px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
   #login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   #login .card{width:100%;max-width:380px;padding:var(--sp-5)}
+  .fmlist{list-style:none;margin:var(--sp-2) 0 0;padding:0} .fmlist li{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-2);min-height:44px;border-bottom:1px solid var(--grid);font-size:var(--fs-md);overflow-wrap:anywhere}
+  .fmlist .tag{font-size:var(--fs-xs);color:var(--muted);margin-left:6px}
+  .invite{display:flex;align-items:baseline;gap:var(--sp-3);flex-wrap:wrap;margin-bottom:var(--sp-2)} .invite .code{font-size:var(--fs-title);font-weight:750;letter-spacing:.08em;color:var(--title);font-variant-numeric:tabular-nums}
+  .link.danger{color:var(--danger-ink)}
   .ttl{margin:0;font-size:var(--fs-title);font-weight:750;color:var(--title);letter-spacing:-.01em}
   #login .f{margin-bottom:10px}
   .top{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3)}
@@ -403,11 +407,25 @@
 <div id="login">
   <div class="card">
     <div class="brand" style="margin-bottom:var(--sp-4)"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.4-7.5-10A4.5 4.5 0 0 1 12 7.6a4.5 4.5 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10z"/><path d="M8.5 12.5h2l1-2 1.6 4 1-2h1.4"/></svg></span><div><div class="eyebrow">NICU feeds &amp; growth</div><h1 class="ttl">Twins Tracker</h1></div></div>
-    <div class="sub">Sign in with the account set up for you.</div>
+    <div class="sub" id="lSub">Sign in to your family's tracker.</div>
     <label class="f">Email<input id="lEmail" type="email" autocomplete="username" inputmode="email"></label>
     <label class="f">Password<input id="lPw" type="password" autocomplete="current-password"></label>
     <button class="btn" id="lGo" style="width:100%">Sign in</button>
-    <div class="row" style="justify-content:space-between;margin-top:8px"><span class="msg" id="lMsg"></span><button class="link" id="lReset">Forgot password</button></div>
+    <div class="msg" id="lMsg" role="status" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:space-between;margin-top:4px"><button class="link" id="lMode">New here? Create an account</button><button class="link" id="lReset">Forgot password</button></div>
+  </div>
+</div>
+<div id="family" style="display:none" class="wrap">
+  <div class="card" style="max-width:520px;margin:0 auto">
+    <div class="brand" style="margin-bottom:var(--sp-3)"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.4-7.5-10A4.5 4.5 0 0 1 12 7.6a4.5 4.5 0 0 1 7.5 2.9c0 5.6-7.5 10-7.5 10z"/><path d="M8.5 12.5h2l1-2 1.6 4 1-2h1.4"/></svg></span><div><div class="eyebrow">Twins Tracker</div><h1 class="ttl">Your family</h1></div></div>
+    <div class="note" style="margin-top:0">Both parents share one family: every feed, weight and note shows on both phones.</div>
+    <h2 style="margin-top:var(--sp-4)">Joining your partner?</h2>
+    <label class="f">Invite code from their Settings<input id="fmCode" type="text" autocomplete="off" autocapitalize="characters" placeholder="ABCD-2345" maxlength="9"></label>
+    <div class="row"><button class="btn" id="fmJoin">Join family</button></div>
+    <h2 style="margin-top:var(--sp-5)">First one here?</h2>
+    <div class="row"><button class="btn ghost" id="fmNew">Start a new family</button></div>
+    <div class="msg" id="fmMsg" role="status" style="margin-top:var(--sp-3)"></div>
+    <div class="row" style="justify-content:space-between;margin-top:var(--sp-4)"><span class="msg" id="fmWho"></span><button class="link" id="fmOut">Sign out</button></div>
   </div>
 </div>
 <div id="setup" style="display:none" class="wrap">
@@ -589,6 +607,16 @@
       <div class="pr"><span>Time</span><div class="seg small" id="pfClock"><button data-v="12">2:30p</button><button data-v="24">14:30</button></div></div>
     </div>
     <div class="note">Only affects this phone. Weights are always entered in grams, as the NICU charts them.</div>
+  </div>
+  <div class="card" id="famCard">
+    <h2>Family</h2>
+    <div class="note" style="margin-top:0">Everyone here sees and logs the same babies.</div>
+    <ul class="fmlist" id="fmList"></ul>
+    <div class="sec-h" style="margin-top:var(--sp-3)"><span>Invite the other parent</span></div>
+    <div class="invite"><span class="code" id="fmInvite">—</span><span class="msg" id="fmExp"></span></div>
+    <div class="row"><button class="btn ghost" id="fmShare">Share code</button><button class="btn ghost" id="fmRenew">New code</button></div>
+    <div class="note">They create their own account, then enter this code. Codes last 7 days.</div>
+    <div class="row" style="justify-content:space-between;margin-top:var(--sp-3);flex-wrap:wrap"><button class="link" id="fmLeave">Leave this family</button><button class="link danger" id="fmDelete">Delete my account</button></div>
   </div>
   <div class="card">
     <h2>Babies &amp; account</h2>
@@ -1660,12 +1688,24 @@
   let Store=null, unsubs=[];
   $("diet").addEventListener("change", async ()=>{ const t=$("diet").value.trim().slice(0,120); if(!t||!Store) return;
     try{ await Store.setDiet(t); $("dietMsg").textContent="Saved — new feeds will carry this."; setTimeout(()=>$("dietMsg").textContent="",3000);}catch(err){ failWrite(err); } });
+  let signUpMode=false;
+  $("lMode").addEventListener("click",()=>{ signUpMode=!signUpMode; $("lMsg").textContent="";
+    $("lGo").textContent=signUpMode?"Create account":"Sign in"; $("lMode").textContent=signUpMode?"Have an account? Sign in":"New here? Create an account";
+    $("lSub").textContent=signUpMode?"Each parent makes their own account, then you join the same family.":"Sign in to your family's tracker.";
+    $("lPw").autocomplete=signUpMode?"new-password":"current-password"; });
   $("lGo").addEventListener("click", async ()=>{
-    $("lMsg").textContent="Signing in…";
-    try{ await Store.signIn($("lEmail").value.trim(), $("lPw").value); $("lMsg").textContent=""; }
+    const em=$("lEmail").value.trim(), pw=$("lPw").value;
+    if(signUpMode && pw.length<8){ $("lMsg").textContent="Use a password of at least 8 characters."; return; }
+    $("lMsg").textContent=signUpMode?"Creating your account…":"Signing in…";
+    try{ await (signUpMode?Store.signUp(em,pw):Store.signIn(em,pw)); $("lMsg").textContent=""; }
     catch(err){ const c=(err&&err.code)||"";
-      $("lMsg").textContent=/invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)
-        ? "Email or password didn't match." : "Sign-in failed: "+(c||(err&&err.message)||"unknown error"); }
+      $("lMsg").textContent=/email-already-in-use/.test(c) ? "That email already has an account — sign in instead."
+        : /invalid-email/.test(c) ? "That email doesn't look right."
+        : /weak-password/.test(c) ? "Use a longer password."
+        : /operation-not-allowed|admin-restricted/.test(c) ? "New accounts aren't open yet."
+        : /invalid-credential|wrong-password|user-not-found/.test(c) ? "Email or password didn't match."
+        : /network/.test(c) ? "No connection — try again when you have signal."
+        : "Couldn't sign in. Try again."; }
   });
   $("lPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("lGo").click(); });
   $("lReset").addEventListener("click", async ()=>{
@@ -1698,7 +1738,7 @@
         if(fresh.length){ const f=fresh[fresh.length-1]; flash(`${whoName(f.by)} logged ${f.twin} · ${hm(f.t)} · ${!f.v&&MARK.test(f.note)?f.note.split(",")[0].toLowerCase():f.v+" mL"}`); } }
       seen=new Set(F.map(f=>f.id)); renderAll(); }, fail));
     if(Store.watchConfig) unsubs.push(Store.watchConfig("people",c=>{ RAWC.people=c; people=Array.isArray(c&&c.list)?c.list.filter(x=>x&&typeof x.email==="string"):[];
-      if(document.activeElement!==$("myName")) $("myName").value=(people.find(x=>x.email===myEmail)||{}).name||""; renderAll(); }, ()=>{}));
+      if(document.activeElement!==$("myName")) $("myName").value=(people.find(x=>x.email===myEmail)||{}).name||""; drawFamily(); renderAll(); }, ()=>{}));
     if(Store.watch){
       unsubs.push(Store.watch("pumps",list=>{ RAW.pumps=list; P=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
       unsubs.push(Store.watch("drops",list=>{ RAW.drops=list; D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
@@ -1771,6 +1811,49 @@
     finally{ $("suSave").disabled=false; }
   });
 
+  // ---------- family ----------
+  const fmtCode = c => c ? `${c.slice(0,4)}-${c.slice(4)}` : "—";
+  function showFamily(){ $("family").style.display="block"; $("main").style.display="none"; $("setup").style.display="none"; $("fmMsg").textContent=""; $("fmWho").textContent=myEmail; }
+  async function familyChosen(p){ $("fmMsg").textContent="One moment…";
+    try{ await p; $("family").style.display="none"; $("fmMsg").textContent=""; window.__enterFamily(); }
+    catch(err){ $("fmMsg").textContent=err&&err.code==="bad-code"?err.message:"Couldn't connect — check your signal and try again."; } }
+  $("fmJoin").addEventListener("click",()=>{ const c=$("fmCode").value.trim(); if(!c){ $("fmCode").focus(); return; } familyChosen(Store.joinFamily(c)); });
+  $("fmCode").addEventListener("keydown",e=>{ if(e.key==="Enter") $("fmJoin").click(); });
+  $("fmNew").addEventListener("click",()=>{ if(confirm("Start a new family?\n\nIf your partner already set one up, cancel and ask them for the invite code instead.")) familyChosen(Store.createFamily()); });
+  $("fmOut").addEventListener("click",()=>Store.signOut());
+  let famInfo=null;
+  async function renderFamily(){
+    if(!Store.familyInfo) { $("famCard").style.display="none"; return; }
+    try{ famInfo=await Store.familyInfo(); }catch{ return; }
+    drawFamily();
+  }
+  function drawFamily(){ if(!famInfo) return;
+    const f=famInfo, mine=f.owner===f.me, nm=e=>{ const p=people.find(x=>x.email===e); return p&&p.name?`${p.name} · ${e}`:e; };
+    $("fmList").innerHTML=f.members.map(m=>`<li><span>${esc(nm(m.email))}${m.uid===f.me?'<span class="tag">you</span>':""}${m.uid===f.owner?'<span class="tag">owner</span>':""}</span>${mine&&m.uid!==f.me?`<button class="link danger" data-rm="${esc(m.uid)}" data-em="${esc(m.email)}">Remove</button>`:""}</li>`).join("")||'<li class="muted">Just you so far.</li>';
+    const live=f.code && f.codeExp>Date.now();
+    $("fmInvite").textContent=live?fmtCode(f.code):"—";
+    $("fmExp").textContent=live?`good until ${mdD(new Date(f.codeExp))}`:"Tap New code to invite someone.";
+    $("fmShare").disabled=!live;
+  }
+  $("fmRenew").addEventListener("click", async ()=>{ try{ await Store.newInvite(); renderFamily(); }catch(err){ failWrite(err); } });
+  $("fmShare").addEventListener("click", async ()=>{ if(!famInfo||!famInfo.code) return;
+    const text=`Join our family on Twins Tracker: create an account at ${location.origin}${location.pathname}, then enter code ${fmtCode(famInfo.code)}.`;
+    try{ if(navigator.share){ await navigator.share({text}); return; } }catch(err){ if(err&&err.name==="AbortError") return; }
+    try{ await navigator.clipboard.writeText(text); flash("Invite copied."); }catch{ prompt("Copy this invite:", text); } });
+  $("fmList").addEventListener("click", async e=>{ const b=e.target.closest("[data-rm]"); if(!b) return;
+    if(!confirm(`Remove ${b.dataset.em} from this family?\n\nThey'll lose access on their next open. Their past entries stay.`)) return;
+    try{ await Store.removeMember(b.dataset.rm); renderFamily(); }catch(err){ failWrite(err); } });
+  $("fmLeave").addEventListener("click", async ()=>{
+    if(!confirm("Leave this family?\n\nYou'll stop seeing these babies on this account. Everyone else keeps everything.")) return;
+    try{ await Store.leave(); location.reload(); }catch(err){ failWrite(err); } });
+  $("fmDelete").addEventListener("click", async ()=>{
+    const alone=famInfo && famInfo.members.filter(m=>m.uid!==famInfo.me).length===0;
+    if(!confirm(alone ? "Delete your account and all of this family's data?\n\nYou're the only one in the family, so every feed, weight, note and setting is deleted for good. Save a full backup first if you want a copy."
+      : "Delete your account?\n\nYou'll leave the family; everyone else keeps all the data.")) return;
+    const pw=prompt("Enter your password to confirm"); if(!pw) return;
+    try{ await Store.deleteAccount(pw); flash("Account deleted."); }
+    catch(err){ const c=(err&&err.code)||""; flash(/wrong-password|invalid-credential/.test(c)?"Password didn't match — nothing was deleted.":"Couldn't delete the account — try again with signal."); } });
+
   function boot(S){
     Store=S;
     let unProfile=null;
@@ -1778,16 +1861,24 @@
       unProfile&&unProfile(); unProfile=null;
       if(user){
         $("login").style.display="none"; $("who").textContent=user.email||""; myEmail=(user.email||"").toLowerCase();
+        if(!Store.family){ enterFamily(); return; }
+        Store.family().then(f=>{ if(f) enterFamily(); else showFamily(); })
+          .catch(()=>banner("Couldn't reach your family's data. Check your connection and reopen the app."));
+      } else {
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null;
+        $("setup").style.display="none"; $("family").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
+      }
+    });
+    function enterFamily(){
+        unProfile&&unProfile();
+        renderFamily();
         unProfile=Store.watchProfile(p=>{
           if(!validProfile(p)){ profile=null; showSetup(false); return; }
           applyProfile(p); hideSetup();
           if(!dataStarted){ dataStarted=true; startData(); } else { rebuild(); renderAll(); }
         }, err=>{ console.error(err); banner("Couldn't load your babies' details. Check your connection and reopen the app."); });
-      } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null;
-        $("setup").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
-      }
-    });
+    }
+    window.__enterFamily=enterFamily;
   }
   $("main").style.display="none";
   if(window.Store) boot(window.Store); else window.addEventListener("store-ready", ()=>boot(window.Store), {once:true});

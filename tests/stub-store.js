@@ -14,9 +14,25 @@
   const setConfig = async (n, v) => { db.config[n] = copy(v); fireCfg(n); };
   if (window.__TEST_PROFILE) db.config.profile = copy(window.__TEST_PROFILE);
   window.__db = db;
+  // Families: by default the test user is already in one; __TEST_NOFAMILY starts with none (create / join).
+  const fam = { hid: window.__TEST_NOFAMILY ? null : "main", owner: "u1", code: "TESTCODE", codeExp: Date.now() + 7 * 864e5,
+    members: [{ uid: "u1", email: me }, { uid: "u2", email: "parent2@example.com" }] };
+  window.__fam = fam;
+  let authCb = null;
   window.Store = {
-    onAuth: cb => { setTimeout(() => cb({ email: me })); return () => {}; },
-    signIn: async () => {}, signOut: async () => {}, reset: async () => {},
+    onAuth: cb => { authCb = cb; setTimeout(() => cb({ email: me, uid: "u1" })); return () => {}; },
+    signIn: async () => {}, signUp: async () => {}, reset: async () => {},
+    signOut: async () => { authCb && authCb(null); },
+    family: async () => fam.hid ? { hid: fam.hid } : null,
+    createFamily: async () => { fam.hid = "h-new"; fam.members = [{ uid: "u1", email: me }]; return { hid: fam.hid }; },
+    joinFamily: async code => { if (String(code).toUpperCase().replace(/[^A-Z0-9]/g, "") !== "TESTCODE") throw Object.assign(new Error("That code didn't match a family."), { code: "bad-code" }); fam.hid = "main"; return { hid: "main" }; },
+    familyInfo: async () => ({ hid: fam.hid, owner: fam.owner, code: fam.code, codeExp: fam.codeExp, me: "u1", members: fam.members.slice() }),
+    newInvite: async () => { fam.code = "NEWCODE2"; fam.codeExp = Date.now() + 7 * 864e5; return { code: fam.code, codeExp: fam.codeExp }; },
+    removeMember: async uid => { fam.members = fam.members.filter(m => m.uid !== uid); },
+    leave: async () => { fam.members = fam.members.filter(m => m.uid !== "u1"); fam.hid = null; return fam.members.length; },
+    deleteAccount: async pw => { if (pw !== "pw") throw Object.assign(new Error("wrong"), { code: "auth/wrong-password" });
+      if (fam.members.length <= 1) Object.keys(db).forEach(k => k === "config" ? (db.config = {}) : delete db[k]);
+      fam.hid = null; window.__deleted = true; authCb && authCb(null); },
     watchWeights: cb => watch("weights", cb), watchFeeds: cb => watch("feeds", cb),
     watchDiet: cb => watchConfig("diet", d => cb(d ? d.text : null)),
     setWeight: (id, r) => put("weights", id, r), delWeight: id => remove("weights", id),

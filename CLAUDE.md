@@ -1,6 +1,6 @@
 # Twins Tracker — context for Claude
 
-Static PWA (no build step) for two parents to chart twin NICU babies' nightly weights and PO feeds. Hosted on GitHub Pages from `main` / root. Backend: Firebase Auth (email/password) + Firestore.
+Static PWA (no build step) for parents to chart twin NICU babies' nightly weights and PO feeds. Hosted on GitHub Pages from `main` / root. Backend: Firebase Auth (email/password, sign-up allowed) + Firestore. Multi-family: each family's data lives under `households/{hid}`; both parents join the same family with an invite code.
 
 **This repo is public. Never commit names, birth dates/times, weights or any feed data.** All personal details live in Firestore (`households/main/config/profile`), entered on the in-app setup screen.
 
@@ -8,12 +8,18 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - `index.html` — the whole app (UI, charts via Chart.js 4.4.1 from cdnjs, all logic). Talks to the backend only through `window.Store`.
 - `firebase-store.js` — implements `window.Store` on Firebase (offline cache on; writes resolve after server ack or 1.5 s). Fires `store-ready`.
 - `firebase-config.js` — Firebase web config (not secret).
-- `firestore.rules` — allowlist of the two parents' emails; everything under `households/main/**`.
+- `firestore.rules` — family membership rules (see Families). The original family `households/main` can also be claimed by the allowlisted emails (placeholders in the repo; real ones only in the console). Tested in `tests/rules/` against the emulator.
 - `sw.js` — app-shell cache, network-first. Bump `CACHE` name when shell files change.
 - `fonts/inter-latin-var.woff2` — Inter variable font (latin, self-hosted, OFL; licence in `fonts/LICENSE-Inter.txt`). Cached with the shell for offline.
 - `manifest.webmanifest`, `icons/`.
 
-## Data model (under `households/main/`)
+## Families
+- `users/{uid}` → `{hid}` (which family this sign-in uses). `households/{hid}` → `{owner, code, codeExp (ms), created}`. `households/{hid}/members/{uid}` → `{email, t, code?}`. `invites/{CODE}` → `{hid, exp}` (get-only lookup, 8 chars from an unambiguous alphabet, 7 days).
+- `Store.family()` resolves the family after sign-in: users doc → membership check; else claims `main` (allowlisted emails); else null → the app shows `#family` (join with code / start a new family). If `users/` is denied (old rules) it falls back to `main`; offline it reopens the cached hid.
+- `Store.createFamily / joinFamily(code) / familyInfo / newInvite / removeMember(uid) / leave / deleteAccount(password)`. Settings → Family card: members (you / owner), invite code with Share + New code, Remove (owner), Leave, Delete my account (re-auth; the last member out deletes all the family's data). Ownership passes to another member when the owner leaves.
+- Rules: data readable/writable only by members (or allowlisted emails for `main`); join only as yourself with the current unexpired code; members can't be edited; only the owner removes others or deletes the family record.
+
+## Data model (under `households/{hid}/`)
 - `weights/b{i}-{YYYY-MM-DD}` → `{twin, i (0|1), date, v (g), approx, by}` — one per baby per night (weighed at 8 PM).
 - `feeds/b{i}-{epochMs}` → `{twin, i, t, v (mL PO), note, diet, by}` — one per baby per fixed feed slot. `v:0` with note `All by tube` / `Skipped` marks a non-PO feed; notes matching `MARK` (`est.`, those two) are replaced when a value is re-entered.
 - `config/profile` → `{born, ga, schedule:{everyH (2|3|4), startH (0–12)}, twins:[{name, birthTime, birthG, fullMl, slotMin, color}]}` — `color` is a PALETTE key (pink, purple, blue, orange, green, teal) with light/dark/night variants.
@@ -63,4 +69,5 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - [x] Setup screen done; prior data imported from NICU chart photos (estimates flagged `approx` / note `est.`).
 
 ## Testing
+Rules: `cd tests/rules && npm install && npm test` (Firestore emulator, needs Java 11+; ~28 checks).
 `cd tests && npm install && npm test` — `smoke.js` serves the repo, swaps `firebase-store.js` for `tests/stub-store.js` (in-memory Store, same contract), loads fictional babies (synthetic CSV), and walks every screen in headless Chromium (America/New_York, phone viewport, touch, fixed clock). ~55 checks; exits non-zero on any failure or page error. Screenshots land in `tests/shots/` (git-ignored). Needs Playwright + Chromium available. Never put real names or data in tests. Run it after every change.

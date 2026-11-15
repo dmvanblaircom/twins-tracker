@@ -1,0 +1,2 @@
+tests/rules/node_modules/
+tests/rules/*.log
