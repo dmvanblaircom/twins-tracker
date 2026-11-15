@@ -73,7 +73,7 @@ async function importData(p) {
   return p.textContent("#impMsg");
 }
 
-(async () => {
+async function main() {
   const srv = await serve(), base = `http://127.0.0.1:${srv.address().port}/`;
   fs.mkdirSync(SHOTS, { recursive: true });
   const browser = await chromium.launch();
@@ -186,6 +186,7 @@ async function importData(p) {
     const q = await newPage(browser, base, { prefs: { clock: "24", units: "lb", text: "1.3" } });
     await tab(q, "more"); check("Data & settings starts collapsed", !(await q.$eval("details.settings", d => d.open)));
     await importData(q); await tab(q, "feed");
+    check("A++ text: baby names in the selector are never truncated", await q.$$eval("#view .nm0,#view .nm1", els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && getComputedStyle(e).textOverflow !== "ellipsis")));
     check("24-hour clock", (await q.textContent(`${A} .when`)).includes("02:00"));
     for (const t of ["feed", "weight", "milk", "trends", "more"]) {
       await tab(q, t);
@@ -233,4 +234,6 @@ async function importData(p) {
   await browser.close(); srv.close();
   console.log(`\n${passed} passed, ${fails.length} failed`);
   if (fails.length) { console.log(fails.map(f => "  ✗ " + f).join("\n")); process.exit(1); }
-})();
+}
+if (require.main === module) main();
+module.exports = { serve, newPage, importData, tab, PROFILE, syntheticCSV, SHOTS };

@@ -10,6 +10,7 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - `firebase-config.js` — Firebase web config (not secret).
 - `firestore.rules` — allowlist of the two parents' emails; everything under `households/main/**`.
 - `sw.js` — app-shell cache, network-first. Bump `CACHE` name when shell files change.
+- `fonts/inter-latin-var.woff2` — Inter variable font (latin, self-hosted, OFL; licence in `fonts/LICENSE-Inter.txt`). Cached with the shell for offline.
 - `manifest.webmanifest`, `icons/`.
 
 ## Data model (under `households/main/`)
@@ -35,6 +36,15 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - Floating "+ Log feed" button on Weight/Progress, or on Today once the Next card scrolls away (hidden on Milk/More). Chart callouts close on a tap elsewhere, on scroll, or after 5 s (`hideTips`). Diet changes (from feeds' `diet`) draw dotted markers on the PO and daily charts.
 - Charts render only when their tab is visible (`draw` skips hidden canvases; `showTab` re-renders).
 
+## Design system (Phase 0)
+- All colours, spacing (`--sp-1..6`, 4-pt), radii (`--r-xs..lg`, `--r-pill`), elevation (`--shadow-1/2`) and type sizes (`--fs-*`) are CSS tokens at the top of `<style>`; components use tokens only.
+- Brand: navy `#193653` (accent/primary actions), medical blue `#3976A8` (links, focus), supporting blue `#6C8FAD`. Status tokens come as base / `-ink` (text) / `-tint` (backgrounds): success `#24836B`, warning `#B77928`, danger `#B94A48`.
+- Light text: `--text` `#182B3A`, `--title` navy, `--text2` `#637587` (on cards), `--muted` `#5A6D80` (small text anywhere, incl. the page background where #637587 is <4.5:1).
+- Themes: light (default), dark (phone setting, `prefers-color-scheme`), night (`data-theme=night`, manual or auto; blue-black with warm text). Every text pair ≥4.5:1, field borders ≥3:1 in all three.
+- Twin identity: `PALETTE` keys unchanged (pink, purple, blue, orange, green, teal), muted values per theme [light, dark, night], each ≥4.5:1 on its surface. Identity is never colour-only: names always shown, selector names wrap rather than truncate.
+- Shell: brand mark + eyebrow + baby names, sync pill (success/warning/danger tint), segmented baby selector (track + navy selected, colour dot + name), tab bar with pill highlight behind the active icon. Tab ids unchanged.
+- `tests/screens.js <dir>` saves iPhone-size (390×844 @2x) screenshots of every tab in light/night, each baby, A++ text and offline, for before/after design review.
+
 ## Domain rules
 - A day runs `dayH` to `dayH` (default 7 AM–7 AM, matching NICU shifts) and never depends on feed times. Feeds every `everyH` h (default 3) on the grid anchored at `startH` (default 8 AM); `setSchedule` builds `SLOT_H` (hours within the day window), `FEEDS_PER_DAY`, `DAY_START_H`. Each baby offset by `slotMin` (0 or 30). Daily totals count feeds by clock time (`feedDay`), so changing feed times never moves the day.
 - Only PO volume is tracked. Full feed default = 150 mL/kg/day × birth weight ÷ 8, overridable per baby.
@@ -46,4 +56,4 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - [x] Setup screen done; prior data imported from NICU chart photos (estimates flagged `approx` / note `est.`).
 
 ## Testing
-`cd tests && npm install && npm test` — `smoke.js` serves the repo, swaps `firebase-store.js` for `tests/stub-store.js` (in-memory Store, same contract), loads fictional babies (synthetic CSV), and walks every screen in headless Chromium (America/New_York, phone viewport, touch, fixed clock). ~40 checks; exits non-zero on any failure or page error. Screenshots land in `tests/shots/` (git-ignored). Needs Playwright + Chromium available. Never put real names or data in tests. Run it after every change.
+`cd tests && npm install && npm test` — `smoke.js` serves the repo, swaps `firebase-store.js` for `tests/stub-store.js` (in-memory Store, same contract), loads fictional babies (synthetic CSV), and walks every screen in headless Chromium (America/New_York, phone viewport, touch, fixed clock). ~55 checks; exits non-zero on any failure or page error. Screenshots land in `tests/shots/` (git-ignored). Needs Playwright + Chromium available. Never put real names or data in tests. Run it after every change.

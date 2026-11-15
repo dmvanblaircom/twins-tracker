@@ -1,6 +1,6 @@
 // App-shell cache so the app opens with no signal. Data offline is handled by Firestore's own cache.
-const CACHE = "ec-tracker-v24";
-const SHELL = ["./", "index.html", "firebase-store.js", "firebase-config.js", "manifest.webmanifest",
+const CACHE = "ec-tracker-v25";
+const SHELL = ["./", "index.html", "firebase-store.js", "firebase-config.js", "manifest.webmanifest", "fonts/inter-latin-var.woff2",
   "icons/icon-192.png", "icons/icon-180.png",
   "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting())); });
