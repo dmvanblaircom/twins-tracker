@@ -140,6 +140,28 @@ const srv = http.createServer((q, r) => {
     return (await S(L1, () => Store.family())).hid === "main" && await exists("households/main/feeds/b0-1");
   });
 
+  // ---- re-invite, then remove the same allowlisted parent again ----
+  const mainCode = (await S(L1, () => Store.familyInfo())).code;
+  await t("the owner deliberately re-invites the revoked parent with the current code", async () => (await S(L2, c => Store.joinFamily(c), mainCode)).hid === "main" && await exists(`households/main/members/${ul2}`));
+  await t("the re-invited parent can read and write family data", async () => {
+    await S(L2, () => Store.put("feeds", "b1-2", { twin: "B", i: 1, t: 2, v: 20 })); await new Promise(r => setTimeout(r, 300));
+    const seen = await S(L2, () => new Promise(res => { const un = Store.watch("feeds", l => { if (l.some(x => x[0] === "b0-1")) { un(); res(true); } }); setTimeout(() => res(false), 4000); }));
+    return seen && await exists("households/main/feeds/b1-2");
+  });
+  await t("the remaining parent keeps access while they're re-invited", async () => (await S(L1, () => Store.family())).hid === "main");
+  await t("the owner can remove the re-invited parent a second time", async () => (await attempt(L1, u => Store.removeMember(u), ul2)) === "ok");
+  await t("after the second removal the revocation is still in force and the membership is gone", async () =>
+    await exists("households/main/revoked/parent2@example.com") && !(await exists(`households/main/members/${ul2}`)));
+  await t("the twice-removed parent's next open drops them out", async () => (await S(L2, () => Store.family())) === null && !(await exists(`users/${ul2}`)));
+  await reopen(L2);
+  await t("after a reload they still can't get back in through the allowlist", async () => (await S(L2, () => Store.family())) === null && !(await exists(`households/main/members/${ul2}`)));
+  await S(L2, () => Store.signOut()); await S(L2, () => Store.signIn("parent2@example.com", "pw-legacy-2")); await uidOf(L2);
+  await t("after signing out and in they still can't get back in", async () => (await S(L2, () => Store.family())) === null && !(await exists(`households/main/members/${ul2}`)) && !(await exists(`users/${ul2}`)));
+  await t("the remaining parent still has normal access at the end", async () => {
+    await S(L1, () => Store.put("feeds", "b0-3", { twin: "A", i: 0, t: 3, v: 31 })); await new Promise(r => setTimeout(r, 300));
+    return (await S(L1, () => Store.family())).hid === "main" && await exists("households/main/feeds/b0-3");
+  });
+
   // ---- correction 2: the invite is rotated (and checked) before anyone loses access ----
   const O = await open(), X = await open(), Y = await open();
   await S(O, () => Store.signUp("rot-owner@example.net", "pw-rot-1")); await S(X, () => Store.signUp("rot-member@example.net", "pw-rot-2")); await S(Y, () => Store.signUp("rot-outsider@example.net", "pw-rot-3"));

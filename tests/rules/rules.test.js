@@ -166,7 +166,9 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
   await t("nobody but the owner can lift a revocation", async () => {
     await assertFails(deleteDoc(doc(mom, "households/main/revoked/parent2@example.com")));
     await assertFails(deleteDoc(doc(zed, "households/main/revoked/parent2@example.com")));
-    await assertFails(updateDoc(doc(dad, "households/main/revoked/parent2@example.com"), { uid: "x" }));
+    await assertFails(updateDoc(doc(mom, "households/main/revoked/parent2@example.com"), { uid: "x" }));
+    await assertFails(updateDoc(doc(zed, "households/main/revoked/parent2@example.com"), { uid: "x" }));
+    await assertFails(setDoc(doc(mom, "households/main/revoked/parent1@example.com"), { uid: "dad" }));
   });
   await t("a revoked parent can still clean up only their own private data", async () => {
     await assertSucceeds(getDocs(collection(mom, "households/main/private/mom/checkins")));
@@ -181,6 +183,23 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
   await t("the owner can deliberately re-invite a revoked parent with the current code", async () => {
     await assertSucceeds(setDoc(doc(mom, "households/main/members/mom"), { email: "parent2@example.com", code: "CODEMMMM" }));
     await assertSucceeds(getDoc(doc(mom, "households/main/feeds/b0-1")));
+  });
+  await t("while re-invited, the parent and other members still can't edit or delete the revocation", async () => {
+    await assertFails(updateDoc(doc(mom, "households/main/revoked/parent2@example.com"), { uid: "x" }));
+    await assertFails(setDoc(doc(mom, "households/main/revoked/parent2@example.com"), { uid: "mom" }));
+    await assertFails(deleteDoc(doc(mom, "households/main/revoked/parent2@example.com")));
+    await assertFails(updateDoc(doc(zed, "households/main/revoked/parent2@example.com"), { uid: "x" }));
+    await assertFails(deleteDoc(doc(zed, "households/main/revoked/parent2@example.com")));
+  });
+  await t("the owner can remove a re-invited parent again (the revocation is rewritten)", async () => {
+    await assertSucceeds(setDoc(doc(dad, "households/main/revoked/parent2@example.com"), { uid: "mom", by: "parent1@example.com", t: 2 }));
+    await assertSucceeds(deleteDoc(doc(dad, "households/main/members/mom")));
+  });
+  await t("after the second removal the allowlist still can't readmit them", async () => {
+    await assertFails(getDoc(doc(mom, "households/main/feeds/b0-1")));
+    await assertFails(setDoc(doc(mom, "households/main/members/mom"), { email: "parent2@example.com" }));
+    await assertFails(setDoc(doc(mom, "users/mom"), { hid: "main" }));
+    await assertSucceeds(getDoc(doc(dad, "households/main/feeds/b0-1")));
   });
 
   await env.cleanup();

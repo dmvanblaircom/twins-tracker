@@ -65,13 +65,15 @@ service cloud.firestore {
         allow read, write: if !(col in ['members', 'private', 'revoked']) && inFamily(hid);
       }
 
-      // Revocations (original family only): written by the owner when removing an allowlisted member. Members can't
-      // edit or delete them; only the owner can (to undo a revocation, or when deleting the family).
+      // Revocations (original family only): written by the owner when removing an allowlisted member. A revocation stays
+      // in place if the owner later re-invites that person with a code (membership grants access while they're invited),
+      // so removing them again simply rewrites it. Members and the revoked person can't create, edit or delete them;
+      // only the owner can (to undo a revocation, or when deleting the family).
       match /revoked/{em} {
         allow get: if inFamily(hid) || (signedIn() && request.auth.token.email.lower() == em);
         allow list: if inFamily(hid);
-        allow create: if hid == 'main' && owner(hid) && em == em.lower();
-        allow update: if false;
+        // Update: removing a deliberately re-invited parent a second time rewrites their existing revocation.
+        allow create, update: if hid == 'main' && owner(hid) && em == em.lower();
         allow delete: if owner(hid);
       }
 
