@@ -2,9 +2,30 @@
 
 **Track the baby. Support the parents. Recognize the journey.**
 
-This is the source of truth for NICUlog direction. It records the product owner's decisions on the Phase 0 audit (`docs/niculog-phase0-audit.md`) and the revised phase plan. Where the audit says otherwise, this file wins. Project context and current architecture are in `CLAUDE.md`.
+NICUlog is more than a NICU log: it's a family record that parents will want to look back on years from now. Care tracking stays accurate and fast at 2 AM; around it, the app keeps the story of both babies' journey, and supports the parents living it.
 
-Last updated: Nov 15, 2026.
+This is the **single source of truth** for NICUlog direction, scope and sequencing. It records the product owner's decisions on the Phase 0 audit (`docs/niculog-phase0-audit.md`) and the phase plan. Where the audit or any other document says otherwise, this file wins. Project context and current architecture are in `CLAUDE.md`.
+
+Last updated: Nov 15, 2026 (roadmap approved: Phase 1 status recorded; Phase 2–3 scope, dependencies, acceptance criteria and sequence added; D12–D15 approved).
+
+---
+
+## How work proceeds
+1. The product owner approves changes to this plan, and Claude commits them. Product functionality is built only from an approved plan.
+2. The product owner (with ChatGPT) writes the implementation prompt for the next phase from this plan.
+3. Claude implements the phase on its working branch and reports. No merge, deploy or rules publication without explicit approval.
+4. The product owner reviews and approves the phase before the next phase begins. Production Firebase rule changes are approved and published separately from code merges.
+
+---
+
+## Status
+
+| Phase | Status |
+|---|---|
+| 1 — Foundations | **Functionally complete and merged** (`main` = `6f70a1e`); production rules published and verified. **Real-device validation outstanding**; other release-readiness checks are tracked in Open items and are not complete. |
+| 2 — Moments and Journey | Next. Scope approved below. First gate: milestone wording approved before implementation begins. Implementation prompt not yet written. |
+| 3 — Parent Support | Scope approved below; starts only after Phase 2 is approved. |
+| 4–6 | Planned. Not started. |
 
 ---
 
@@ -19,7 +40,7 @@ Last updated: Nov 15, 2026.
 - Keep the `window.Store` abstraction: add methods, don't break existing ones.
 - No unnecessary external dependencies.
 
-## Decisions (product owner, Nov 15, 2026)
+## Decisions (product owner)
 
 | # | Decision | Choice |
 |---|---|---|
@@ -34,42 +55,159 @@ Last updated: Nov 15, 2026.
 | D9 | Data-derived "firsts" | **Suggested only.** "Add to journey?" Nothing is saved unless a parent taps it. |
 | D10 | Leaving a family | A leaving or removed member's **private check-ins are deleted**. Anything they shared stays in the family journey. |
 | D11 | Rename to NICUlog | **Last phase** (Phase 6). Check name and App Store availability before then. |
+| D12 | Phase 2–3 acceptance criteria and sequence | **Approved as written in the Phase 2 and Phase 3 sections below** (Nov 15, 2026). |
+| D13 | Finding a shared check-in's copy | The private check-in stores the copy's event id (`sharedEv`). The family copy carries **no** id or link back to the private document (`ref: null`), so the partner never sees a pointer into private data. |
+| D14 | Shape of a shared check-in | `kind: "journal"`, `scope: "parent"`, `i: null`. Optional provenance field `src: "checkin"`: a fixed marker that carries no private information (no id, no link, nothing the parent didn't choose to share). The security rules validate `src` (absent, `null` or exactly `"checkin"`). The Phase 2 `events` schema must accept it. |
+| D15 | Privacy policy timing | The check-ins and support-resources sections of `privacy.html` ship **with Phase 3**, not Phase 6, so the policy is never behind the app. Phase 6 keeps photos, the support email and the App Store labels. |
 
 ### Consequences of these decisions
-- **Security fix first:** the current catch-all data rule lets any member read anything under the family, including a `private/` path. This was verified in the Firestore emulator. Phase 1 must fix it before any private data exists.
+- **Private-data security (done in Phase 1):** the catch-all data rule excludes `private`, and the owner-only `private/{uid}` subtree is live in production.
 - **Shared free tier:** the Spark limits are 1 GiB stored, 50k reads/day, 20k writes/day and 10 GiB downloads/month, **per Firebase project, shared by every family**. That's ample for one family (roughly 3,000–4,000 photos at D3 sizes). At App Store scale, storage will cost money with any provider; revisit before launch.
-- **Removal and private data:** on removal by the owner, the removed person's private check-ins can only be deleted by that person (owner-only rules). They're deleted the next time the removed person opens the app (`Store.family()` detects the removal). The privacy policy must say this.
+- **Removal and private data:** on removal by the owner, the removed person's private check-ins can only be deleted by that person (owner-only rules). They're deleted the next time the removed person opens the app (`Store.family()` detects the removal). The privacy policy must say this (Phase 3, D15).
 
 ---
 
-## Revised phases
+## Phases
 
 Each phase ends shippable, keeps all existing tests green, adds tests, updates `CLAUDE.md`, and **stops for product-owner approval**.
 
-### Phase 1 — Foundations
-- **Rules:** the catch-all data rule excludes `private`, and a new owner-only `private/{uid}/**` match is added. Emulator tests cover it.
-- **`window.Store` additions:** `patch` (merge write), `watchPrivate` / `putPrivate` / `removePrivate`. The test stub mirrors them.
-- **Account deletion and leaving** cover the new collections (`events`, `needs`, later `photos` / `photoData`) and the leaver's own private subtree (D10).
-- **Navigation** per D1. Tab ids `feed`, `weight` and `milk` stay; `trends` becomes Journey, and `more` becomes More (Records / Care / Settings).
-- **Backup format 2 skeleton:** new collections plus the user's own private subtree. Format 1 backups still restore; old apps ignore the unknown keys.
-- No new user-facing features beyond navigation.
+**Acceptance for every phase:**
+- All existing checks green in all three suites: browser (`tests/smoke.js`), security rules (`tests/rules/rules.test.js`), and real Store integration (`tests/rules/store.test.js`).
+- The new checks are listed in the phase report and are green.
+- No change to feeding, weight, pumping, milk or day-boundary results (existing assertions prove this).
+- 44 px controls, all three themes and A++ text keep passing, including on new screens.
+- Any new rule is mutation-checked (deliberately weakened in a scratch copy, and the tests fail).
+- No personal data in the repo; `CLAUDE.md` updated; `sw.js` cache bumped.
+
+### Phase 1 — Foundations — **functionally complete and merged; real-device validation outstanding**
+- **Shipped:**
+  - Navigation per D1: Journey / More, with tab ids unchanged.
+  - The catch-all rule excludes `members`, `private` and `revoked`.
+  - An owner-only `private/{uid}` subtree with the removed-member cleanup exception.
+  - `Store.patch`, `watchPrivate` / `putPrivate` / `removePrivate`, and `Store.lists`.
+  - Leave, removal and account deletion clean up the user's own private data and fail closed.
+  - Removal rotates the invite code before membership is deleted.
+  - Permanent legacy-allowlist revocation, including re-invite and second removal.
+  - Backup format 2.
+- **Merged:** `main` = `6f70a1e`. Independently confirmed with `git ls-remote` on Nov 15, 2026: both `main` and the working branch point to `6f70a1e`, and the trees are identical.
+- **Firebase rules:** published by the product owner and verified read-only on Nov 15, 2026.
+  - The deployed text matches `firestore.rules` at `6f70a1e`; the only difference is the two real allowlist emails, which are lowercase.
+  - Both emulator suites passed against the deployed text (rules 50/50, real Store 50/50). Nothing was changed in production during verification.
+- **Tests at completion:** browser 176/176, rules 50/50, real Store 50/50. All eight mutation checks are caught.
+- **Not yet done:** real-device validation of the published app on both phones. Release-readiness work (device testing, App Check, privacy labels, bundle id, support email) is not complete; see Open items and Phase 6. "Complete" here means the Phase 1 scope is built, tested, merged and its rules are live, not that the app is release-ready.
 
 ### Phase 2 — Moments and Journey
-- `events` collection:
+**Scope**
+- **`events` collection:**
   ```
   households/{hid}/events/e-{epochMs}-{rand4}
   { kind: "milestone"|"journal"|"moment", scope: "baby"|"parent"|"family", i: 0|1|null, key: string|null,
-    t, title (≤120), note (≤2000), ref: {col, id}|null, by, createdT, editT, editBy }
+    t, title (≤120), note (≤2000), ref: {col, id}|null, src: "checkin"|null, by, createdT, editT, editBy }
   ```
-- Curated milestone lists (D8) next to `DIS_BABY` / `DIS_FAM`. "Add moment" sheet; editable date.
-- `buildTimeline()` is a pure function over in-memory state (`F`, `W`, `CK`, `PLANS`, `QS`, `P`, `D`, events). No copies; feeds and pumps appear as daily summaries.
-- Data-derived "firsts" (D9) are suggestions, saved with `ref` to the source record.
-- Edit and delete with Undo; the overwrite guard (`otherTook` pattern on `editT` / `editBy`); `Store.patch` for field-level merges.
+  - `i` is required (0 or 1) when `scope` is `"baby"`, and `null` otherwise.
+  - `src: "checkin"` is reserved for Phase 3 shared check-ins (D14). Phase 2 must accept and display such events, but doesn't create them.
+  - **Security rules validate the `events` shape** (D14): `src` absent, `null` or exactly `"checkin"`; `i` in `[0, 1, null]`; `kind` and `scope` from the allowed values. Emulator tests and a mutation check cover it.
+- **Curated milestone lists** (D8), kept in code next to `DIS_BABY` / `DIS_FAM`.
+- **"Add moment" sheet:** baby A / baby B / parent / family; milestone or free text; editable date.
+- **`buildTimeline()`:** a pure function over in-memory state (`F`, `W`, `CK`, `PLANS`, `QS`, `P`, `D`, events). No copies; feeds and pumping appear as daily summaries.
+  - Shown on Journey below the existing Progress content.
+  - Follows the baby selector.
+- **Data-derived "firsts"** (D9): suggestions only, saved with `ref` to the source record.
+- **Concurrency:**
+  - Edit and delete with Undo.
+  - The overwrite guard: the `otherTook` pattern on `editT` / `editBy`.
+  - `Store.patch` for field-level merges.
+  - Edit vs delete: delete wins; the deleter's Undo restores it; an editor saving a deleted event is asked "deleted by X — save as new?".
+
+**Dependencies**
+
+| Needs | Status |
+|---|---|
+| `Store.patch` | Done (Phase 1) |
+| `events` in `Store.lists.shared` (deletion + backup), watched in `startData` (`RAW.events`) | Done (Phase 1) |
+| `otherTook`, `undoBar`, undo-returns-false | Present in the app |
+| Journey tab | Done (Phase 1) |
+| Milestone + firsts wording approved (D8) | **First gate: approved before implementation begins** |
+
+**Acceptance criteria** (in addition to the every-phase list)
+1. Add, edit and delete a moment for each scope (baby A, baby B, parent, family), each with Undo.
+2. The overwrite guard prompts when the other parent edited the same event; the edit-vs-delete case behaves as specified.
+3. The timeline merges all sources in chronological order, with no duplicates and no copied records.
+4. Feeds and pumping appear as daily summaries.
+5. Firsts suggestions appear, and become events with `ref` only when a parent taps "Add to journey?"; dismissing one saves nothing.
+6. An event with `src: "checkin"` renders correctly; one with `scope: "baby"` and no valid `i` is rejected; the rules reject any other `src` value or an invalid `kind` / `scope` / `i`.
+7. Events with `i` follow the baby selector; the timeline works offline.
+8. Events round-trip through backup format 2 and are removed by last-member account deletion; the real Store integration suite covers event create, patch and delete.
+9. No wording ships that the product owner hasn't approved.
+
+**Implementation sequence**
+1. **Gate:** draft the milestone and firsts wording; the product owner approves it **before implementation begins** (D8).
+2. Events data layer: id format, field validation in the app and in the security rules, using the existing `put` / `patch` / `remove`.
+3. `buildTimeline()` as a pure function, with unit-level tests.
+4. Journey timeline UI below the Progress content.
+5. Add / edit / delete sheet with Undo, the overwrite guard and the edit-vs-delete handling.
+6. Firsts suggestions.
+7. Tests, `CLAUDE.md`, cache bump, report. **Stop for approval.**
 
 ### Phase 3 — Parent Support
-- **Private check-ins** (`households/{hid}/private/{uid}/checkins`): 1–5 mood scale plus an optional one-line note. "Share with my partner" creates an explicit copy in `events` (D6).
-- **Curated supportive messages** (D8): static text in code, never conditional on clinical data. Parent milestones (scope `parent`).
-- **Resources page** under More → Support: static, reviewed links. A crisis line (988 in the US) is always visible. Non-diagnostic wording, no scoring, no alerts, nothing sent automatically.
+**Scope**
+- **Private check-ins** (`households/{hid}/private/{uid}/checkins`): a 1–5 mood scale plus an optional one-line note.
+- **Share and unshare:**
+  - "Share with my partner" creates an explicit copy in `events` (D6, D14) and stores its id as `sharedEv` on the private check-in (D13).
+  - "Unshare" deletes that copy and clears `sharedEv`.
+  - **Offline and interrupted writes must not duplicate or lose anything:**
+    - Share first records the copy's id as `sharedEv` on the private check-in, then writes the copy under exactly that id. A retry, an app restart or a delayed sync reuses the same id, so there is at most one copy per check-in.
+    - Unshare deletes the copy by that id, then clears `sharedEv`. Both steps are safe to repeat.
+    - Sharing and unsharing never delete or overwrite the private check-in's own content.
+    - Pending writes made offline sync in order through Firestore's queue. The UI shows the shared state from `sharedEv`, so it stays truthful across reloads.
+- **Curated supportive messages** (D8): static text in code, never conditional on clinical data or check-in values. Parent milestones (scope `parent`).
+- **Where check-ins appear:** only on the author's own Support screen. They never appear in the Journey timeline (which is built from shared collections only), in Records, in partner-facing views or notifications, in the CSV export, or in any family-level data surface. A shared copy appears in the family journey like any other event.
+- **Resources page** under More → Support: static, reviewed links.
+  - A crisis line is always visible without scrolling. 988 is the US line; markets beyond the US need country handling (see Open items).
+  - Non-diagnostic wording, no scoring, no alerts, nothing sent automatically.
+- **Privacy policy (D15):** add check-ins (private, not end-to-end encrypted, deleted when you leave or are removed; shared copies stay) and support resources.
+
+**Dependencies**
+
+| Needs | Status |
+|---|---|
+| Owner-only private subtree, rules, removed-member cleanup | Done (Phase 1); published and verified in production |
+| `watchPrivate` / `putPrivate` / `removePrivate`; `checkins` in `Store.lists.private`; backup + purge coverage | Done (Phase 1) |
+| `events` with D14 support | **Phase 2** (must be approved first) |
+| More → Support section | Built in this phase |
+| Support messages, parent milestones and resource list approved (D8) | **Required before Phase 3 ships** |
+| Market decision for crisis resources | **Required before Phase 3 ships** |
+| Phase 2 events rules validation (D14) | **Phase 2** |
+
+**Acceptance criteria** (in addition to the every-phase list)
+1. A check-in is invisible to the other parent at the stub, rules and real-Store levels.
+2. **Private check-ins never appear in any shared surface.** Each is tested explicitly:
+   - partner-facing views (Today, Journey, Records, Care, Settings family card) and the "other parent logged…" notification;
+   - shared exports: the CSV export, and a full backup taken by the partner;
+   - timeline queries: `buildTimeline()` never includes private check-ins, including for their author;
+   - family-level backups and any other shared collection (`events` contains only explicit shared copies).
+   The author's own full backup includes their own private data, as designed in Phase 1.
+3. Share creates exactly one family copy; unshare removes it; the copy has `ref: null`, `src` only `"checkin"`, and no private id.
+4. **Offline and interrupted sharing:**
+   - a failure injected between recording `sharedEv` and writing the copy, then a retry, gives exactly one copy;
+   - sharing while offline, then reconnecting, gives exactly one copy;
+   - unsharing while offline removes the copy once reconnected;
+   - repeated share / unshare / share leaves at most one copy;
+   - the private check-in's content is unchanged throughout.
+5. Leave, removal and account deletion purge the user's check-ins; shared copies stay.
+6. No check-in value changes any other screen or triggers any message, alert or send.
+7. The crisis line is visible without scrolling; the resources page renders with no network.
+8. `privacy.html` describes check-ins and resources as shipped.
+9. No wording ships that the product owner hasn't approved.
+
+**Implementation sequence**
+1. Draft the support messages, parent milestones and resource list for product-owner approval (D8).
+2. Check-in data and UI under More → Support.
+3. Share / unshare (D13, D14), including the offline and retry handling.
+4. Supportive messages.
+5. Resources page.
+6. Privacy policy update (D15).
+7. Tests, `CLAUDE.md`, cache bump, report. **Stop for approval.**
 
 ### Phase 4 — Family Support (deliberately small)
 - `needs` list: text, optional date, `claimBy`, done. Meals, rides, pumping supplies, sibling pickup. Claim conflicts use the `otherTook` pattern.
@@ -86,20 +224,24 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 - **Capture:** camera and library via `<input type=file accept="image/*" [capture] [multiple]>`. iOS `Info.plist` needs `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription`.
 - **Deletion:** soft delete with Undo, then the deleting phone purges `photoData` and the metadata.
 - **Backup:** an optional "Backup with photos" ZIP (uncompressed STORE format, hand-written writer and reader, no library) holding `backup.json` and `photos/{id}.jpg`. The default JSON backup carries photo metadata only.
+- New collections are added to `Store.lists`, so deletion, cleanup and backup cover them.
 
 ### Phase 6 — NICUlog rebrand, iOS hardening, privacy
 - **Rename** the title, brand eyebrow, manifest, `capacitor.config.json` `appName` and `privacy.html`. Keep localStorage keys and the backup `app` tag (`"twins-tracker"`, plus accept `"niculog"`).
 - **iOS:** `@capacitor/filesystem` + `@capacitor/share` for saving backups, Firebase App Check, the bundle id, and an on-device test pass on a Mac.
 - **Privacy policy:**
   - Add photos (stored in the database, metadata stripped).
-  - Add check-ins (private, not end-to-end encrypted, deleted on leaving or removal).
-  - Add support resources.
   - Fix the support email.
   - Update the App Store privacy labels.
+  - Check-ins and support resources are already covered (Phase 3, D15).
 
 ---
 
 ## Open items
-- Name availability for "NICUlog" (trademark, App Store) before Phase 6.
-- `SUPPORT_EMAIL` placeholder in `privacy.html`.
-- Firebase console steps from the family-accounts release (publish rules, enable sign-up) if not done yet.
+- **Real-device validation of the published app (`6f70a1e`) on both phones (Phase 1 sign-off):** each opens the family, both parents appear under More → Settings → Family, offline entry syncs, and nothing regressed in daily use.
+- **Original family owner:** check in the Firebase console whether `households/main` exists and who its `owner` is. Whoever first taps "New code" or "Remove" becomes the owner.
+- **Account sign-up:** confirm it's enabled in Firebase Authentication if new families should be able to join.
+- **Wording approvals (D8):** Phase 2 milestone and firsts wording; Phase 3 support messages, parent milestones and resource list.
+- **Market decision:** US-only, or more countries? This determines crisis resources and country handling in Phase 3.
+- **Name availability for "NICUlog"** (trademark, App Store) before Phase 6.
+- **`SUPPORT_EMAIL` placeholder** in `privacy.html`.
