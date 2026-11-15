@@ -38,11 +38,11 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 
 ## Design system (Phase 0)
 - All colours, spacing (`--sp-1..6`, 4-pt), radii (`--r-xs..lg`, `--r-pill`), elevation (`--shadow-1/2`) and type sizes (`--fs-*`) are CSS tokens at the top of `<style>`; components use tokens only.
-- Brand: navy `#193653` (accent/primary actions), medical blue `#3976A8` (links, focus), supporting blue `#6C8FAD`. Status tokens come as base / `-ink` (text) / `-tint` (backgrounds): success `#24836B`, warning `#B77928`, danger `#B94A48`.
+- Brand: navy `#193653` for titles and the brand mark only (`--title`, `--brand`); medical blue `#3976A8` is the action colour (`--accent`: buttons, FAB, pressed chips) and links/focus; supporting blue `#6C8FAD`. Status tokens come as base / `-ink` (text) / `-tint` (backgrounds): success `#24836B`, warning `#B77928`, danger `#B94A48`.
 - Light text: `--text` `#182B3A`, `--title` navy, `--text2` `#637587` (on cards), `--muted` `#5A6D80` (small text anywhere, incl. the page background where #637587 is <4.5:1).
 - Themes: light (default), dark (phone setting, `prefers-color-scheme`), night (`data-theme=night`, manual or auto; blue-black with warm text). Every text pair ≥4.5:1, field borders ≥3:1 in all three.
 - Twin identity: `PALETTE` keys unchanged (pink, purple, blue, orange, green, teal), muted values per theme [light, dark, night], each ≥4.5:1 on its surface. Identity is never colour-only: names always shown, selector names wrap rather than truncate.
-- Shell: brand mark + eyebrow + baby names, sync pill (success/warning/danger tint), segmented baby selector (track + navy selected, colour dot + name), tab bar with pill highlight behind the active icon. Tab ids unchanged.
+- Shell: brand mark + eyebrow + baby names, sync pill (success/warning/danger tint), segmented baby selector (tinted track, selected = raised white chip with navy text, colour dot + name), tab bar with pill highlight behind the active icon. Tab ids unchanged.
 - `tests/screens.js <dir>` saves iPhone-size (390×844 @2x) screenshots of every tab in light/night, each baby, A++ text and offline, for before/after design review.
 
 ## Domain rules

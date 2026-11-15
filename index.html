@@ -27,7 +27,7 @@
     /* text */
     --text:#182B3A; --title:#193653; --text2:#637587; --muted:#5A6D80; --seg-off:#44586B;
     /* action */
-    --accent:#193653; --on-accent:#FFFFFF; --primary:#3976A8; --focus:rgba(57,118,168,.45);
+    --accent:#3976A8; --on-accent:#FFFFFF; --primary:#3976A8; --focus:rgba(57,118,168,.45); --brand:#193653;
     /* status: base (icons, bars) / ink (text) / tint (backgrounds) */
     --success:#24836B; --success-ink:#1C6B57; --success-tint:#E6F3EF;
     --warning:#B77928; --warning-ink:#8A5A1C; --warning-tint:#FBF1E3;
@@ -50,7 +50,7 @@
       --bg:#0E1A26; --surface:#142433; --surface-2:#102030; --track:#1A2C3D;
       --line:#22364A; --grid:#1B2D3F; --field:#5A7590;
       --text:#E4ECF3; --title:#F2F6FA; --text2:#A9BACB; --muted:#97AABD; --seg-off:#B5C4D2;
-      --accent:#9CC2E4; --on-accent:#0E1A26; --primary:#8DB8DE; --focus:rgba(141,184,222,.5);
+      --accent:#9CC2E4; --on-accent:#0E1A26; --primary:#8DB8DE; --focus:rgba(141,184,222,.5); --brand:#9CC2E4;
       --success:#4FB394; --success-ink:#7FD1B5; --success-tint:#12302A;
       --warning:#D9A35A; --warning-ink:#E7BB7E; --warning-tint:#33270F;
       --danger:#E58784;  --danger-ink:#F0A3A0;  --danger-tint:#3A1C1F;
@@ -63,7 +63,7 @@
     --bg:#070C11; --surface:#0D151D; --surface-2:#0A1118; --track:#121C26;
     --line:#1E2A35; --grid:#16212B; --field:#7C6852;
     --text:#E2C9A6; --title:#EAD3B2; --text2:#BFA37F; --muted:#A88E6D; --seg-off:#CDB28E;
-    --accent:#D9B88C; --on-accent:#070C11; --primary:#C9A57A; --focus:rgba(217,184,140,.45);
+    --accent:#D9B88C; --on-accent:#070C11; --primary:#C9A57A; --focus:rgba(217,184,140,.45); --brand:#D9B88C;
     --success:#8FB89A; --success-ink:#A7CBB0; --success-tint:#132219;
     --warning:#D9A35A; --warning-ink:#E2B676; --warning-tint:#261C0D;
     --danger:#E5927F;  --danger-ink:#EDA796;  --danger-tint:#2A1512;
@@ -80,7 +80,7 @@
   #login .f{margin-bottom:10px}
   .top{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3)}
   .brand{display:flex;align-items:center;gap:var(--sp-3);min-width:0}
-  .brand .mark{flex:none;width:40px;height:40px;border-radius:var(--r-md);background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+  .brand .mark{flex:none;width:40px;height:40px;border-radius:var(--r-md);background:var(--brand);color:var(--on-accent);display:grid;place-items:center}
   .brand .mark svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .eyebrow{font-size:var(--fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
   .link{background:none;border:0;color:var(--primary);font:inherit;font-size:var(--fs-sm);font-weight:550;text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:4px 0;min-height:32px}
@@ -212,10 +212,10 @@
   .sub{color:var(--text2);font-size:var(--fs-sm);margin-bottom:var(--sp-3)}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--sp-4);margin-bottom:var(--sp-3);box-shadow:var(--shadow-1)}
   h2{font-size:var(--fs-h2);font-weight:650;letter-spacing:-.005em;color:var(--title);margin:0 0 var(--sp-3);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);flex-wrap:wrap}
-  /* Segmented control: tinted track, navy selected segment (clear at 2 AM, not colour-only: weight + aria-pressed) */
+  /* Segmented control: tinted track, selected segment is a raised white chip with title-colour text (weight + border + aria-pressed, never colour-only) */
   .seg{display:inline-flex;gap:3px;padding:3px;background:var(--track);border-radius:var(--r-md)}
   .seg button{border:0;background:transparent;color:var(--seg-off);padding:6px 12px;font:inherit;font-size:var(--fs-sm);font-weight:550;cursor:pointer;min-height:38px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-  .seg button.on{background:var(--accent);color:var(--on-accent);font-weight:650;box-shadow:var(--shadow-1)}
+  .seg button.on{background:var(--surface);color:var(--title);font-weight:700;box-shadow:var(--shadow-1),inset 0 0 0 1px var(--field)}
   .seg button .dot{margin:0;width:9px;height:9px;flex:none;box-shadow:0 0 0 2px var(--surface)}
   .viewbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(8px + env(safe-area-inset-top)) 0 var(--sp-3);margin:calc(-1 * env(safe-area-inset-top)) 0 var(--sp-1)}
   .viewbar .seg{display:flex;width:100%}
