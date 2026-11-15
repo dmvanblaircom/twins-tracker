@@ -14,8 +14,8 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - `manifest.webmanifest`, `icons/`.
 
 ## Data model (under `households/main/`)
-- `weights/{Name}-{YYYY-MM-DD}` → `{twin, date, v (g), approx, by}` — one per baby per night (weighed at 8 PM).
-- `feeds/{Name}-{epochMs}` → `{twin, t, v (mL PO), note, diet, by}` — one per baby per fixed feed slot. `v:0` with note `All by tube` / `Skipped` marks a non-PO feed; notes matching `MARK` (`est.`, those two) are replaced when a value is re-entered.
+- `weights/b{i}-{YYYY-MM-DD}` → `{twin, i (0|1), date, v (g), approx, by}` — one per baby per night (weighed at 8 PM).
+- `feeds/b{i}-{epochMs}` → `{twin, i, t, v (mL PO), note, diet, by}` — one per baby per fixed feed slot. `v:0` with note `All by tube` / `Skipped` marks a non-PO feed; notes matching `MARK` (`est.`, those two) are replaced when a value is re-entered.
 - `config/profile` → `{born, ga, schedule:{everyH (2|3|4), startH (0–12)}, twins:[{name, birthTime, birthG, fullMl, slotMin, color}]}` — `color` is a PALETTE key (pink, purple, blue, orange, green, teal) with light/dark/night variants.
 - `config/diet` → `{text}`; stamped onto each new feed.
 - `pumps/p-{epochMs}` → `{t, v (mL), by}` — mom's pump sessions. `drops/d-{epochMs}` → `{t, v, by}` — milk taken to the NICU.
@@ -23,7 +23,9 @@ Static PWA (no build step) for two parents to chart twin NICU babies' nightly we
 - `checklist/{b0|b1|f}-{key}` → `{s:"done"|"na", d:YYYY-MM-DD, by}` — discharge checklist (`DIS_BABY` per baby by index, `DIS_FAM` for parents). Absent doc = not done.
 - `plans/{idx}-{feedDay}` → `{i, day, text, by}` — one-line plan from rounds per baby per feed day.
 - `questions/q-{epochMs}` → `{text, done, t, doneT, ans, by}` — questions for rounds.
-- Baby-keyed extras use the baby's index (0/1), not the name, so renames don't orphan them.
+- Every baby-keyed record uses the baby's index (`i`, 0/1); `twin` is only a readable label. Older docs keyed `{Name}-…` without `i` are still read (`twinOf`: index → current name → a former name in `profile.twins[n].aka`) and get `i` stamped in place (`upgradeIndex`, same ids, nothing deleted). Renaming only updates the profile and adds the old name to `aka` — no data moves, and a phone that was offline during a rename can't orphan entries.
+- Full backup (Settings → Data): one JSON file `{app:"twins-tracker", format:1, data:{weights, feeds, pumps, drops, checklist, plans, questions, config:{profile, diet, people, milk}}}` (raw docs by id). Restore is merge-only: adds missing ids/config, never changes or deletes existing ones. The CSV export is unchanged.
+- Dates: one short style `mdD` "Feb 10" and one long style `longD` "Tue, Feb 10"; Records groups rows under day headers with times in the When column.
 - `config/milk` → `{count, t}` — NICU's actual stock count at time t (overrides drop-off math from then on).
 - Milk math (assumes babies get only mom's milk): need/day = Σ fullMl × 8; NICU stock ≈ (count or 0) + drop-offs since − fullMl for every scheduled feed slot since (`usedSince`), stepping down at each feed time.
 

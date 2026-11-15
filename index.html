@@ -279,6 +279,7 @@
     .rec thead{display:none} .rec tr{display:grid;grid-template-columns:auto minmax(0,1fr) auto 44px;column-gap:var(--sp-2);border-bottom:1px solid var(--grid);padding:4px 0}
     .rec td{border:0;padding:2px 0} .rec td:nth-child(4){grid-column:2/4;grid-row:2} .rec td:nth-child(5){grid-column:4;grid-row:1/3} .rec td[colspan]{grid-column:1/-1}
     .rec .rk b{white-space:normal} }
+  .rec tr.dayrow td{font-size:var(--fs-sm);font-weight:700;color:var(--title);padding-top:var(--sp-3);background:none}
   .rec .rby{font-size:var(--fs-xs);color:var(--muted)}
   .rec td.num{white-space:nowrap;font-weight:650;color:var(--title)}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -594,8 +595,13 @@
     <div class="sub" id="subtitle"></div>
     <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button><span><span class="msg" id="who" style="font-size:12px"></span> <button class="link" id="signOut">Sign out</button></span></div>
   </div>
-  <details class="card settings"><summary>Data · CSV export &amp; import</summary>
-  <div class="sect"><h2>Export</h2>
+  <details class="card settings"><summary>Data · backup, CSV export &amp; import</summary>
+  <div class="sect" style="border-top:0;margin-top:0;padding-top:0"><h2>Full backup</h2>
+    <div class="note" style="margin-top:0">Everything in one file: feeds, weights, pumping, drop-offs, NICU count, checklists, rounds plans, questions and your setup. Keep a copy somewhere safe.</div>
+    <div class="row"><button class="btn ghost" id="bkGo">Save full backup</button><button class="btn ghost" id="rsGo">Restore from backup</button><input id="rsFile" type="file" accept="application/json,.json" hidden><span class="msg" id="bkMsg"></span></div>
+    <div class="note">Restore only adds what's missing. It never changes or deletes anything already here.</div>
+  </div>
+  <div class="sect"><h2>CSV for spreadsheets</h2>
     <div class="row"><button class="btn ghost" id="csvBtn">Copy all data as CSV</button><span class="msg" id="csvMsg"></span></div>
     <textarea id="csvBox" readonly></textarea>
   </div>
@@ -661,14 +667,17 @@
   const dKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const keyDate = k => { const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d); };
   const nightT = k => { const d=keyDate(k); d.setHours(20,0,0,0); return d.getTime(); };
-  const md = k => { const d=keyDate(k); return `${d.getMonth()+1}/${d.getDate()}`; };
+  const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], WK=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const mdD = d => `${MON[d.getMonth()]} ${d.getDate()}`;            // "Feb 10" — the one short date style
+  const longD = d => `${WK[d.getDay()]}, ${mdD(d)}`;                // "Tue, Feb 10" — headings
+  const md = k => mdD(keyDate(k));
   const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   // Per-phone display preferences (localStorage; never synced)
   const PREF = (()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem("prefs")||"{}")||{}; }catch{} return {units:"g",clock:"12",text:"1",night:"manual",look:"system",...p}; })();
   const savePrefs = () => { try{ localStorage.setItem("prefs",JSON.stringify(PREF)); }catch{} };
   const clock = (h,m,short) => PREF.clock==="24" ? `${pad(h)}:${pad(m)}` : `${h%12||12}${m||!short?":"+pad(m):""}${short?(h<12?"a":"p"):(h<12?" AM":" PM")}`;
   const hmH = h => PREF.clock==="24" ? clock(h%24,0,false) : clock(h%24,0,false).replace(":00","");
-  const fmtWhen = t => { const d=new Date(t); return `${d.getMonth()+1}/${d.getDate()} ${clock(d.getHours(),d.getMinutes(),true)}`; };
+  const fmtWhen = t => { const d=new Date(t); return `${mdD(d)} ${clock(d.getHours(),d.getMinutes(),true)}`; };
   const wtMain = g => PREF.units==="lb" ? lbOz(g) : `${fmtG(g)} g`;       // entry stays in grams (matches the NICU)
   const wtSub  = g => PREF.units==="lb" ? `${fmtG(g)} g` : lbOz(g);
   const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -765,7 +774,7 @@
     const C=COLORS();
     $("grSum").innerHTML = shown().map(tw=>{
       const ws=wSeries(tw), cur=ws[ws.length-1], prev=ws[ws.length-2], b=BIRTH[tw], letter=TWINS.indexOf(tw)?"B":"A";
-      const nightLbl=k=>keyDate(k).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+      const nightLbl=k=>longD(keyDate(k));
       const head=`<header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
         <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div>
         ${cur?(cur.approx?'<span class="badge warn">Estimated</span>':'<span class="badge">Recorded</span>'):""}</header>`;
@@ -797,7 +806,7 @@
     o.interaction={mode:"nearest",axis:"x",intersect:false};   // one tap: the nearest night, every baby weighed that night
     o.scales.y.ticks.callback=v=>pct?v+"%":PREF.units==="lb"?(+v).toFixed(1):fmtG(v);
     o.plugins.tooltip={callbacks:{
-      title:it=>{ const r=it[0].raw; return r.lbl?`Birth · ${new Date(r.x).toLocaleDateString(undefined,{month:"short",day:"numeric"})}`:`Night of ${new Date(r.x).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})} · 8 PM`; },
+      title:it=>{ const r=it[0].raw; return r.lbl?`Birth · ${mdD(new Date(r.x))}`:`Night of ${longD(new Date(r.x))} · 8 PM`; },
       label:it=>`${it.dataset.label}: ${fmtG(it.raw.g)} g (${lbOz(it.raw.g)})${pct?` · ${it.raw.y}%`:""}${it.raw.approx?" · estimated":""}`}};
     draw("cWeight",{type:"line",data:{datasets:ds},options:o,plugins:[hLine(pct?[{y:100,color:css("--muted"),label:"birth weight"}]:[])]});
   }
@@ -846,7 +855,7 @@
     const ns=nights().reverse(), C=COLORS();
     $("wHead").innerHTML = `<th>Night</th>`+shown().map(tw=>`<th class="num"><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</th>`).join("");
     const tonight=feedDay(Date.now());
-    $("wBody").innerHTML = ns.map(k=>`<tr class="${k===tonight?"tonight":""}"><td><b>${md(k)}</b>${keyDate(k).toLocaleDateString(undefined,{weekday:"short"})}${k===tonight?'<br><span class="tn">Tonight</span>':""}</td>${shown().map(tw=>{
+    $("wBody").innerHTML = ns.map(k=>`<tr class="${k===tonight?"tonight":""}"><td><b>${md(k)}</b>${WK[keyDate(k).getDay()]}${k===tonight?'<br><span class="tn">Tonight</span>':""}</td>${shown().map(tw=>{
       const w=W[tw+"|"+k];
       const pd=keyDate(k); pd.setDate(pd.getDate()-1); const prevK=dKey(pd);
       const p=W[tw+"|"+prevK]; const base = k===dKey(FIRST_NIGHT) ? BIRTH[tw].g : (p?p.v:null);
@@ -864,10 +873,10 @@
       if(prev && Math.abs(v-prev.v)>Math.max(100,prev.v*.05) && !confirm(`${Math.round(v)} g for ${tw}?\n\nThat's ${sgn(v-prev.v)} g from ${md(prev.date)} (${fmtG(prev.v)} g). Tap OK if that's right.`)){ inp.value=""; return false; } }
     cell.classList.add("saving");
     try{
-      const id=`${tw}-${date}`;
-      const back=()=>{ const cur=W[k]; if(raw!=="" && cur && cur.by && cur.by!==myEmail && cur.v!==Math.round(v) && !confirm(`${whoName(cur.by)} changed this weight after you saved it. Undo anyway?`)) return false; return old ? Store.setWeight(id,{twin:tw,date,v:old.v,approx:old.approx}) : Store.delWeight(id); };
-      if(raw===""){ if(!old) return false; await Store.delWeight(id); undoBar(`Cleared ${tw} · ${md(date)}`, back); }
-      else { await Store.setWeight(id,{twin:tw,date,v:Math.round(v),approx:false}); undoBar(`Saved ${Math.round(v)} g · ${tw} · ${md(date)}`, back); }
+      const id=weightId(tw,date), oldId=old&&old.id;
+      const back=()=>{ const cur=W[k]; if(raw!=="" && cur && cur.by && cur.by!==myEmail && cur.v!==Math.round(v) && !confirm(`${whoName(cur.by)} changed this weight after you saved it. Undo anyway?`)) return false; return old ? Store.setWeight(oldId,wRec(old)).then(()=>oldId!==id&&Store.delWeight(id)) : Store.delWeight(id); };
+      if(raw===""){ if(!old) return false; await Store.delWeight(oldId); undoBar(`Cleared ${tw} · ${md(date)}`, back); }
+      else { await Store.setWeight(id,{twin:tw,i:TWINS.indexOf(tw),date,v:Math.round(v),approx:false}); if(oldId&&oldId!==id) await Store.delWeight(oldId); undoBar(`Saved ${Math.round(v)} g · ${tw} · ${md(date)}`, back); }
       return true;
     }catch(err){ failWrite(err); inp.value = old?.v ?? ""; return false; }
     finally{ cell.classList.remove("saving"); }
@@ -883,20 +892,22 @@
     if(TWINS[0]==="A") return;
     const C=COLORS(), f=state.recF||"all", sh=shown(), rows=[];
     if(f==="all"||f==="feed") F.filter(x=>sh.includes(x.twin)).forEach(x=>rows.push({kind:"feed",t:x.t,tw:x.twin,id:x.id,v:x.v,note:x.note,by:x.by}));
-    if(f==="all"||f==="weight") Object.values(W).filter(w=>sh.includes(w.twin)).forEach(w=>rows.push({kind:"weight",t:nightT(w.date),tw:w.twin,id:`${w.twin}-${w.date}`,key:`${w.twin}|${w.date}`,v:w.v,approx:w.approx,by:w.by}));
+    if(f==="all"||f==="weight") Object.values(W).filter(w=>sh.includes(w.twin)).forEach(w=>rows.push({kind:"weight",t:nightT(w.date),tw:w.twin,id:w.id,key:`${w.twin}|${w.date}`,v:w.v,approx:w.approx,by:w.by}));
     if(f==="all"||f==="milk"){ P.forEach(x=>rows.push({kind:"pump",t:x.t,id:x.id,v:x.v,by:x.by})); D.forEach(x=>rows.push({kind:"drop",t:x.t,id:x.id,v:x.v,by:x.by}));
       if(milkCfg) rows.push({kind:"count",t:milkCfg.t,v:milkCfg.count}); }
     rows.sort((a,b)=>b.t-a.t);
     $("recCount").textContent=`${rows.length} record${rows.length===1?"":"s"}`;
     const who=r=>r.tw?`<b><span class="dot" style="background:${C[r.tw]}"></span>${esc(r.tw)}</b>`:"";
     const lbl={feed:"Feed",weight:"Weight",pump:"Pumped",drop:"To NICU",count:"NICU count"};
+    let lastDay="";
     $("logBody").innerHTML = rows.slice(0,state.logN).map(r=>{
+      const dk=r.kind==="weight"?dKey(new Date(r.t)):dKey(new Date(r.t)), dayRow=dk!==lastDay?`<tr class="dayrow"><td colspan="5">${longD(new Date(r.t))}</td></tr>`:""; lastDay=dk;
       const amt = r.kind==="feed" ? (!r.v&&MARK.test(r.note||"") ? (r.note.startsWith("Skip")?"skipped":"tube") : `${r.v} mL<br><span class="muted" style="font-weight:500;font-size:var(--fs-xs)">${Math.round(r.v/FULL[r.tw]*100)}%</span>`)
         : r.kind==="weight" ? `${fmtG(r.v)} g${r.approx?' <span class="badge warn">est.</span>':""}` : `${fmtG(r.v)} mL`;
       const note = r.kind==="feed" ? (canWrite?`<button class="notebtn" data-note="${esc(r.id)}" aria-label="Edit note for ${esc(r.tw)} at ${fmtWhen(r.t)}">${esc(r.note)||"+ note"}</button>`:esc(r.note))
         : r.kind==="count" ? '<span class="badge ok">Counted</span>' : "";
       const del = canWrite && r.kind!=="count" ? `<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${lbl[r.kind]}${r.tw?" for "+esc(r.tw):""} at ${fmtWhen(r.t)}">×</button>` : "";
-      return `<tr data-kind="${r.kind}"><td>${r.kind==="weight"?`${md(dKey(new Date(r.t)))}<br>8 PM`:fmtWhen(r.t).replace(" ","<br>")}</td>
+      return `${dayRow}<tr data-kind="${r.kind}"><td>${r.kind==="weight"?"8 PM":hm(r.t)}</td>
         <td><div class="rk">${who(r)}<span class="rt">${lbl[r.kind]}</span>${r.kind!=="count"&&r.by?`<span class="rby">by ${esc(whoName(r.by))}</span>`:""}</div></td><td class="num">${amt}</td><td>${note}</td><td>${del}</td></tr>`;
     }).join("") || `<tr><td colspan="5" class="muted">Nothing here yet.</td></tr>`;
     $("moreBtn").style.display = rows.length>state.logN ? "" : "none";
@@ -906,7 +917,7 @@
     const C=COLORS(), sh=shown(), today=feedDay(Date.now());
     const plans=Object.values(PLANS).filter(p=>sh.includes(TWINS[p.i])).sort((a,b)=>a.day<b.day?1:a.day>b.day?-1:a.i-b.i).slice(0,14);
     $("careP").innerHTML = `<ul class="carelist">${plans.map(p=>{ const tw=TWINS[p.i];
-        return `<li><b><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</b> · ${keyDate(p.day).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}${p.day===today?" · today":""}<br>${esc(p.text)}<span class="meta">Entered by your family${p.by?` · ${esc(whoName(p.by))}`:""}</span></li>`; }).join("")
+        return `<li><b><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</b> · ${longD(keyDate(p.day))}${p.day===today?" · today":""}<br>${esc(p.text)}<span class="meta">Entered by your family${p.by?` · ${esc(whoName(p.by))}`:""}</span></li>`; }).join("")
       || '<li class="muted">No plans written down yet.</li>'}</ul>
       <div class="row" style="margin-top:var(--sp-2)">${sh.map(tw=>`<button class="btn ghost" data-plan="${esc(tw)}">Today's plan · ${esc(tw)}</button>`).join("")}</div>`;
     const qs=[...QS].sort((a,b)=>(a.done-b.done)||(b.t-a.t));
@@ -956,7 +967,7 @@
     sheetDirty=false;
     const C=COLORS(), now=Date.now(), today=feedDay(now);
     const dd=keyDate(state.day);
-    $("dLabel").textContent = (state.day===today?(new Date().getHours()<DAY_START_H?"Overnight · ":"Today · "):"") + dd.toLocaleDateString(undefined,{weekday:"short",month:"numeric",day:"numeric"});
+    $("dLabel").textContent = (state.day===today?(new Date().getHours()<DAY_START_H?"Overnight · ":"Today · "):"") + longD(dd);
     $("dNext").disabled = state.day>=today;
     $("sheet").innerHTML = shown().map(tw=>{
       const ti=TWINS.indexOf(tw); let tot=0, n=0, due=-1;
@@ -980,7 +991,7 @@
   $("sheet").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.target.blur(); } });
   const MARK=/^(est\.|All by tube|Skipped)/;
   const TAGS=["Spit up","Sleepy","Desat/brady","Paced","Fussy"];   // system notes replaced when a value is re-entered
-  const strip=f=>{ const {id,by,...r}=f; return by?{...r,by}:r; };   // keep the original author on restores/edits
+  const strip=f=>{ const {id,by,hasI,...r}=f; r.i=TWINS.indexOf(r.twin); return by?{...r,by}:r; };   // keep the original author on restores/edits
   function unusual(tw,t,v){ // returns a warning string, or "" if the amount looks normal
     if(!(v>0)) return "";
     const recent=fSeries(tw).filter(f=>f.v>0 && f.t<t).slice(-4), avg=recent.length>=3 ? recent.reduce((a,f)=>a+f.v,0)/recent.length : null;
@@ -1007,7 +1018,7 @@
       else {
         const tags=opt.tags||[], keep=old&&!MARK.test(old.note||"")?old.note||"":"";
         const note=opt.note ? [opt.note,...tags].join(", ") : tags.length ? tags.join(", ") : keep;
-        const rec={twin:tw,t,v:Math.round(v*10)/10,note:note.slice(0,200),diet:$("diet").value.trim().slice(0,120)};
+        const rec={twin:tw,i:TWINS.indexOf(tw),t,v:Math.round(v*10)/10,note:note.slice(0,200),diet:$("diet").value.trim().slice(0,120)};
         if(old && old.diet && old.t===t) rec.diet=old.diet;    // keep the diet it was charted under
         const id=feedId(rec);
         await Store.setFeed(id,rec);
@@ -1083,7 +1094,7 @@
   function renderCtx(){
     const now=Date.now(), day=feedDay(now), d=keyDate(day), overnight=new Date().getHours()<DAY_START_H;
     $("ctxLabel").textContent = `${overnight?"Overnight":"Today"} · ${state.view==="both"?"Both babies":state.view}`;
-    $("ctxDate").textContent = d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+    $("ctxDate").textContent = longD(d);
     $("ageLine").textContent = ageLine();
   }
   // ---------- Today: totals, tonight's weight, 7-day mini trends ----------
@@ -1275,7 +1286,9 @@
 
   addEventListener("store-error",e=>failWrite(e.detail));
   function failWrite(err){ console.error(err); flash(err&&String(err.code||"").includes("permission")?"Couldn't save — this account doesn't have permission. Sign out and back in with the account set up for you.":"Couldn't save — try again."); }
-  const feedId = r => `${r.twin}-${r.t}`;   // one doc per twin per feed slot
+  const feedId = r => `b${TWINS.indexOf(r.twin)}-${r.t}`;   // one doc per baby per feed slot (by index: renames never move data)
+  const weightId = (tw,date) => `b${TWINS.indexOf(tw)}-${date}`;
+  const wRec = (w,extra={}) => ({twin:w.twin,i:TWINS.indexOf(w.twin),date:w.date,v:w.v,approx:!!w.approx,...(w.by?{by:w.by}:{}),...extra});
 
   $("logBody").addEventListener("click", async e=>{
     const nb=e.target.closest("button.notebtn");
@@ -1288,8 +1301,8 @@
     const id=b.dataset.id, kind=b.dataset.kind||"feed";
     try{
       if(kind==="feed"){ const old=F.find(f=>f.id===id); await Store.delFeed(id); if(old) undoBar(`Deleted ${old.twin} feed · ${fmtWhen(old.t)}`, ()=>Store.setFeed(old.id,strip(old))); }
-      else if(kind==="weight"){ const old=Object.values(W).find(w=>`${w.twin}-${w.date}`===id); await Store.delWeight(id);
-        if(old) undoBar(`Deleted ${old.twin} weight · ${md(old.date)}`, ()=>Store.setWeight(id,{twin:old.twin,date:old.date,v:old.v,approx:old.approx,...(old.by?{by:old.by}:{})})); }
+      else if(kind==="weight"){ const old=Object.values(W).find(w=>w.id===id); await Store.delWeight(id);
+        if(old) undoBar(`Deleted ${old.twin} weight · ${md(old.date)}`, ()=>Store.setWeight(id,wRec(old))); }
       else { const col=kind==="pump"?"pumps":"drops", list=kind==="pump"?P:D, old=list.find(x=>x.id===id); await Store.remove(col,id);
         if(old){ const {id:_,...r}=old; undoBar(`Deleted ${kind==="pump"?"pumping":"drop-off"} · ${fmtWhen(old.t)}`, ()=>Store.put(col,id,r)); } }
     }catch(err){ failWrite(err); b.textContent="failed"; }
@@ -1307,12 +1320,51 @@
     try{ await navigator.clipboard.writeText(csv); $("csvMsg").textContent="Copied."; }
     catch{ const tb=$("csvBox"); tb.style.display="block"; tb.value=csv; tb.select(); $("csvMsg").textContent="Select all and copy."; }
   });
+  const BK_COLS=["weights","feeds","pumps","drops","checklist","plans","questions"], BK_CFG=["profile","diet","people","milk"];
+  function backupData(){
+    const data={}; BK_COLS.forEach(c=>{ data[c]={}; (c==="weights"?rawW:c==="feeds"?rawF:RAW[c]||[]).forEach(([id,d])=>data[c][id]=d); });
+    data.config={}; BK_CFG.forEach(k=>{ const v=k==="profile"?profile:RAWC[k]; if(v) data.config[k]=v; });
+    return {app:"twins-tracker", format:1, exported:new Date().toISOString(), data};
+  }
+  $("bkGo").addEventListener("click", async ()=>{
+    const b=backupData(), n=BK_COLS.reduce((a,c)=>a+Object.keys(b.data[c]).length,0), name=`twins-tracker-backup-${dKey(new Date())}.json`;
+    const file=new File([JSON.stringify(b)], name, {type:"application/json"});
+    try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Twins Tracker backup"}); $("bkMsg").textContent=`Backup ready · ${n} records.`; return; } }
+    catch(err){ if(err&&err.name==="AbortError") return; }
+    const a=document.createElement("a"); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),10000); $("bkMsg").textContent=`Saved ${name} · ${n} records.`;
+  });
+  $("rsGo").addEventListener("click",()=>$("rsFile").click());
+  $("rsFile").addEventListener("change", async ()=>{
+    const f=$("rsFile").files[0]; $("rsFile").value=""; if(!f) return;
+    let b; try{ b=JSON.parse(await f.text()); }catch{ $("bkMsg").textContent="That file isn't a backup from this app."; return; }
+    if(!b||b.app!=="twins-tracker"||!b.data){ $("bkMsg").textContent="That file isn't a backup from this app."; return; }
+    const have=c=>new Set((c==="weights"?rawW:c==="feeds"?rawF:RAW[c]||[]).map(([id])=>id));
+    const todo=[]; BK_COLS.forEach(c=>{ const h=have(c), src=b.data[c]||{}; Object.entries(src).forEach(([id,d])=>{ if(!h.has(id) && d && typeof d==="object") todo.push([c,id,d]); }); });
+    const cfg=BK_CFG.filter(k=>b.data.config&&b.data.config[k]&&!(k==="profile"?profile:RAWC[k]));
+    if(!todo.length && !cfg.length){ $("bkMsg").textContent="Nothing to restore — everything in that backup is already here."; return; }
+    if(!confirm(`Restore ${todo.length} record${todo.length===1?"":"s"}${cfg.length?` and ${cfg.join(", ")}`:""} that aren't here?\n\nNothing already here will be changed or deleted.`)) return;
+    $("rsGo").disabled=true; let n=0;
+    try{
+      for(const k of cfg){ if(k==="profile") await Store.setProfile(b.data.config.profile); else await Store.setConfig(k,b.data.config[k]); }
+      for(const [c,id,d] of todo){ await (c==="weights"?Store.setWeight(id,d):c==="feeds"?Store.setFeed(id,d):Store.put(c,id,d)); n++; }
+      $("bkMsg").textContent=`Restored ${n} record${n===1?"":"s"}.`;
+    }catch(err){ failWrite(err); $("bkMsg").textContent=`Stopped after ${n} records — run Restore again to finish.`; }
+    finally{ $("rsGo").disabled=false; }
+  });
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{ applyLook(); renderAll(); });
 
   // ---------- data ----------
   function banner(t){ const b=$("banner"); b.textContent=t||""; b.style.display=t?"block":"none"; }
-  function cleanW(d){ const tw=TWINS.includes(d.twin)?d.twin:null, v=Number(d.v); if(!tw||!/^\d{4}-\d\d-\d\d$/.test(d.date||"")||!isFinite(v)) return null; return {twin:tw,date:d.date,v,approx:!!d.approx,by:typeof d.by==="string"?d.by:""}; }
-  function cleanF(id,d){ const tw=TWINS.includes(d.twin)?d.twin:null, t=Number(d.t), v=Number(d.v); if(!tw||!isFinite(t)||!isFinite(v)) return null; return {id,twin:tw,t,v,note:typeof d.note==="string"?d.note.slice(0,200):"",diet:typeof d.diet==="string"?d.diet.slice(0,120):"",by:typeof d.by==="string"?d.by:""}; }
+  // A record belongs to a baby by index (i: 0/1). Older records only carry a name: match the current name,
+  // or a former name kept in profile.twins[n].aka, so a rename (even from a phone that was offline) never orphans data.
+  function twinOf(d){
+    if(d.i===0||d.i===1) return TWINS[d.i];
+    if(TWINS.includes(d.twin)) return d.twin;
+    const k=(profile&&profile.twins||[]).findIndex(t=>Array.isArray(t.aka)&&t.aka.includes(d.twin)); return k>=0?TWINS[k]:null;
+  }
+  function cleanW(d,id){ const tw=twinOf(d), v=Number(d.v); if(!tw||!/^\d{4}-\d\d-\d\d$/.test(d.date||"")||!isFinite(v)) return null; return {id:id||weightId(tw,d.date),twin:tw,i:TWINS.indexOf(tw),date:d.date,v,approx:!!d.approx,by:typeof d.by==="string"?d.by:"",hasI:d.i===0||d.i===1}; }
+  function cleanF(id,d){ const tw=twinOf(d), t=Number(d.t), v=Number(d.v); if(!tw||!isFinite(t)||!isFinite(v)) return null; return {id,twin:tw,i:TWINS.indexOf(tw),t,v,note:typeof d.note==="string"?d.note.slice(0,200):"",diet:typeof d.diet==="string"?d.diet.slice(0,120):"",by:typeof d.by==="string"?d.by:"",hasI:d.i===0||d.i===1}; }
 
   // ---------- import ----------
   function parseCSV(text){
@@ -1331,14 +1383,14 @@
     let w=0,f=0,skip=0; $("impGo").disabled=true;
     try{
       for(const r of rows.slice(1)){
-        const tw=r[iTw], ty=(r[iTy]||"").toLowerCase(), v=parseFloat(r[iV]), t=Date.parse(r[iT]);
+        const tw=twinOf({twin:(r[iTw]||"").trim()}), ty=(r[iTy]||"").toLowerCase(), v=parseFloat(r[iV]), t=Date.parse(r[iT]);
         if((ty==="pump"||ty==="nicu drop-off") && Store.put && isFinite(v) && v>0 && isFinite(t)){
           const col=ty==="pump"?"pumps":"drops"; await Store.put(col,`${ty==="pump"?"p":"d"}-${t}`,{t,v}); f++; continue; }
-        if(!TWINS.includes(tw)||!isFinite(v)||!isFinite(t)){ skip++; continue; }
+        if(!tw||!isFinite(v)||!isFinite(t)){ skip++; continue; }
         if(ty==="weight" ? (v<800||v>8000) : ty.includes("feed") && (v<0||v>150)){ skip++; continue; }
-        if(ty==="weight"){ const date=dKey(new Date(t)); await Store.setWeight(`${tw}-${date}`,{twin:tw,date,v:Math.round(v),approx:(r[iE]||"")==="yes"}); w++; }
-        else if(ty.includes("feed")){ const rec={twin:tw,t,v,note:iN>=0?(r[iN]||"").slice(0,200):"",diet:iD>=0?(r[iD]||"").slice(0,120):""}; const id=feedId(rec);
-          if(F.some(x=>x.id===id)){ skip++; continue; } await Store.setFeed(id,rec); f++; }
+        if(ty==="weight"){ const date=dKey(new Date(t)); const ow=W[tw+"|"+date]; await Store.setWeight(weightId(tw,date),{twin:tw,i:TWINS.indexOf(tw),date,v:Math.round(v),approx:(r[iE]||"")==="yes"}); if(ow&&ow.id!==weightId(tw,date)) await Store.delWeight(ow.id); w++; }
+        else if(ty.includes("feed")){ const rec={twin:tw,i:TWINS.indexOf(tw),t,v,note:iN>=0?(r[iN]||"").slice(0,200):"",diet:iD>=0?(r[iD]||"").slice(0,120):""}; const id=feedId(rec);
+          if(F.some(x=>x.twin===tw&&x.t===t)){ skip++; continue; } await Store.setFeed(id,rec); f++; }
         else skip++;
       }
       $("impMsg").textContent=`Imported ${w} weights, ${f} feeds${skip?`, skipped ${skip}`:""}.`; $("impBox").value="";
@@ -1541,7 +1593,7 @@
     const have7=days7.filter(k=>byDay[k]!=null && k>firstDay), avg7=have7.length?have7.reduce((a,k)=>a+byDay[k],0)/have7.length:null;
     const pct=Math.round(tot24/n*100);
     $("mkAs").textContent="";
-    const sp=stockParts(), whenFull=t=>`${new Date(t).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})} ${hm(t)}`;
+    const sp=stockParts(), whenFull=t=>`${longD(new Date(t))} ${hm(t)}`;
     $("mkInvBadge").textContent = "Estimate";
     $("mkInv").innerHTML = !sp ? `<div class="k">Estimated stock</div><div class="hero">—</div><div class="s">Log a drop-off, or enter the NICU's count, to start the estimate.</div>`
       : `<div class="k">Estimated stock now</div>
@@ -1570,7 +1622,7 @@
     const o=baseOpts("Pumped (mL per day)"); o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted"),maxRotation:0,autoSkip:true,maxTicksLimit:7}}; o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=n*1.15;
     o.scales.y.ticks.callback=v=>fmtG(v);
     o.interaction={mode:"index",intersect:false};
-    o.plugins.tooltip={callbacks:{title:it=>days[it[0].dataIndex]?keyDate(days[it[0].dataIndex]).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}):"",
+    o.plugins.tooltip={callbacks:{title:it=>days[it[0].dataIndex]?longD(keyDate(days[it[0].dataIndex])):"",
       label:it=>`Pumped ${fmtG(it.raw)} mL (${Math.round(it.raw/n*100)}% of the ${fmtG(Math.round(n))} mL daily need)${it.dataIndex===13?" · today so far":""}`}};
     draw("cMilk",{type:"bar",data:{labels:days.map(md),datasets:[{label:"pumped",data:days.map(k=>Math.round(byDay[k]||0)),backgroundColor:css("--accent"),borderRadius:4,maxBarThickness:22}]},
       options:o,plugins:[hLine([{y:n,color:css("--danger"),label:`need ${Math.round(n)} mL`}])]});
@@ -1622,10 +1674,17 @@
   });
   $("signOut").addEventListener("click", ()=>Store && Store.signOut());
 
-  let rawW=[], rawF=[];
+  let rawW=[], rawF=[]; const RAW={}, RAWC={};   // raw docs for the full backup
   function rebuild(){ // (re)filter raw docs against the current names
-    W={}; rawW.forEach(([id,d])=>{const w=cleanW(d); if(w) W[w.twin+"|"+w.date]=w;});
+    W={}; rawW.forEach(([id,d])=>{const w=cleanW(d,id); if(w && !(W[w.twin+"|"+w.date]&&W[w.twin+"|"+w.date].hasI&&!w.hasI)) W[w.twin+"|"+w.date]=w;});
     F=rawF.map(([id,d])=>cleanF(id,d)).filter(Boolean);
+  }
+  const upgraded={};
+  function upgradeIndex(kind,m){
+    if(!canWrite || m.fromCache || TWINS[0]==="A") return;
+    const raw=kind==="w"?rawW:rawF;
+    raw.forEach(([id,d])=>{ if(d.i===0||d.i===1 || upgraded[kind+id]) return; const tw=twinOf(d); if(!tw) return; upgraded[kind+id]=1;
+      (kind==="w"?Store.setWeight:Store.setFeed)(id,{...d,twin:tw,i:TWINS.indexOf(tw)}).catch(()=>{}); });
   }
   function startData(){
     unsubs.forEach(u=>u()); unsubs=[];
@@ -1633,22 +1692,22 @@
     const done=meta=>{ if(!meta.fromCache && --pending<=0){ clearTimeout(timer); banner(""); } };
     const fail=err=>{ clearTimeout(timer); console.error(err); banner(String(err&&err.code||"").includes("permission")?"This account can't open the tracker. Sign out and sign in with the account set up for you.":"Sync stopped — reopen the app to reconnect."); };
     let seen=null;   // feed ids already shown; alert on new ones from the other parent
-    unsubs.push(Store.watchWeights((list,m)=>{ rawW=list; rebuild(); meta.w=m; done(m); renderSync(); renderAll(); }, fail));
-    unsubs.push(Store.watchFeeds((list,m)=>{ rawF=list; rebuild(); meta.f=m; done(m); renderSync();
+    unsubs.push(Store.watchWeights((list,m)=>{ rawW=list; RAW.weights=list; rebuild(); meta.w=m; done(m); renderSync(); renderAll(); upgradeIndex("w",m); }, fail));
+    unsubs.push(Store.watchFeeds((list,m)=>{ rawF=list; RAW.feeds=list; rebuild(); upgradeIndex("f",m); meta.f=m; done(m); renderSync();
       if(seen){ const fresh=F.filter(f=>!seen.has(f.id) && f.by && f.by!==myEmail && Date.now()-f.t<3*3600e3);
         if(fresh.length){ const f=fresh[fresh.length-1]; flash(`${whoName(f.by)} logged ${f.twin} · ${hm(f.t)} · ${!f.v&&MARK.test(f.note)?f.note.split(",")[0].toLowerCase():f.v+" mL"}`); } }
       seen=new Set(F.map(f=>f.id)); renderAll(); }, fail));
-    if(Store.watchConfig) unsubs.push(Store.watchConfig("people",c=>{ people=Array.isArray(c&&c.list)?c.list.filter(x=>x&&typeof x.email==="string"):[];
+    if(Store.watchConfig) unsubs.push(Store.watchConfig("people",c=>{ RAWC.people=c; people=Array.isArray(c&&c.list)?c.list.filter(x=>x&&typeof x.email==="string"):[];
       if(document.activeElement!==$("myName")) $("myName").value=(people.find(x=>x.email===myEmail)||{}).name||""; renderAll(); }, ()=>{}));
     if(Store.watch){
-      unsubs.push(Store.watch("pumps",list=>{ P=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
-      unsubs.push(Store.watch("drops",list=>{ D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
-      unsubs.push(Store.watch("checklist",list=>{ CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); if(document.querySelector("#ckBabies [data-ck]")) patchChecklists(); else { renderFam(); renderBabyChecklists(); renderNext(); } }, ()=>{}));
-      unsubs.push(Store.watch("plans",list=>{ PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
-      unsubs.push(Store.watch("questions",list=>{ QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
-      unsubs.push(Store.watchConfig("milk",c=>{ milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
+      unsubs.push(Store.watch("pumps",list=>{ RAW.pumps=list; P=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
+      unsubs.push(Store.watch("drops",list=>{ RAW.drops=list; D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
+      unsubs.push(Store.watch("checklist",list=>{ RAW.checklist=list; CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); if(document.querySelector("#ckBabies [data-ck]")) patchChecklists(); else { renderFam(); renderBabyChecklists(); renderNext(); } }, ()=>{}));
+      unsubs.push(Store.watch("plans",list=>{ RAW.plans=list; PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
+      unsubs.push(Store.watch("questions",list=>{ RAW.questions=list; QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
+      unsubs.push(Store.watchConfig("milk",c=>{ RAWC.milk=c; milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
     }
-    unsubs.push(Store.watchDiet(t=>{ if(typeof t==="string" && document.activeElement!==$("diet")) $("diet").value=t.slice(0,120); }, ()=>{}));
+    unsubs.push(Store.watchDiet(t=>{ RAWC.diet=typeof t==="string"?{text:t}:null; if(typeof t==="string" && document.activeElement!==$("diet")) $("diet").value=t.slice(0,120); }, ()=>{}));
   }
   // ---------- profile (private) ----------
   let profile=null, dataStarted=false;
@@ -1667,7 +1726,7 @@
     const fmtT=t=>new Date(t).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
     $("title").textContent=`${TWINS[0]} & ${TWINS[1]}`;
     document.title=`${TWINS[0]} & ${TWINS[1]}`;
-    $("subtitle").textContent=`Born ${m}/${d}/${y}${p.ga?` at ${p.ga}`:""} · `+TWINS.map(n=>`${n} ${fmtT(BIRTH[n].t)}, ${fmtG(BIRTH[n].g)} g`).join(" · ");
+    $("subtitle").textContent=`Born ${mdD(new Date(y,m-1,d))}, ${y}${p.ga?` at ${p.ga}`:""} · `+TWINS.map(n=>`${n} ${fmtT(BIRTH[n].t)}, ${fmtG(BIRTH[n].g)} g`).join(" · ");
     document.querySelectorAll(".nm0").forEach(e=>e.textContent=TWINS[0]);
     document.querySelectorAll(".nm1").forEach(e=>e.textContent=TWINS[1]);
     restoreView();
@@ -1703,25 +1762,12 @@
     if(!validProfile(p)){ $("suMsg").textContent="Need a birth date, two different names and both birth weights."; return; }
     if(profile){ const o=profile.schedule||{}, n=p.schedule, om=(profile.twins||[]).map(t=>+t.slotMin||0).join(), nm=p.twins.map(t=>t.slotMin).join();
       if(((o.everyH||3)!==n.everyH || (o.startH??8)!==n.startH || (o.dayH??7)!==n.dayH || om!==nm) && !confirm("Change feed times?\n\nThe feed sheet and Today cards use the new times from now on. Feeds already logged keep their times and still count toward their day.")) return; }
-    const map={}; if(profile) TWINS.forEach((o,i)=>{ if(o!==p.twins[i].name) map[o]=p.twins[i].name; });
-    const ws=Object.values(W).filter(w=>map[w.twin]), fs=F.filter(f=>map[f.twin]);
-    if((ws.length||fs.length) && !confirm(`Rename ${Object.entries(map).map(([o,n])=>`“${o}” → “${n}”`).join(" and ")}?\n\nThis moves ${ws.length} weights and ${fs.length} feeds to the new names. Keep the app open until it says done.`)) return;
+    if(profile) p.twins.forEach((t,i)=>{ const o=profile.twins[i]||{}, aka=new Set(Array.isArray(o.aka)?o.aka:[]);
+      if(o.name && o.name!==t.name) aka.add(o.name); aka.delete(t.name); aka.delete(p.twins[1-i].name); if(aka.size) t.aka=[...aka].slice(-10); });
+    const renamed=profile && p.twins.some((t,i)=>t.name!==profile.twins[i].name);
     $("suSave").disabled=true;
-    try{
-      if(ws.length||fs.length){
-        $("suMsg").textContent="Renaming… copying entries";
-        await Promise.all([
-          ...ws.map(w=>Store.setWeight(`${map[w.twin]}-${w.date}`,{twin:map[w.twin],date:w.date,v:w.v,approx:w.approx,...(w.by?{by:w.by}:{})})),
-          ...fs.map(f=>{ const rec={twin:map[f.twin],t:f.t,v:f.v,note:f.note,diet:f.diet,...(f.by?{by:f.by}:{})}; return Store.setFeed(feedId(rec),rec); })]);
-        $("suMsg").textContent="Renaming… switching names";
-        await Store.setProfile(p);
-        $("suMsg").textContent="Renaming… cleaning up";
-        await Promise.all([...ws.map(w=>Store.delWeight(`${w.twin}-${w.date}`)), ...fs.map(f=>Store.delFeed(f.id))]);
-        try{ localStorage.removeItem("view"); }catch{}
-        $("suMsg").textContent="";
-        flash(`Renamed — ${ws.length} weights and ${fs.length} feeds moved.`);
-      } else await Store.setProfile(p);
-    }catch(err){ failWrite(err); $("suMsg").textContent="Rename stopped partway — tap Save again to finish (nothing is lost)."; }
+    try{ await Store.setProfile(p); if(renamed){ try{ localStorage.removeItem("view"); }catch{} flash("Renamed — every entry follows the new name."); } }
+    catch(err){ failWrite(err); }
     finally{ $("suSave").disabled=false; }
   });
 

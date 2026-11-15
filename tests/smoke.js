@@ -102,24 +102,24 @@ async function main() {
     check("feed count is out of the full day (of 8)", / of 8 feeds/.test(await p.textContent(`${A} .tsum`)), await p.textContent(`${A} .tsum`));
     await p.fill(`${A} .box input`, "40"); await p.click(`${A} [data-act=save]`); await p.waitForTimeout(200);
     const slot2 = new Date("2026-02-11T02:00:00-05:00").getTime();
-    check("Save logs the feed", await db(p, t => __db.feeds[`Ada Rose-${t}`]?.v, slot2) === 40);
+    check("Save logs the feed", await db(p, t => __db.feeds[`b0-${t}`]?.v, slot2) === 40);
     await p.click("#toast button"); await p.waitForTimeout(200);
-    check("Undo removes it", await db(p, t => !__db.feeds[`Ada Rose-${t}`], slot2));
+    check("Undo removes it", await db(p, t => !__db.feeds[`b0-${t}`], slot2));
     await p.waitForTimeout(2700);
     check("sheet note shows the real day boundary (7 AM, not 8 AM)", /^7\s?a/i.test(await p.textContent("#dayRange")) && !(await p.textContent("#sheet")).includes("8 AM to 8 AM"), await p.textContent("#dayRange"));
     await p.fill(`${A} .box input`, "42"); await p.click(`${A} [data-act=save]`); await p.waitForTimeout(200);
-    await db(p, t => Store.setFeed(`Ada Rose-${t}`, { twin: "Ada Rose", t, v: 44, note: "", diet: "", by: "parent2@example.com" }), slot2);
+    await db(p, t => Store.setFeed(`b0-${t}`, { twin: "Ada Rose", t, v: 44, note: "", diet: "", by: "parent2@example.com" }), slot2);
     p.answers = [false]; await p.click("#toast button"); await p.waitForTimeout(200);
-    check("Undo asks before wiping the other parent's later change", p.dialogs.some(d => d.includes("changed this feed after you saved it")) && await db(p, t => __db.feeds[`Ada Rose-${t}`]?.v, slot2) === 44);
-    await db(p, t => Store.delFeed(`Ada Rose-${t}`), slot2); await p.waitForTimeout(2700);
+    check("Undo asks before wiping the other parent's later change", p.dialogs.some(d => d.includes("changed this feed after you saved it")) && await db(p, t => __db.feeds[`b0-${t}`]?.v, slot2) === 44);
+    await db(p, t => Store.delFeed(`b0-${t}`), slot2); await p.waitForTimeout(2700);
     await p.fill(`${A} .box input`, "41");
-    await db(p, t => Store.setFeed(`Ada Rose-${t}`, { twin: "Ada Rose", t, v: 30, note: "", diet: "", by: "parent2@example.com" }), slot2);
+    await db(p, t => Store.setFeed(`b0-${t}`, { twin: "Ada Rose", t, v: 30, note: "", diet: "", by: "parent2@example.com" }), slot2);
     p.answers = [false]; await p.click(`${A} [data-act=save]`); await p.waitForTimeout(200);
-    check("saving over the other parent's new entry asks first (Cancel keeps theirs)", p.dialogs.some(d => d.includes("was just logged by")) && await db(p, t => __db.feeds[`Ada Rose-${t}`]?.v, slot2) === 30, p.dialogs.slice(-1)[0]);
-    await db(p, t => Store.delFeed(`Ada Rose-${t}`), slot2); await p.waitForTimeout(2700);
+    check("saving over the other parent's new entry asks first (Cancel keeps theirs)", p.dialogs.some(d => d.includes("was just logged by")) && await db(p, t => __db.feeds[`b0-${t}`]?.v, slot2) === 30, p.dialogs.slice(-1)[0]);
+    await db(p, t => Store.delFeed(`b0-${t}`), slot2); await p.waitForTimeout(2700);
     await p.click(`${A} [data-act=notes]`); await p.click(`${A} .tags button:has-text("Spit up")`);
     await p.click(`${A} [data-act=full]`); await p.waitForTimeout(200);
-    const f = await db(p, t => __db.feeds[`Ada Rose-${t}`], slot2);
+    const f = await db(p, t => __db.feeds[`b0-${t}`], slot2);
     check("Full button logs the full feed with the chosen note", f && f.v === 49 && f.note === "Spit up", JSON.stringify(f));
     await p.waitForTimeout(2700);
     check("card moves on to the next feed", /^Next\s+5a$/.test((await p.textContent(`${A} .when`)).trim()), await p.textContent(`${A} .when`));
@@ -128,11 +128,11 @@ async function main() {
     check("hiding notes clears a chosen chip", await p.$$eval(`${B} .tags [aria-pressed="true"]`, x => x.length) === 0);
     await p.click(`${B} [data-act=tube]`); await p.waitForTimeout(200);
     const slotB = new Date("2026-02-11T02:30:00-05:00").getTime();
-    check("All by tube logs 0 mL with its note (no hidden chip)", await db(p, t => { const x = __db.feeds[`Bea Joy-${t}`]; return x && x.v === 0 && x.note === "All by tube"; }, slotB));
+    check("All by tube logs 0 mL with its note (no hidden chip)", await db(p, t => { const x = __db.feeds[`b1-${t}`]; return x && x.v === 0 && x.note === "All by tube"; }, slotB));
     await p.waitForTimeout(2700);
     await p.click(`${A} [data-act=full]`); await p.click(`${B} [data-act=full]`); await p.waitForTimeout(300);
     const s5a = new Date("2026-02-11T05:00:00-05:00").getTime(), sBnext = await db(p, () => Object.values(__db.feeds).filter(x => x.twin === "Bea Joy" && x.v === 53).length);
-    check("both babies can be logged back to back", await db(p, t => __db.feeds[`Ada Rose-${t}`]?.v, s5a) === 49 && sBnext >= 1, `Bea full feeds: ${sBnext}`);
+    check("both babies can be logged back to back", await db(p, t => __db.feeds[`b0-${t}`]?.v, s5a) === 49 && sBnext >= 1, `Bea full feeds: ${sBnext}`);
     await p.waitForTimeout(2700);
     check("missed 11p shows as due, not logged", (await p.textContent(`${A} .tsum`)).includes("1 due, not logged"), await p.textContent(`${A} .tsum`));
     check("sheet inputs carry their own day", await p.$eval("#sheet input", i => !!i.dataset.day));
@@ -152,7 +152,7 @@ async function main() {
     check("checklist link opens Progress", await p.$eval("#tabbar .on", b => b.dataset.tab) === "trends");
     await p.click('#tabbar button[data-tab=feed]'); await p.waitForTimeout(250);
     await p.fill(`${A} .wIn`, "2560"); await p.click(`${A} [data-act=wsave]`); await p.waitForTimeout(900);
-    check("tonight's weight saves to the feed day", await db(p, () => __db.weights["Ada Rose-2026-02-10"]?.v) === 2560);
+    check("tonight's weight saves to the feed day", await db(p, () => __db.weights["b0-2026-02-10"]?.v) === 2560);
     check("mL/kg/day shows", /\d+ mL\/kg\/day/.test(await p.textContent(`${A} .tsum`)), await p.textContent(`${A} .tsum`));
     await p.screenshot({ path: path.join(SHOTS, "today-single.png") });
     await p.click("#view button:nth-child(3)"); await p.waitForTimeout(200);
@@ -212,15 +212,15 @@ async function main() {
     check("Growth grid marks tonight", (await p.textContent("#wBody tr.tonight")).includes("Tonight"));
     const cell = '#wBody input[data-k="Bea Joy|2026-02-08"]';
     await p.fill(cell, "2712"); await p.press(cell, "Tab"); await p.waitForTimeout(300);
-    check("Growth grid edit saves (and clears the estimate flag)", await db(p, () => { const w = __db.weights["Bea Joy-2026-02-08"]; return w && w.v === 2712 && !w.approx; }));
+    check("Growth grid edit saves (and clears the estimate flag)", await db(p, () => { const w = __db.weights["b1-2026-02-08"]; return w && w.v === 2712 && !w.approx; }));
     await p.click("#toast button"); await p.waitForTimeout(300);
-    check("Undo restores the previous weight", await db(p, () => __db.weights["Bea Joy-2026-02-08"].v) === 2700);
-    const wOrig = await db(p, () => ({ ...__db.weights["Bea Joy-2026-02-08"] }));
+    check("Undo restores the previous weight", await db(p, () => __db.weights["b1-2026-02-08"].v) === 2700);
+    const wOrig = await db(p, () => ({ ...__db.weights["b1-2026-02-08"] }));
     await p.focus(cell); await p.fill(cell, "2730");
-    await db(p, () => Store.setWeight("Bea Joy-2026-02-08", { twin: "Bea Joy", date: "2026-02-08", v: 2720, approx: false, by: "parent2@example.com" }));
+    await db(p, () => Store.setWeight("b1-2026-02-08", { twin: "Bea Joy", date: "2026-02-08", v: 2720, approx: false, by: "parent2@example.com" }));
     p.answers = [false]; await p.press(cell, "Tab"); await p.waitForTimeout(300);
-    check("weight grid asks before replacing the other parent's new weight", p.dialogs.some(d => d.includes("weight for") && d.includes("was just logged by")) && await db(p, () => __db.weights["Bea Joy-2026-02-08"].v) === 2720);
-    await p.evaluate(() => document.activeElement.blur()); await db(p, w => Store.setWeight("Bea Joy-2026-02-08", w), wOrig); await p.waitForTimeout(300);
+    check("weight grid asks before replacing the other parent's new weight", p.dialogs.some(d => d.includes("weight for") && d.includes("was just logged by")) && await db(p, () => __db.weights["b1-2026-02-08"].v) === 2720);
+    await p.evaluate(() => document.activeElement.blur()); await db(p, w => Store.setWeight("b1-2026-02-08", w), wOrig); await p.waitForTimeout(300);
     await p.evaluate(() => document.querySelector("#cWeight").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
     const wbox = await p.$eval("#cWeight", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .6, y: r.y + r.height * .5 }; });
     await p.touchscreen.tap(wbox.x, wbox.y); await p.waitForTimeout(200);
@@ -241,7 +241,7 @@ async function main() {
     await p.click('[data-ck="b0-hearing"]'); await p.waitForTimeout(150); await p.click('[data-na="b0-rsv"]'); await p.waitForTimeout(150);
     check("checklist check + n/a", (await p.$$eval("#ckBabies .cl h4", x => x[0].textContent)).includes("1/7"));
     check("checklist marks persist to the database (ids unchanged)", await db(p, () => __db.checklist["b0-hearing"]?.s === "done" && __db.checklist["b0-rsv"]?.s === "na"));
-    check("checklist item shows when it was marked", /\d+\/\d+/.test(await p.textContent('[data-ck="b0-hearing"] .dt')), await p.textContent('[data-ck="b0-hearing"] .dt'));
+    check("checklist item shows when it was marked", /^[A-Z][a-z]{2} \d+/.test(await p.textContent('[data-ck="b0-hearing"] .dt')), await p.textContent('[data-ck="b0-hearing"] .dt'));
     check("checklist counts: marked done / open / not needed", /1 marked done/.test(await p.textContent("#ckBabies .ckmeta")) && /6 open/.test(await p.textContent("#ckBabies .ckmeta")) && /1 not needed/.test(await p.textContent("#ckBabies .ckmeta")), await p.textContent("#ckBabies .ckmeta"));
     await p.click('[data-ck="f-cpr"]'); await p.waitForTimeout(150);
     check("family checklist updates", await db(p, () => __db.checklist["f-cpr"]?.s === "done") && /1\/6/.test(await p.textContent("#famList h2")));
@@ -307,6 +307,22 @@ async function main() {
     await p.evaluate(() => scrollTo(0, 200)); await p.waitForTimeout(100);
     check("Log feed button tucks away while scrolling down and returns on scroll up", tucked && !(await p.$eval("#fab", e => e.classList.contains("tuck"))));
     await p.evaluate(() => scrollTo(0, 0)); await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
+    // ---- full backup + merge-only restore ----
+    await p.evaluate(() => { document.querySelector("details.settings").open = true; });
+    const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#bkGo")]);
+    const bk = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));
+    check("full backup holds every kind of record and the setup", bk.app === "twins-tracker" && ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions"].every(c => Object.keys(bk.data[c] || {}).length > 0) && !!bk.data.config.profile && !!bk.data.config.milk, Object.entries(bk.data).map(([k, v]) => k + ":" + Object.keys(v).length).join(" "));
+    const lostPump = Object.keys(bk.data.pumps)[0], lostQ = Object.keys(bk.data.questions)[0], keepF = Object.keys(bk.data.feeds)[0];
+    await db(p, ([a, b, c]) => { Store.remove("pumps", a); Store.remove("questions", b); Store.remove("checklist", "b0-hearing"); Store.setFeed(c, { ...__db.feeds[c], v: 7 }); }, [lostPump, lostQ, keepF]);
+    await p.waitForTimeout(200);
+    p.answers = [true]; await p.setInputFiles("#rsFile", await dl.path()); await p.waitForTimeout(500);
+    check("restore brings back what was missing", await db(p, ([a, b]) => !!__db.pumps[a] && !!__db.questions[b] && !!__db.checklist["b0-hearing"], [lostPump, lostQ]), await p.textContent("#bkMsg"));
+    check("restore never overwrites a record that's already here", await db(p, c => __db.feeds[c].v, keepF) === 7 && /^Restore 3 records/.test(p.dialogs.slice(-1)[0]), p.dialogs.slice(-1)[0]);
+    await p.setInputFiles("#rsFile", await dl.path()); await p.waitForTimeout(300);
+    check("restoring the same backup again changes nothing", (await p.textContent("#bkMsg")).startsWith("Nothing to restore"));
+    await p.setInputFiles("#rsFile", { name: "x.json", mimeType: "application/json", buffer: Buffer.from('{"hello":1}') }); await p.waitForTimeout(200);
+    check("a file from somewhere else is refused", (await p.textContent("#bkMsg")).includes("isn't a backup"));
+    await p.evaluate(() => { document.querySelector("details.settings").open = false; });
 
     // ---- more: export ----
     await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
@@ -316,19 +332,24 @@ async function main() {
     check("CSV export quotes names", csv.includes(',"Ada Rose",') && csv.split("\n").length > 50, csv.slice(0, 80));
     check("no page errors in main walk-through", p.errors.length === 0, p.errors.join(" | "));
 
-    // ---- rename moves everything ----
+    // ---- rename: records follow the baby, not the name ----
     const other = new Date("2026-02-10T20:00:00-05:00").getTime();
-    await db(p, t => { const id = `Ada Rose-${t}`; Store.setFeed(id, { ...__db.feeds[id], by: "parent2@example.com" }); }, other);
+    await db(p, t => { const id = `b0-${t}`; Store.setFeed(id, { ...__db.feeds[id], by: "parent2@example.com" }); }, other);
+    const before = await p.textContent("#recCount"), idsBefore = await db(p, () => Object.keys(__db.feeds).sort().join());
     await p.click("#editProfile"); await p.selectOption("#suEvery", "4");
     p.answers = [false]; await p.click("#suSave"); await p.waitForTimeout(300);
     check("changing feed times asks first (Cancel keeps the schedule)", p.dialogs.some(d => d.startsWith("Change feed times?")) && await db(p, () => __db.config?.profile?.schedule?.everyH ?? 3) === 3, p.dialogs.slice(-1)[0]);
     await p.selectOption("#suEvery", "3");
     await p.fill("#suN0", "Ada"); await p.fill("#suN1", "Bea");
-    p.answers = [true]; await p.click("#suSave"); await p.waitForTimeout(800);
-    const names = await db(p, () => [...new Set([...Object.values(__db.weights), ...Object.values(__db.feeds)].map(x => x.twin))].sort().join(","));
-    check("rename moves every entry", names === "Ada,Bea", names);
+    await p.click("#suSave"); await p.waitForTimeout(500);
+    check("rename moves no data (same record ids, same count)", await db(p, () => Object.keys(__db.feeds).sort().join()) === idsBefore && (await p.textContent("#recCount")) === before, `${before} → ${await p.textContent("#recCount")}`);
+    check("rename remembers the old name", await db(p, () => __db.config.profile.twins[0].aka?.includes("Ada Rose") && __db.config.profile.twins[1].aka?.includes("Bea Joy")));
+    check("every record shows under the new name", await p.$$eval('#logBody tr[data-kind="feed"] .rk b', x => x.length > 0 && x.every(b => /^(Ada|Bea)$/.test(b.textContent.trim()))));
+    await db(p, () => Store.setFeed("Ada Rose-offline", { twin: "Ada Rose", t: new Date("2026-02-10T17:00:00-05:00").getTime() + 60e3, v: 12, note: "", diet: "" }));   // a phone that missed the rename
+    await p.waitForTimeout(200);
+    check("an entry saved under the old name (phone was offline) still shows", (await p.textContent("#logBody")).includes("12 mL"));
     check("checklist survives the rename", await db(p, () => !!__db.checklist["b0-hearing"]));
-    check("rename keeps who logged each feed", await db(p, t => __db.feeds[`Ada-${t}`]?.by, other) === "parent2@example.com");
+    check("rename keeps who logged each feed", await db(p, t => __db.feeds[`b0-${t}`]?.by, other) === "parent2@example.com");
     check("no page errors after rename", p.errors.length === 0, p.errors.join(" | "));
     await p.context().close();
 
@@ -388,10 +409,11 @@ async function main() {
     const v = await newPage(browser, base, { now: "2026-02-11T07:20:00-05:00" });
     await v.evaluate(() => { Store.setFeed("Ada Rose-a", { twin: "Ada Rose", t: new Date("2026-02-11T06:00:00-05:00").getTime(), v: 30, note: "", diet: "" }); });
     await tab(v, "feed"); await v.waitForTimeout(200);
-    check("at 7:20 AM the sheet is on the new day", (await v.textContent("#dLabel")).startsWith("Today · Wed, 2/11"), await v.textContent("#dLabel"));
+    check("at 7:20 AM the sheet is on the new day", (await v.textContent("#dLabel")).startsWith("Today · Wed, Feb 11"), await v.textContent("#dLabel"));
     check("a 6 AM feed counts toward the day before (7 AM boundary)", (await v.textContent('.nx[data-tw="Ada Rose"] .tsum')).includes("0 of 8"), await v.textContent('.nx[data-tw="Ada Rose"] .tsum'));
     const firstSlot = await v.$$eval("#sheet .tw", t => t[0].querySelector("label").textContent);
     check("6 AM feeds land at the end of the day (first slot 9a, last 6a)", firstSlot === "9a", firstSlot);
+    check("older name-keyed records get the baby index stamped in place", await v.evaluate(() => __db.feeds["Ada Rose-a"]?.i === 0));
     check("no page errors on 7 AM boundary", v.errors.length === 0, v.errors.join(" | "));
     await v.context().close();
 
