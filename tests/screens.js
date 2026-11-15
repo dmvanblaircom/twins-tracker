@@ -1,5 +1,5 @@
 // Screenshot every screen at iPhone size (390×844 @2x) with the fictional test babies.
-// Usage: node screens.js <out-dir>     (e.g. node screens.js shots/after)
+// Usage: node screens.js <out-dir>     (e.g. node screens.js shots/after; SCREEN_W/SCREEN_H env for other phone sizes)
 // Covers: all five tabs, Both + each baby, light / phone-dark / night themes, A++ text, offline header.
 const path = require("path"), fs = require("fs");
 const { chromium } = require("playwright");
@@ -29,7 +29,8 @@ const view = async (p, n) => { await p.click(`#view button:nth-child(${n})`); aw
   fs.mkdirSync(OUT, { recursive: true });
   const srv = await serve(), base = `http://127.0.0.1:${srv.address().port}/`;
   const browser = await chromium.launch();
-  const ctxOpts = { deviceScaleFactor: 2 };
+  const W = +(process.env.SCREEN_W || 390), H = +(process.env.SCREEN_H || 844);   // e.g. SCREEN_W=430 SCREEN_H=932 for a large phone
+  const ctxOpts = { deviceScaleFactor: 2, viewport: { width: W, height: H } };
   for (const theme of ["light", "dark", "night"]) {   // dark = phone set to Dark appearance
     const p = await newPage(browser, base, { now: theme === "night" ? NIGHT : DAY, ctx: { ...ctxOpts, colorScheme: theme === "dark" ? "dark" : "light" }, prefs: { night: "manual" } });
     if (theme === "night") { await p.evaluate(() => localStorage.setItem("night", "1")); await p.reload(); await p.waitForTimeout(600); }

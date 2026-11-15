@@ -83,13 +83,16 @@ async function main() {
     const p = await newPage(browser, base);
     check("boots to the app with both names", (await p.textContent("#title")) === "Ada Rose & Bea Joy");
     check("day runs 7 AM–7 AM by default", (await p.textContent("#dayRun")) === "7 AM–7 AM", await p.textContent("#dayRun"));
-    check("age line (day of life + corrected age)", (await p.textContent("#ageLine")).includes("day 10 · 37w3d"), await p.textContent("#ageLine"));
+    check("age line (day of life + corrected age)", (await p.textContent("#ageLine")).includes("Day 10 · 37w3d PMA"), await p.textContent("#ageLine"));
     const msg = await importData(p);
     check("CSV import", /Imported 18 weights, \d+ feeds\./.test(msg), msg);
 
     // ---- Today: entry, undo, full, tube, notes ----
     await tab(p, "feed");
-    check("next card shows the 2 AM feed as due", (await p.textContent(`${A} .when`)).includes("Due: 2a"));
+    check("next card shows the 2 AM feed as due", /^Due\s+2a$/.test((await p.textContent(`${A} .when`)).trim()), await p.textContent(`${A} .when`));
+    check("context strip shows the date and both babies", (await p.textContent("#ctxLabel")).endsWith("Both babies") && /\w{3}, \w{3} \d+/.test(await p.textContent("#ctxDate")), await p.textContent("#ctxLabel"));
+    check("each baby card names her and says Baby A/B", (await p.textContent(`${A} .bh`)).includes("Ada Rose") && (await p.textContent(`${A} .bh-sub`)) === "Baby A" && (await p.textContent('.nx[data-tw="Bea Joy"] .bh-sub')) === "Baby B");
+    check("Full / tube / skipped are one tap each, side by side", (await p.$$(`${A} .quick [data-act]`)).length === 3);
     check("note chips hidden until + Note", await p.$eval(`${A} .tags`, e => e.hidden));
     check("Both view is compact (no mini charts)", (await p.$$(`${A} .spk`)).length === 0);
     check("feed count is out of the full day (of 8)", / of 8 feeds/.test(await p.textContent(`${A} .tsum`)), await p.textContent(`${A} .tsum`));
@@ -104,7 +107,7 @@ async function main() {
     const f = await db(p, t => __db.feeds[`Ada Rose-${t}`], slot2);
     check("Full button logs the full feed with the chosen note", f && f.v === 49 && f.note === "Spit up", JSON.stringify(f));
     await p.waitForTimeout(2700);
-    check("card moves on to the next feed", (await p.textContent(`${A} .when`)).includes("Next: 5a"));
+    check("card moves on to the next feed", /^Next\s+5a$/.test((await p.textContent(`${A} .when`)).trim()), await p.textContent(`${A} .when`));
     const B = '.nx[data-tw="Bea Joy"]';
     await p.click(`${B} [data-act=notes]`); await p.click(`${B} .tags button:has-text("Fussy")`); await p.click(`${B} [data-act=notes]`);
     check("hiding notes clears a chosen chip", await p.$$eval(`${B} .tags [aria-pressed="true"]`, x => x.length) === 0);
@@ -128,9 +131,14 @@ async function main() {
     p.answers = ["Try ad lib tomorrow"];
     await p.click(`${A} [data-act=plan]`); await p.waitForTimeout(200);
     check("plan from rounds saves", (await p.textContent(`${A} .tplan`)).includes("Try ad lib tomorrow"));
+    check("single-baby view: context names the baby", (await p.textContent("#ctxLabel")).endsWith("Ada Rose"), await p.textContent("#ctxLabel"));
+    check("single-baby view shows intake metrics, rounds and 7-day trends", (await p.$$(`${A} .metrics .m`)).length === 3 && (await p.$$(`${A} .spk svg`)).length === 2);
+    await p.click(`${A} [data-act=gohome]`); await p.waitForTimeout(250);
+    check("checklist link opens Progress", await p.$eval("#tabbar .on", b => b.dataset.tab) === "trends");
+    await p.click('#tabbar button[data-tab=feed]'); await p.waitForTimeout(250);
     await p.fill(`${A} .wIn`, "2560"); await p.click(`${A} [data-act=wsave]`); await p.waitForTimeout(900);
     check("tonight's weight saves to the feed day", await db(p, () => __db.weights["Ada Rose-2026-02-10"]?.v) === 2560);
-    check("mL/kg/day shows", /\d+ mL\/kg\/day/.test(await p.textContent(`${A} .tsum`)));
+    check("mL/kg/day shows", /\d+ mL\/kg\/day/.test(await p.textContent(`${A} .tsum`)), await p.textContent(`${A} .tsum`));
     await p.screenshot({ path: path.join(SHOTS, "today-single.png") });
     await p.click("#view button:nth-child(3)"); await p.waitForTimeout(200);
     await p.screenshot({ path: path.join(SHOTS, "today-both.png") });
@@ -139,6 +147,10 @@ async function main() {
     await p.fill("#qText", "When is the hearing screen?"); await p.press("#qText", "Enter"); await p.waitForTimeout(200);
     p.answers = ["Monday"]; await p.click("#qList [data-q]"); await p.waitForTimeout(200);
     check("question added and answered", (await p.innerText("#qList")).includes("→ Monday"));
+    await p.evaluate(() => Store.put("pumps", "p-t", { t: Date.now() - 3600e3, v: 120 })); await p.waitForTimeout(200);
+    await p.click("#todayMilk"); await p.waitForTimeout(250);
+    check("milk summary on Today opens Milk", await p.$eval("#tabbar .on", b => b.dataset.tab) === "milk");
+    await p.click('#tabbar button[data-tab=feed]'); await p.waitForTimeout(250);
 
     // ---- milk ----
     await tab(p, "milk");

@@ -108,26 +108,7 @@
   .tabbar button svg{padding:3px 14px;box-sizing:content-box;border-radius:var(--r-pill);transition:background .15s}
   .tabbar button.on{color:var(--title)}
   .tabbar button.on svg{stroke-width:2.2;background:var(--track)}
-  #nextCard,.mkcard{container-type:inline-size}
-  .nx{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:var(--sp-2) var(--sp-3);align-items:center;padding:6px 0 6px var(--sp-3);border-left:4px solid var(--c);border-radius:2px}
-  .nx + .nx{border-top:1px solid var(--grid);margin-top:var(--sp-3);padding-top:var(--sp-3)}
-  .nx .who{font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--c)}
   :root[data-theme="night"] .nx .who{color:var(--text)}
-  .nx .when{font-size:var(--fs-md);color:var(--text2)}
-  .nx .when b{color:var(--title)}
-  .nx .last{grid-column:1/-1;font-size:var(--fs-xs);color:var(--muted)}
-  .nx .box{position:relative;width:140px}
-  .nx input{font-size:34px;font-weight:650;letter-spacing:-.02em;text-align:center;padding:10px 34px 10px 8px;height:68px;border-width:2px;border-radius:var(--r-md);color:var(--title)}
-  .nx .box span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
-  .nx.done input{border-color:var(--field)}
-  .nx.due input{border-color:var(--accent)}
-  .nx.saving input{opacity:.4}
-  .nx .ok{grid-column:1/-1;font-size:15px;font-weight:650;color:var(--text)}
-  .nx .save{height:48px;font-size:17px;width:100%}
-  .nx .quick{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
-  .nx .btn.full{height:48px;font-size:var(--fs-body);font-weight:700;border:2px solid var(--c);color:var(--title);padding:0 8px;white-space:nowrap}
-  @container (max-width: 290px){ .nx .quick{flex-wrap:wrap} }
-  .nx .quick .chip{padding:0 9px;white-space:nowrap;font-size:13.5px}
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
   .swatches button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;background:var(--sw);cursor:pointer;outline-offset:2px}
   .swatches button[aria-checked="true"]{border-color:var(--title);box-shadow:inset 0 0 0 3px var(--surface)}
@@ -141,10 +122,6 @@
   .sync{display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:2px 9px 2px 8px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:600;background:var(--track);color:var(--muted)}
   .sync i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
   .sync.ok{background:var(--success-tint);color:var(--success-ink)} .sync.wait{background:var(--warning-tint);color:var(--warning-ink)} .sync.off{background:var(--danger-tint);color:var(--danger-ink)}
-  .nx .tags{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
-  .nx .tags[hidden]{display:none}
-  .nx .notetog{grid-column:1/-1;justify-self:start;font-size:14px;min-height:36px}
-  .nx .tags .chip{min-height:36px;font-size:13px;padding:0 10px}
   .chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
   .home{border-left:4px solid var(--c);padding-left:var(--sp-3);border-radius:2px}
   .home + .home{margin-top:14px}
@@ -156,22 +133,103 @@
   .home .y{color:var(--success);font-weight:700} .home .n{color:var(--muted);font-weight:700}
   :root[data-theme="night"] .home .y{color:var(--text)}
   .notebtn{background:none;border:0;color:var(--text2);font:inherit;font-size:var(--fs-sm);text-align:left;cursor:pointer;padding:6px 0;min-height:44px;text-decoration:underline dotted;text-underline-offset:3px}
-  /* Large text (A+/A++) narrows the card: stack the box and Save under the name */
-  @container (max-width: 290px){
-    .nx{grid-template-columns:minmax(0,1fr)} .nx .box{width:100%} .nx .save{width:100%}
-  }
-  .tday{grid-column:1/-1;display:grid;gap:var(--sp-3);margin-top:var(--sp-1);padding-top:var(--sp-3);border-top:1px solid var(--grid)}
-  .tsum{font-size:14.5px} .tsum b{font-variant-numeric:tabular-nums}
-  .tsum .lag{display:inline-block;padding:0 7px;border-radius:var(--r-pill);background:var(--danger-tint);color:var(--danger-ink);font-weight:650;font-size:var(--fs-xs);line-height:20px}
-  .tsum .bar{height:8px}
-  .twt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14.5px}
-  .twt input{width:92px;font-size:18px;padding:8px;text-align:center}
-  .twt .btn{min-height:44px;padding:0 14px}
-  .spk{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  /* ===== Today (Phase 1) =====
+     Hierarchy: context strip → per-baby card (identity → feed entry → intake → weight → care → trends) → questions → milk.
+     Feed entry and intake carry the visual weight; care, trends and milk are deliberately quieter. */
+  .today{margin-bottom:var(--sp-3)}
+  .ctx{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--sp-3);padding:2px 2px var(--sp-3)}
+  .ctx-date{font-size:var(--fs-lg);font-weight:700;color:var(--title);letter-spacing:-.01em}
+  .ctx-r{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:var(--fs-xs);color:var(--muted);text-align:right}
+  .ctx-age{font-weight:650;color:var(--text2)}
+  .ctx-now b{color:var(--title)}
+  /* baby card */
+  .nx{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-1);
+    padding:var(--sp-4) var(--sp-4) var(--sp-4) calc(var(--sp-4) + 2px);margin-bottom:var(--sp-3);container-type:inline-size;overflow:hidden}
+  .nx::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
+  .nx.saving{opacity:.85}
+  .bh{display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)}
+  .idtag{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:750;font-size:var(--fs-lg);
+    background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c);box-shadow:inset 0 0 0 2px var(--c)}
+  :root[data-theme="night"] .idtag{color:var(--text)}
+  .bh-id{min-width:0;flex:1}
+  .nx .who{font-size:19px;font-weight:750;letter-spacing:-.01em;color:var(--c);line-height:1.15;overflow-wrap:anywhere}
+  :root[data-theme="night"] .nx .who{color:var(--text)}
+  .bh-sub{font-size:var(--fs-xs);font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+  .nx .when{flex:none;padding:5px 10px;border-radius:var(--r-pill);background:var(--track);color:var(--text2);font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
+  .nx .when b{color:var(--title);font-weight:750}
+  .nx .when.is-due{background:color-mix(in srgb,var(--accent) 14%,var(--surface));color:var(--title)}
+  .nx .back{display:block;margin:-4px 0 var(--sp-2)}
+  /* feed entry: the main event */
+  .feed{display:grid;grid-template-columns:minmax(0,1fr) minmax(104px,36%);gap:var(--sp-2)}
+  .feed .box{position:relative}
+  .feed .box input{height:64px;font-size:32px;font-weight:700;letter-spacing:-.02em;text-align:center;padding:8px 40px 8px 12px;border-width:2px;border-radius:var(--r-md);color:var(--title)}
+  .nx.due .feed .box input{border-color:var(--accent)}
+  .feed .box span{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:var(--fs-sm);font-weight:600;pointer-events:none}
+  .feed .save{height:64px;font-size:var(--fs-lg);border-radius:var(--r-md)}
+  .feed .quick{grid-column:1/-1;display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:var(--sp-2)}
+  .feed .quick .btn,.feed .quick .chip{min-height:46px;padding:0 6px;font-size:var(--fs-sm);white-space:nowrap;border-radius:var(--r-md)}
+  .feed .btn.full{border:2px solid var(--c);color:var(--title);font-weight:700;background:var(--surface)}
+  .feed .notetog{grid-column:1/-1;justify-self:start;min-height:40px;font-size:var(--fs-sm)}
+  .feed .tags{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+  .feed .tags[hidden]{display:none}
+  .feed .tags .chip{min-height:40px;font-size:var(--fs-sm);padding:0 12px}
+  .feed .missed{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:var(--fs-xs);color:var(--danger-ink);font-weight:650;text-transform:uppercase;letter-spacing:.04em}
+  .feed .missed .chip{min-height:40px;font-size:var(--fs-sm);padding:0 12px;text-transform:none;letter-spacing:0}
+  .feed .missed:empty{display:none}
+  .nx .ok{margin-top:var(--sp-2);padding:8px 12px;border-radius:var(--r-sm);background:var(--success-tint);color:var(--success-ink);font-size:var(--fs-sm);font-weight:650}
+  .nx .ok:empty{display:none}
+  /* sections inside the card share one quiet divider style */
+  .sec{margin-top:var(--sp-4);padding-top:var(--sp-3);border-top:1px solid var(--grid)}
+  .sec-h{font-size:11.5px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-bottom:var(--sp-2);display:flex;justify-content:space-between;gap:8px}
+  /* intake */
+  .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2)}
+  .metrics .m .k{font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--text2)}
+  .metrics .m .v{font-size:var(--fs-metric);font-weight:750;letter-spacing:-.015em;color:var(--title);line-height:1.15;margin-top:2px}
+  .metrics .m .v small{font-size:var(--fs-sm);font-weight:600;color:var(--text2);letter-spacing:0}
+  .metrics .m .s{font-size:var(--fs-xs);color:var(--muted)}
+  .tsum .bar{height:8px;margin-top:var(--sp-3)}
+  .feedsline{margin-top:var(--sp-2);font-size:var(--fs-sm);color:var(--text2)} .feedsline b{color:var(--title)}
+  .tsum .lag{display:inline-block;padding:0 8px;border-radius:var(--r-pill);background:var(--danger-tint);color:var(--danger-ink);font-weight:650;font-size:var(--fs-xs);line-height:22px}
+  .nx .last{margin-top:4px;font-size:var(--fs-xs);color:var(--muted)}
+  .tsum.compact .row1{font-size:var(--fs-md);color:var(--text2)} .tsum.compact .row1 b{color:var(--title);font-size:var(--fs-lg)}
+  .tsum.compact .bar{margin-top:var(--sp-2)}
+  .feedsline.split{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+  .feedsline.split .link{min-height:36px}
+  .twt.inline{flex-wrap:nowrap}
+  .twt.inline .wl{flex:1 1 auto;text-transform:none;letter-spacing:0;font-size:var(--fs-sm);font-weight:600;color:var(--text2)}
+  .twt.inline .wv{font-size:var(--fs-lg)}
+  .twt.inline .wbox{width:108px} .twt.inline input,.twt.inline .btn{height:44px;min-height:44px}
+  @container (max-width: 300px){ .twt.inline{flex-wrap:wrap} .twt.inline .wl{flex-basis:100%} }
+  /* weight */
+  .twt{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;font-size:var(--fs-md)}
+  .twt .wl{flex:1 1 100%;font-size:11.5px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
+  .twt .wbox{position:relative;width:132px}
+  .twt input{height:48px;font-size:20px;font-weight:650;text-align:center;padding:8px 30px 8px 8px;color:var(--title)}
+  .twt .wbox span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:var(--fs-sm);font-weight:600;pointer-events:none}
+  .twt .btn{min-height:48px;padding:0 var(--sp-4)}
+  .twt .wv{font-size:var(--fs-metric);font-weight:750;color:var(--title);letter-spacing:-.015em}
+  .twt .wd{font-size:var(--fs-sm);color:var(--text2)}
+  /* care + trends: quieter */
+  .tplan{font-size:var(--fs-md);display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
+  .tplan .link{font-size:var(--fs-sm)}
+  .tgo{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:44px;margin-top:var(--sp-2);padding:8px 12px;
+    border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font:inherit;font-size:var(--fs-sm);text-align:left;cursor:pointer}
+  .tgo b{color:var(--title)} .tgo .chev{color:var(--primary);font-weight:700;font-size:18px}
+  .spk{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)}
   .spk div{font-size:var(--fs-xs);color:var(--text2)} .spk b{color:var(--title);font-size:var(--fs-md)}
-  .spk svg{display:block;width:100%;height:38px;margin-top:2px}
-  .tmilk{display:block;width:100%;text-align:left;margin-top:var(--sp-4);padding:12px var(--sp-3);border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font:inherit;font-size:var(--fs-sm);cursor:pointer;min-height:44px}
+  .spk svg{display:block;width:100%;height:40px;margin-top:4px}
+  .tmilk{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-2);width:100%;text-align:left;margin:0 0 var(--sp-3);padding:12px var(--sp-4);
+    border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);color:var(--text);font:inherit;font-size:var(--fs-sm);cursor:pointer;min-height:48px}
+  .tmilk b{color:var(--title)} .tmilk .chev{color:var(--primary);font-weight:700;font-size:18px}
   .tmilk:empty{display:none}
+  /* large text (A+/A++) narrows cards: stack entry controls */
+  @container (max-width: 300px){
+    .feed{grid-template-columns:minmax(0,1fr)}
+    .feed .quick{grid-template-columns:1fr 1fr}
+    .feed .quick .btn.full{grid-column:1/-1}
+    .metrics{grid-template-columns:1fr 1fr}
+    .bh{flex-wrap:wrap} .nx .when{order:3}
+  }
   .cl{margin-top:10px;display:grid;gap:2px}
   .cl h4{margin:var(--sp-2) 0 2px;font-size:11.5px;font-weight:650;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;display:flex;justify-content:space-between}
   .ck{display:grid;grid-template-columns:30px 1fr auto;align-items:center;gap:6px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--grid);color:var(--text);font:inherit;font-size:14.5px;min-height:44px;padding:4px 0;cursor:pointer}
@@ -181,9 +239,6 @@
   .ck .dt{font-size:12px;color:var(--muted)}
   .na-btn{background:none;border:0;color:var(--muted);font:inherit;font-size:var(--fs-xs);text-decoration:underline;cursor:pointer;min-height:44px;padding:0 6px}
   .ckrow{display:grid;grid-template-columns:1fr auto;align-items:center}
-  .tplan{font-size:14.5px;display:flex;gap:6px;align-items:baseline;flex-wrap:wrap}
-  .tplan .link{font-size:14px}
-  .tgo{font-size:var(--fs-sm);font-weight:600;color:var(--primary);background:none;border:0;padding:0;font:inherit;text-align:left;cursor:pointer;min-height:36px}
   .qs{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:2px}
   .qs li{display:grid;grid-template-columns:30px 1fr auto;gap:6px;align-items:start;padding:8px 0;border-bottom:1px solid var(--grid);font-size:15px}
   .qs li.done{color:var(--muted)} .qs .ans{display:block;font-size:13px;color:var(--text2);margin-top:2px}
@@ -198,16 +253,11 @@
   .fab.on{display:block}
   .chip{border:1px solid var(--field);background:var(--surface);color:var(--text);border-radius:var(--r-pill);padding:0 var(--sp-3);min-height:40px;font:inherit;font-size:var(--fs-sm);font-weight:550;cursor:pointer}
   .chip.warn{border-color:var(--danger);background:var(--danger-tint);color:var(--danger-ink);font-weight:650}
-  .nx .missed{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:var(--fs-xs);color:var(--danger-ink);font-weight:650;text-transform:uppercase;letter-spacing:.04em}
-  .nx .missed .chip{min-height:36px;font-size:13px;padding:0 10px}
-  .nx .missed:empty{display:none}
-  .nx .picking{font-size:13px;color:var(--danger);font-weight:600}
   .tw{border-left:4px solid var(--c);padding-left:var(--sp-3);border-radius:2px}
   #toast{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:9;display:none;align-items:center;justify-content:space-between;gap:12px;
     background:var(--title);color:var(--bg);border-radius:var(--r-lg);padding:10px 10px 10px 16px;font-size:var(--fs-md);font-weight:600;box-shadow:var(--shadow-2)}
   #toast.on{display:flex}
   #toast button{border:0;background:var(--bg);color:var(--title);border-radius:var(--r-sm);font:inherit;font-weight:700;min-height:44px;padding:0 16px;cursor:pointer}
-  .nx .ok:empty{display:none}
   .tw{margin-top:10px}
   .tw + .tw{border-top:1px solid var(--grid);padding-top:10px}
   .twh{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;margin-bottom:6px}
@@ -331,13 +381,20 @@
   <div id="toast" role="status" aria-live="polite"><span></span><button type="button">Undo</button></div>
 
   <section class="tab" data-tab="feed">
-  <div class="card" id="nextCard"><h2><span>Today <span class="muted" id="ageLine" style="font-weight:400;font-size:13px"></span></span><span class="muted" id="nextClock" style="font-weight:400;font-size:13px"></span></h2><div id="next"></div><button class="tmilk" id="todayMilk" type="button"></button></div>
+  <section id="nextCard" class="today" aria-label="Today">
+    <div class="ctx">
+      <div class="ctx-l"><div class="eyebrow" id="ctxLabel">Today</div><div class="ctx-date" id="ctxDate"></div></div>
+      <div class="ctx-r"><span class="ctx-age" id="ageLine"></span><span class="ctx-now">Now <b id="nextClock"></b></span></div>
+    </div>
+    <div id="next"></div>
+  </section>
   <div class="card" id="qCard"><h2>Questions for rounds <span class="muted" id="qCount" style="font-weight:400;font-size:13px"></span></h2>
     <ul class="qs" id="qList"></ul>
     <div class="qadd"><input id="qText" type="text" maxlength="200" placeholder="Add a question…" aria-label="New question for rounds"><button class="btn ghost" id="qGo">Add</button></div></div>
+  <button class="tmilk" id="todayMilk" type="button"></button>
   <!-- FEED SHEET -->
   <div class="card">
-    <h2>PO feeds
+    <h2>Feed sheet
       <span class="row" style="gap:4px">
         <button class="nav" id="dPrev" aria-label="Previous day">‹</button>
         <span id="dLabel" style="min-width:118px;text-align:center;font-size:14px"></span>
@@ -819,27 +876,39 @@
   function renderNext(){
     if(TWINS[0]==="A" || nextBusy>0 || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
     const C=COLORS(), now=new Date();
-    $("nextClock").textContent = "now "+hm(now.getTime()); $("ageLine").textContent=ageLine(); renderTodayMilk();
+    $("nextClock").textContent = hm(now.getTime()); renderCtx(); renderTodayMilk();
     $("next").innerHTML = shown().map(tw=>{
       let n=nextSlot(tw); if(!n) return "";
       const missed=n.missed, chosen=nextPick[tw] && missed.find(x=>x.day===nextPick[tw].day && x.i===nextPick[tw].i);
       if(chosen) n={...chosen, due:true, missed, chosen:true}; else delete nextPick[tw];
-      const last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop();
-      const lastTxt = last ? `Last: ${!last.v&&MARK.test(last.note||"")?last.note.toLowerCase():last.v+" mL"} at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""} ${last.v?` · ${Math.round(last.v/FULL[tw]*100)}% of ${FULL[tw]}`:""}${last.by?` · ${esc(whoName(last.by))}`:""}${last.note&&!/^est\./.test(last.note)&&last.v?` · ${esc(last.note)}`:""}` : "No feeds logged yet";
-      const others=missed.filter(x=>!(n.chosen && x.day===n.day && x.i===n.i)), tb=todayBlock(tw);
-      return `<div class="nx ${n.due?"due":""}" style="--c:${C[tw]}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}">
-        <div><div class="who">${esc(tw)}</div>
-          <div class="when">${n.chosen?"Filling in":n.due?"Due":"Next"}: <b>${hm(n.t)}</b> feed</div>
-          ${n.chosen?`<button class="link" data-act="back">← back to latest</button>`:""}</div>
-        <div class="box"><input type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} placeholder="—" aria-label="${esc(tw)} mL at ${hm(n.t)}"><span>mL</span></div>
-        <button class="btn ghost full" data-act="full" ${canWrite?"":"disabled"} aria-label="Log a full feed, ${FULL[tw]} mL">Full · ${FULL[tw]} mL</button>
-        <button class="btn save" data-act="save" ${canWrite?"":"disabled"}>Save</button>
-        <div class="quick"><button class="chip" data-act="tube" ${canWrite?"":"disabled"}>All by tube</button><button class="chip" data-act="skip" ${canWrite?"":"disabled"}>Skipped</button></div>
-        <button class="link notetog" data-act="notes" aria-expanded="${notesOpen.has(tw)}">${notesOpen.has(tw)?"− Hide notes":"+ Note"}</button>
-        <div class="tags" role="group" aria-label="Notes for this feed" ${notesOpen.has(tw)?"":"hidden"}>${TAGS.map(t=>`<button class="chip" data-act="tag" aria-pressed="false">${t}</button>`).join("")}</div>
-        <div class="missed">${others.length?`Not logged:`+others.map(x=>`<button class="chip warn" data-act="pick" data-day="${x.day}" data-i="${x.i}" aria-label="Fill in ${hm(x.t)} feed">${hm(x.t)}</button>`).join(""):""}</div>
-        <div class="last">${lastTxt}</div><div class="ok"></div>${tb}</div>`;
+      const others=missed.filter(x=>!(n.chosen && x.day===n.day && x.i===n.i)), letter=TWINS.indexOf(tw)?"B":"A";
+      const dis=canWrite?"":"disabled";
+      return `<section class="nx ${n.due?"due":""}" style="--c:${C[tw]}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}" aria-label="${esc(tw)}, Baby ${letter}">
+        <header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
+          <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div>
+          <div class="when ${n.due?"is-due":""}">${n.chosen?"Filling in":n.due?"Due":"Next"} <b>${hm(n.t)}</b></div></header>
+        ${n.chosen?`<button class="link back" data-act="back">← Back to the latest feed</button>`:""}
+        <div class="feed" role="group" aria-label="Record ${esc(tw)}'s ${hm(n.t)} feed">
+          <div class="box"><input type="number" inputmode="decimal" min="0" step="any" ${dis} placeholder="—" aria-label="${esc(tw)} mL by mouth at ${hm(n.t)}"><span>mL</span></div>
+          <button class="btn save" data-act="save" ${dis}>Save</button>
+          <div class="quick">
+            <button class="btn ghost full" data-act="full" ${dis} aria-label="Log a full feed, ${FULL[tw]} mL">Full · ${FULL[tw]} mL</button>
+            <button class="chip" data-act="tube" ${dis}>All by tube</button><button class="chip" data-act="skip" ${dis}>Skipped</button>
+          </div>
+          <button class="link notetog" data-act="notes" aria-expanded="${notesOpen.has(tw)}">${notesOpen.has(tw)?"− Hide notes":"+ Note"}</button>
+          <div class="tags" role="group" aria-label="Notes for this feed" ${notesOpen.has(tw)?"":"hidden"}>${TAGS.map(t=>`<button class="chip" data-act="tag" aria-pressed="false">${t}</button>`).join("")}</div>
+          <div class="missed">${others.length?`Not logged:`+others.map(x=>`<button class="chip warn" data-act="pick" data-day="${x.day}" data-i="${x.i}" aria-label="Fill in ${hm(x.t)} feed">${hm(x.t)}</button>`).join(""):""}</div>
+        </div>
+        <div class="ok" role="status"></div>
+        ${todayBlock(tw)}
+      </section>`;
     }).join("");
+  }
+  function renderCtx(){
+    const now=Date.now(), day=feedDay(now), d=keyDate(day), overnight=new Date().getHours()<DAY_START_H;
+    $("ctxLabel").textContent = `Today${overnight?" · overnight":""} · ${state.view==="both"?"Both babies":state.view}`;
+    $("ctxDate").textContent = d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+    $("ageLine").textContent = ageLine();
   }
   // ---------- Today: totals, tonight's weight, 7-day mini trends ----------
   function spark(vals,{bar=false,color,max,min,lastFaded=false}={}){
@@ -855,45 +924,64 @@
   function todayBlock(tw){
     const C=COLORS(), day=feedDay(Date.now()), full=FULL[tw], goal=full*FEEDS_PER_DAY;
     const fd=F.filter(f=>f.twin===tw && feedDay(f.t)===day), po=fd.reduce((a,f)=>a+f.v,0), pct=Math.round(po/goal*100);
-    const past=SLOT_H.filter((_,i)=>slotT(tw,day,i)<=Date.now()).length, total=SLOT_H.length;
+    const total=SLOT_H.length;
     const behind=SLOT_H.filter((_,i)=>slotT(tw,day,i)<=Date.now() && !slotFeed(tw,day,i)).length;   // due today, not logged
     const feedsTxt=`<b>${fd.length}</b> of ${total} feeds${behind?` · <span class="lag">${behind} due, not logged</span>`:""}`;
-    // tonight's weight belongs to the feed day (8 PM weigh-in)
+    const last=fSeries(tw).filter(f=>f.t<=Date.now()+30*60e3).pop(), now=new Date();
+    const lastTxt = last ? `Last: ${!last.v&&MARK.test(last.note||"")?last.note.toLowerCase():last.v+" mL"} at ${hm(last.t)}${new Date(last.t).toDateString()!==now.toDateString()?" ("+fmtWhen(last.t).split(" ")[0]+")":""}${last.v?` · ${Math.round(last.v/full*100)}% of ${full} mL`:""}${last.by?` · ${esc(whoName(last.by))}`:""}${last.note&&!/^est\./.test(last.note)&&last.v?` · ${esc(last.note)}`:""}` : "No feeds logged yet";
+    // tonight's weight belongs to the day (8 PM weigh-in)
     const w=W[tw+"|"+day], prev=wSeries(tw).filter(x=>x.date<day).pop();
-    const wRow = w ? `<span>Weight ${md(day)}: <b>${wtMain(w.v)}</b>${w.approx?" ≈":""} ${prev?`<span class="muted">(${sgn(w.v-prev.v)} g)</span>`:""}</span>`
-      : `<span>8 PM weight ${md(day)}:</span><input class="wIn" type="number" inputmode="numeric" placeholder="g" aria-label="${esc(tw)} weight for night of ${md(day)}" data-day="${day}" ${canWrite?"":"disabled"}><button class="btn ghost" data-act="wsave" ${canWrite?"":"disabled"}>Save</button>`;
-    const days=[...Array(7)].map((_,k)=>{ const d=keyDate(day); d.setDate(d.getDate()-6+k); return dKey(d); });
-    const pcts=days.map(k=>{ const s=F.filter(f=>f.twin===tw && feedDay(f.t)===k); return s.length?Math.round(s.reduce((a,f)=>a+f.v,0)/goal*100):null; });
-    const ws=wSeries(tw).slice(-7), last=ws[ws.length-1], first=ws[0];
-    if(state.view==="both"){
-      const pl=latestPlan(tw).today;
-      return `<div class="tday">
-        <div class="tsum">${feedsTxt} · <b>${pct}%</b> of today's ${goal} mL${pl?` · <span class="muted">plan: ${esc(pl.text)}</span>`:""}
-          <div class="bar"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div></div>
-        <div class="twt">${wRow}</div>
-        <button class="tgo" data-act="detail">All of ${esc(tw)}'s day ›</button></div>`;
+    const wRow = w
+      ? `<div class="wl">Weight · ${md(day)} 8 PM</div><span class="wv">${wtMain(w.v)}</span>${w.approx?' <span class="badge warn">est.</span>':""}${prev?` <span class="wd">${sgn(w.v-prev.v)} g vs ${md(prev.date)}</span>`:""}`
+      : `<div class="wl">Weight · ${md(day)} 8 PM</div><div class="wbox"><input class="wIn" type="number" inputmode="numeric" placeholder="—" aria-label="${esc(tw)} weight in grams for night of ${md(day)}" data-day="${day}" ${canWrite?"":"disabled"}><span>g</span></div><button class="btn ghost" data-act="wsave" ${canWrite?"":"disabled"}>Save</button>${prev?`<span class="wd">Last ${wtMain(prev.v)} · ${md(prev.date)}</span>`:""}`;
+    const k=poPerKg(tw);
+    if(state.view==="both"){   // compact: both babies' entry stays within reach; details live in the single-baby view
+      const wInline = w
+        ? `<span class="wl">Weight ${md(day)}</span><span class="wv">${wtMain(w.v)}</span>${w.approx?' <span class="badge warn">est.</span>':""}${prev?` <span class="wd">${sgn(w.v-prev.v)} g</span>`:""}`
+        : `<span class="wl">8 PM weight</span><div class="wbox"><input class="wIn" type="number" inputmode="numeric" placeholder="—" aria-label="${esc(tw)} weight in grams for night of ${md(day)}" data-day="${day}" ${canWrite?"":"disabled"}><span>g</span></div><button class="btn ghost" data-act="wsave" ${canWrite?"":"disabled"}>Save</button>`;
+      return `<div class="sec tsum compact">
+          <div class="row1"><b>${Math.round(po)}</b> / ${goal} mL by mouth · <b>${pct}%</b>${k!=null?` · ${k} mL/kg/day`:""}</div>
+          <div class="bar" role="img" aria-label="${pct}% of today's ${goal} mL target"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div>
+          <div class="feedsline split"><span>${feedsTxt}</span><button class="link" data-act="detail" aria-label="Open ${esc(tw)}'s full day">Full day ›</button></div></div>
+        <div class="sec twt inline">${wInline}</div>`;
     }
-    return `<div class="tday">
-      <div class="tsum">Today: ${feedsTxt} · <b>${Math.round(po)}</b> / ${goal} mL by mouth (<b>${pct}%</b> of the day)${(k=>k!=null?` · last 24 h <b>${k}</b> mL/kg/day`:"")(poPerKg(tw))}
-        <div class="bar"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div></div>
-      <div class="twt">${wRow}</div>
-      <div class="tplan">${(p=>p.today?`<span><b>Plan ${md(p.day)}:</b> ${esc(p.today.text)}</span><button class="link" data-act="plan">edit</button>`
-        : `${p.last?`<span class="muted">Last plan ${md(p.last.day)}: ${esc(p.last.text)}</span>`:""}<button class="link" data-act="plan">+ Today's plan from rounds</button>`)(latestPlan(tw))}</div>
-      ${(c=>`<button class="tgo" data-act="gohome">Going home: ${c.done}/${c.need} checklist done${c.next?` · next: ${esc(c.next)}`:""} ›</button>`)(ckSummary(tw))}
-      <div class="spk"><div>By mouth, 7 days<br><b>${pcts.filter(x=>x!=null).slice(-2,-1)[0]??"—"}%</b> yesterday${spark(pcts,{bar:true,color:C[tw],max:120,lastFaded:true})}</div>
-        <div>Weight, ${ws.length} nights<br><b>${last?wtMain(last.v):"—"}</b> ${last&&first&&ws.length>1?`<span class="muted">${sgn(last.v-first.v)} g</span>`:""}${spark(ws.map(x=>x.v),{color:C[tw]})}</div></div>
-    </div>`;
+    const days=[...Array(7)].map((_,i)=>{ const d=keyDate(day); d.setDate(d.getDate()-6+i); return dKey(d); });
+    const pcts=days.map(x=>{ const s=F.filter(f=>f.twin===tw && feedDay(f.t)===x); return s.length?Math.round(s.reduce((a,f)=>a+f.v,0)/goal*100):null; });
+    const ws=wSeries(tw).slice(-7), lw=ws[ws.length-1], fw=ws[0], ck=ckSummary(tw), p=latestPlan(tw);
+    return `<div class="sec tsum">
+        <div class="sec-h"><span>Intake today</span><span>${md(day)}</span></div>
+        <div class="metrics">
+          <div class="m"><div class="k">By mouth</div><div class="v">${Math.round(po)}<small> mL</small></div><div class="s">today</div></div>
+          <div class="m"><div class="k">Of target</div><div class="v">${pct}<small>%</small></div><div class="s">${goal} mL (${FEEDS_PER_DAY} × ${full})</div></div>
+          <div class="m"><div class="k">Last 24 h</div><div class="v">${k??"—"}</div> <div class="s">${k!=null?"mL/kg/day by mouth":"needs a weight"}</div></div>
+        </div>
+        <div class="bar" role="img" aria-label="${pct}% of today's ${goal} mL target"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div>
+        <div class="feedsline">${feedsTxt}</div>
+        <div class="last">${lastTxt}</div>
+      </div>
+      <div class="sec twt">${wRow}</div>
+      <div class="sec">
+        <div class="sec-h"><span>Rounds</span></div>
+        <div class="tplan">${p.today?`<span><b>Plan ${md(p.day)}:</b> ${esc(p.today.text)}</span><button class="link" data-act="plan">Edit</button>`
+          : `${p.last?`<span class="muted">Last plan ${md(p.last.day)}: ${esc(p.last.text)}</span>`:""}<button class="link" data-act="plan">+ Today's plan from rounds</button>`}</div>
+        <button class="tgo" data-act="gohome"><span>Checklist: <b>${ck.done} of ${ck.need}</b> done${ck.next?` · next: ${esc(ck.next)}`:""}</span><span class="chev" aria-hidden="true">›</span></button>
+      </div>
+      <div class="sec">
+        <div class="sec-h"><span>7-day trends</span></div>
+        <div class="spk"><div>By mouth (% of target)<br><b>${pcts.filter(x=>x!=null).slice(-2,-1)[0]??"—"}%</b> yesterday${spark(pcts,{bar:true,color:C[tw],max:120,lastFaded:true})}</div>
+          <div>Weight, ${ws.length} nights<br><b>${lw?wtMain(lw.v):"—"}</b> ${lw&&fw&&ws.length>1?`<span class="muted">${sgn(lw.v-fw.v)} g</span>`:""}${spark(ws.map(x=>x.v),{color:C[tw]})}</div></div>
+      </div>`;
   }
   function ageLine(){
     if(!profile) return "";
     const b=keyDate(profile.born), t=new Date(); t.setHours(0,0,0,0); const dol=Math.round((t-b)/DAY);
-    const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""); if(!m) return `· day ${dol}`;
-    const pma=(+m[1])*7+(+(m[2]||0))+dol; return `· day ${dol} · ${Math.floor(pma/7)}w${pma%7}d`;
+    const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""); if(!m) return `Day ${dol} of life`;
+    const pma=(+m[1])*7+(+(m[2]||0))+dol; return `Day ${dol} · ${Math.floor(pma/7)}w${pma%7}d PMA`;
   }
   function renderTodayMilk(){
     const el=$("todayMilk"); if(TWINS[0]==="A" || !P.length && !D.length && !milkCfg){ el.textContent=""; return; }
     const now=Date.now(), n=need(), tot=P.filter(x=>x.t>now-DAY).reduce((a,x)=>a+x.v,0), st=stock(), last=[...P].sort((a,b)=>b.t-a.t)[0];
-    el.innerHTML=`<b>Milk</b> · pumped ${Math.round(tot)}/${Math.round(n)} mL (24 h)${st!=null?` · NICU ≈ ${(st/n).toFixed(1)} days`:""}${last?` · last pump ${ago(last.t)} ago`:""} ›`;
+    el.innerHTML=`<span><b>Milk</b> · pumped ${Math.round(tot)} / ${Math.round(n)} mL (24 h)${st!=null?` · NICU ≈ ${(st/n).toFixed(1)} days`:""}${last?` · last pump ${ago(last.t)} ago`:""}</span><span class="chev" aria-hidden="true">›</span>`;
   }
   $("todayMilk").addEventListener("click",()=>showTab("milk"));
   async function saveTodayWeight(row){
@@ -1210,6 +1298,7 @@
   const ago = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`; };
   function renderMilk(){
     if(TWINS[0]==="A") return;
+    renderTodayMilk();   // the Today summary follows milk data even while a feed card is mid-entry
     const now=Date.now(), n=need(), p24=P.filter(x=>x.t>now-DAY), tot24=p24.reduce((a,x)=>a+x.v,0);
     const last=[...P].sort((a,b)=>b.t-a.t)[0], st=stock();
     const days7=[...Array(7)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-k-1); return dKey(d); });
