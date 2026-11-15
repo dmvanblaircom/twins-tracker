@@ -104,6 +104,12 @@ async function main() {
     await p.click("#toast button"); await p.waitForTimeout(200);
     check("Undo removes it", await db(p, t => !__db.feeds[`Ada Rose-${t}`], slot2));
     await p.waitForTimeout(2700);
+    check("sheet note shows the real day boundary (7 AM, not 8 AM)", /^7\s?a/i.test(await p.textContent("#dayRange")) && !(await p.textContent("#sheet")).includes("8 AM to 8 AM"), await p.textContent("#dayRange"));
+    await p.fill(`${A} .box input`, "41");
+    await db(p, t => Store.setFeed(`Ada Rose-${t}`, { twin: "Ada Rose", t, v: 30, note: "", diet: "", by: "parent2@example.com" }), slot2);
+    p.answers = [false]; await p.click(`${A} [data-act=save]`); await p.waitForTimeout(200);
+    check("saving over the other parent's new entry asks first (Cancel keeps theirs)", p.dialogs.some(d => d.includes("was just logged by")) && await db(p, t => __db.feeds[`Ada Rose-${t}`]?.v, slot2) === 30, p.dialogs.slice(-1)[0]);
+    await db(p, t => Store.delFeed(`Ada Rose-${t}`), slot2); await p.waitForTimeout(2700);
     await p.click(`${A} [data-act=notes]`); await p.click(`${A} .tags button:has-text("Spit up")`);
     await p.click(`${A} [data-act=full]`); await p.waitForTimeout(200);
     const f = await db(p, t => __db.feeds[`Ada Rose-${t}`], slot2);
@@ -163,6 +169,9 @@ async function main() {
     const pumpsBefore = await db(p, () => Object.keys(__db.pumps || {}).length);
     await p.fill("#pmV", "120"); await p.click("#pmGo"); await p.waitForTimeout(150);
     check("pump entry saves", await db(p, () => Object.keys(__db.pumps || {}).length) === pumpsBefore + 1);
+    const pmAt = await p.inputValue("#pmT");
+    for (const v of ["30", "35"]) { await p.fill("#pmT", pmAt); await p.fill("#pmV", v); await p.click("#pmGo"); await p.waitForTimeout(150); }
+    check("two pump entries in the same minute are both kept", await db(p, () => Object.keys(__db.pumps || {}).length) === pumpsBefore + 3);
     check("Need & pumping shows daily need and 24 h pumped in mL", /Daily need\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")) && /Pumped 24 h\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")), (await p.textContent("#mkStats")).replace(/\s+/g, " "));
     const dropAt = await p.evaluate(() => { const d = new Date(Date.now() - 4 * 3600e3), q = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${q(d.getMonth() + 1)}-${q(d.getDate())}T${q(d.getHours())}:${q(d.getMinutes())}`; });   // the page's clock, not the real one
     await p.fill("#dpT", dropAt);
@@ -199,6 +208,12 @@ async function main() {
     check("Growth grid edit saves (and clears the estimate flag)", await db(p, () => { const w = __db.weights["Bea Joy-2026-02-08"]; return w && w.v === 2712 && !w.approx; }));
     await p.click("#toast button"); await p.waitForTimeout(300);
     check("Undo restores the previous weight", await db(p, () => __db.weights["Bea Joy-2026-02-08"].v) === 2700);
+    const wOrig = await db(p, () => ({ ...__db.weights["Bea Joy-2026-02-08"] }));
+    await p.focus(cell); await p.fill(cell, "2730");
+    await db(p, () => Store.setWeight("Bea Joy-2026-02-08", { twin: "Bea Joy", date: "2026-02-08", v: 2720, approx: false, by: "parent2@example.com" }));
+    p.answers = [false]; await p.press(cell, "Tab"); await p.waitForTimeout(300);
+    check("weight grid asks before replacing the other parent's new weight", p.dialogs.some(d => d.includes("weight for") && d.includes("was just logged by")) && await db(p, () => __db.weights["Bea Joy-2026-02-08"].v) === 2720);
+    await p.evaluate(() => document.activeElement.blur()); await db(p, w => Store.setWeight("Bea Joy-2026-02-08", w), wOrig); await p.waitForTimeout(300);
     await p.evaluate(() => document.querySelector("#cWeight").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
     const wbox = await p.$eval("#cWeight", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .6, y: r.y + r.height * .5 }; });
     await p.touchscreen.tap(wbox.x, wbox.y); await p.waitForTimeout(200);
@@ -223,6 +238,13 @@ async function main() {
     check("checklist counts: marked done / open / not needed", /1 marked done/.test(await p.textContent("#ckBabies .ckmeta")) && /6 open/.test(await p.textContent("#ckBabies .ckmeta")) && /1 not needed/.test(await p.textContent("#ckBabies .ckmeta")), await p.textContent("#ckBabies .ckmeta"));
     await p.click('[data-ck="f-cpr"]'); await p.waitForTimeout(150);
     check("family checklist updates", await db(p, () => __db.checklist["f-cpr"]?.s === "done") && /1\/6/.test(await p.textContent("#famList h2")));
+    await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); b.scrollIntoView({ block: "center" }); window.__ck = { b, y: scrollY, ch: Chart.getChart("cDaily") }; });
+    await p.click('[data-ck="b1-hearing"]'); await p.waitForTimeout(200);
+    const still = await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); return { same: b === __ck.b, dy: Math.abs(scrollY - __ck.y), chart: Chart.getChart("cDaily") === __ck.ch, on: b.getAttribute("aria-pressed") }; });
+    check("checklist tap keeps the screen still (same button, no scroll, no chart redraw)", still.same && still.dy < 2 && still.chart && still.on === "true", JSON.stringify(still));
+    await db(p, () => Store.put("checklist", "b1-cchd", { s: "done", d: "2026-02-10", by: "parent2@example.com" })); await p.waitForTimeout(200);
+    check("the other parent's checklist mark updates in place, with counts", await p.evaluate(() => document.querySelector('[data-ck="b1-hearing"]') === __ck.b) && (await p.$$eval("#ckBabies .cl h4 .ckn", x => x[1].textContent)) === "2/8" && /P|parent2/.test(await p.textContent('[data-ck="b1-cchd"] .dt')), await p.$$eval("#ckBabies .cl h4 .ckn", x => x.map(e => e.textContent).join(",")));
+    await db(p, () => { Store.remove("checklist", "b1-hearing"); Store.remove("checklist", "b1-cchd"); }); await p.waitForTimeout(200);
     await p.evaluate(() => document.querySelector("#cDaily").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
     const box = await p.$eval("#cDaily", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .4, y: r.y + r.height * .6 }; });
     const tip = () => p.evaluate(() => Chart.getChart("cDaily").tooltip.getActiveElements().length);
@@ -235,12 +257,14 @@ async function main() {
     const kinds = await p.$$eval("#logBody tr[data-kind]", x => [...new Set(x.map(t => t.dataset.kind))].sort().join(","));
     check("Records: one list covers feeds, weights, pumping, drop-offs and the NICU count", ["count", "drop", "feed", "pump", "weight"].every(k => kinds.includes(k)), kinds);
     check("Records: newest first", await p.$$eval("#logBody tr[data-kind]", x => x.length > 5));
+    const fit = await p.$eval("table.rec", t => { const w = t.parentElement, x = t.querySelector("button.x").getBoundingClientRect(), c = t.closest(".card").getBoundingClientRect(); return { sw: w.scrollWidth, cw: w.clientWidth, x: Math.round(x.right), c: Math.round(c.right) }; });
+    check("Records fit a 390 px phone (delete button fully visible)", fit.sw <= fit.cw && fit.x <= fit.c, JSON.stringify(fit));
     await p.click('#recF button[data-v="milk"]'); await p.waitForTimeout(150);
     check("Records filter: Milk shows only milk", (await p.$$eval("#logBody tr[data-kind]", x => [...new Set(x.map(t => t.dataset.kind))])).every(k => ["pump", "drop", "count"].includes(k)));
     await p.click('#recF button[data-v="weight"]'); await p.waitForTimeout(150);
     check("Records filter: Weights shows estimates marked", (await p.$$eval("#logBody tr[data-kind]", x => x.every(t => t.dataset.kind === "weight"))) && (await p.textContent("#logBody")).includes("est."));
     await p.click('#recF button[data-v="all"]'); await p.waitForTimeout(150);
-    check("Records show who entered them", /parent2|P/.test(await p.$$eval("#logBody tr td:nth-child(5)", x => x.map(t => t.textContent).join(" "))));
+    check("Records show who entered them", /parent2|P/.test(await p.$$eval("#logBody .rby", x => x.map(t => t.textContent).join(" "))));
     p.answers = ["Sleepy at the end"]; await p.click('#logBody tr[data-kind="feed"] .notebtn'); await p.waitForTimeout(200);
     check("Records: feed note editable", await db(p, () => Object.values(__db.feeds).some(f => f.note === "Sleepy at the end")));
     const pumpId = await p.$eval('#logBody tr[data-kind="pump"] button.x', b => b.dataset.id);
@@ -322,6 +346,14 @@ async function main() {
     check("no page errors on night/4-hour", r.errors.length === 0, r.errors.join(" | "));
     await r.context().close();
 
+    // ---- missed feeds become "Not logged" chips 1 h after their time ----
+    { const keep = PROFILE.schedule; PROFILE.schedule = { everyH: 3, startH: 8 };
+      for (const [now, due, chip] of [["2026-02-10T23:40:00-05:00", "Due 11p", false], ["2026-02-10T23:58:00-05:00", "Due 11p", false], ["2026-02-11T00:20:00-05:00", "Next 2a", true]]) {
+        const m = await newPage(browser, base, { now }); await tab(m, "feed"); await m.waitForTimeout(200);
+        const w = (await m.textContent('.nx[data-tw="Ada Rose"] .when')).replace(/\s+/g, " ").trim(), chips = await m.$$eval('.nx[data-tw="Ada Rose"] .missed button', x => x.map(b => b.textContent));
+        check(`at ${now.slice(11, 16)} the 11p feed is ${chip ? "a Not logged chip" : "still the due card"}`, w === due && chips.includes("11p") === chip, `${w} / [${chips}]`);
+        await m.context().close(); }
+      PROFILE.schedule = keep; }
     // ---- 7 AM day boundary, independent of feed times ----
     PROFILE.schedule = { everyH: 3, startH: 6 };   // feeds at 6a/9a/...: the day still flips at 7
     const v = await newPage(browser, base, { now: "2026-02-11T07:20:00-05:00" });

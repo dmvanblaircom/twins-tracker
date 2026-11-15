@@ -268,9 +268,10 @@
   .subnav{margin:0 0 var(--sp-3)} .subnav .seg{display:flex;width:100%} .subnav .seg button{flex:1;min-height:44px;font-size:var(--fs-md)}
   .msec{display:none} .msec.on{display:block}
   #recF{margin:0 0 var(--sp-2)}
-  .rec td{vertical-align:top} .rec td:first-child{white-space:nowrap;font-size:var(--fs-xs);color:var(--text2)}
-  .rec .rk{display:flex;flex-direction:column;gap:2px;min-width:72px} .rec .rk b{font-size:var(--fs-sm);color:var(--title);white-space:nowrap}
+  .rec th,.rec td{padding:8px 3px} .rec td{vertical-align:top} .rec td:first-child{white-space:nowrap;font-size:var(--fs-xs);color:var(--text2)}
+  .rec .rk{display:flex;flex-direction:column;gap:2px;min-width:0} .rec .rk b{font-size:var(--fs-sm);color:var(--title);white-space:nowrap}
   .rec .rt{font-size:11px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--text2)}
+  .rec .rby{font-size:var(--fs-xs);color:var(--muted)}
   .rec td.num{white-space:nowrap;font-weight:650;color:var(--title)}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   .carelist{list-style:none;margin:0;padding:0}
@@ -452,7 +453,7 @@
       </span>
     </h2>
     <div id="sheet"></div>
-    <div class="note">Tap a time and type the mL taken by mouth. Clear a box to remove it. A feed day runs 8 AM to 8 AM, like the NICU flowsheet.</div>
+    <div class="note">Tap a time and type the mL taken by mouth. Clear a box to remove it. A day runs <span id="dayRange">7 AM to 7 AM</span>, like NICU shifts.</div>
   </div>
   </section>
 
@@ -532,7 +533,7 @@
     <div class="seg small" id="recF" role="group" aria-label="Show"><button data-v="all">All</button><button data-v="feed">Feeds</button><button data-v="weight">Weights</button><button data-v="milk">Milk</button></div>
     <div class="note">Newest first. Feeds and weights follow the baby selector; milk is shared. Tap a note to edit it. Tap × twice to delete — Undo appears for 8 seconds.</div>
     <div style="overflow-x:auto"><table class="rec">
-      <thead><tr><th>When</th><th>Record</th><th class="num">Amount</th><th>Note</th><th>By</th><th><span class="sr">Delete</span></th></tr></thead>
+      <thead><tr><th>When</th><th>Record</th><th class="num">Amount</th><th>Note</th><th><span class="sr">Delete</span></th></tr></thead>
       <tbody id="logBody"></tbody>
     </table></div>
     <div class="row" style="margin-top:10px"><button class="btn ghost" id="moreBtn">Show more</button></div>
@@ -837,13 +838,14 @@
       const pd=keyDate(k); pd.setDate(pd.getDate()-1); const prevK=dKey(pd);
       const p=W[tw+"|"+prevK]; const base = k===dKey(FIRST_NIGHT) ? BIRTH[tw].g : (p?p.v:null);
       const d = (w && base!=null ? `${sgn(w.v-base)} g${k===dKey(FIRST_NIGHT)?" vs birth":""}` : "") + (w&&w.approx?` <span class="est">est.</span>`:"");
-      return `<td class="num"><input inputmode="numeric" type="number" aria-label="${esc(tw)} weight in grams, night of ${md(k)}${w&&w.approx?" (estimated)":""}" ${canWrite?"":"disabled"} data-k="${esc(tw)}|${k}" value="${w?w.v:""}" class="${w?(w.approx?"approx":""):"missing"}" placeholder="—"><span class="d">${d}</span></td>`;
+      return `<td class="num"><input inputmode="numeric" type="number" aria-label="${esc(tw)} weight in grams, night of ${md(k)}${w&&w.approx?" (estimated)":""}" ${canWrite?"":"disabled"} data-k="${esc(tw)}|${k}" data-had="${wSig(w)}" value="${w?w.v:""}" class="${w?(w.approx?"approx":""):"missing"}" placeholder="—"><span class="d">${d}</span></td>`;
     }).join("")}</tr>`).join("");
   }
   let gridDirty=false;
   $("wBody").addEventListener("focusout",()=>setTimeout(()=>{ if(gridDirty && !$("wBody").contains(document.activeElement)) renderGrid(); },0));
-  async function saveWeight(tw,date,inp,cell){ // returns true when saved
+  async function saveWeight(tw,date,inp,cell,had){ // returns true when saved
     const k=tw+"|"+date, raw=inp.value.trim(), v=parseFloat(raw), old=W[k];
+    if(old && !otherTook(old, had, wSig(old), `${tw}'s weight for ${md(date)} (${fmtG(old.v)} g)`)){ inp.value=had===""?"":old.v; return false; }
     if(raw!=="" && (!isFinite(v)||v<800||v>8000)){ inp.value = old?.v ?? ""; flash("Weights are in grams, e.g. 2510."); return false; }
     if(raw!=="" && old==null){ const prev=wSeries(tw).filter(w=>w.date<date).pop();
       if(prev && Math.abs(v-prev.v)>Math.max(100,prev.v*.05) && !confirm(`${Math.round(v)} g for ${tw}?\n\nThat's ${sgn(v-prev.v)} g from ${md(prev.date)} (${fmtG(prev.v)} g). Tap OK if that's right.`)){ inp.value=""; return false; } }
@@ -859,7 +861,7 @@
   }
   $("wBody").addEventListener("change", e=>{
     const inp=e.target.closest("input"); if(!inp) return;
-    const [tw,date]=inp.dataset.k.split("|"); saveWeight(tw,date,inp,inp.parentElement);
+    const [tw,date]=inp.dataset.k.split("|"); saveWeight(tw,date,inp,inp.parentElement,inp.dataset.had);
   });
   function flash(t){ $("banner").textContent=t; $("banner").style.display="block"; setTimeout(()=>{ if($("banner").textContent===t) banner(""); },3500); }
 
@@ -876,14 +878,14 @@
     const who=r=>r.tw?`<b><span class="dot" style="background:${C[r.tw]}"></span>${esc(r.tw)}</b>`:"";
     const lbl={feed:"Feed",weight:"Weight",pump:"Pumped",drop:"To NICU",count:"NICU count"};
     $("logBody").innerHTML = rows.slice(0,state.logN).map(r=>{
-      const amt = r.kind==="feed" ? (!r.v&&MARK.test(r.note||"") ? (r.note.startsWith("Skip")?"skipped":"tube") : `${r.v} mL<br><span class="muted" style="font-weight:500;font-size:var(--fs-xs)">${Math.round(r.v/FULL[r.tw]*100)}% of ${FULL[r.tw]}</span>`)
+      const amt = r.kind==="feed" ? (!r.v&&MARK.test(r.note||"") ? (r.note.startsWith("Skip")?"skipped":"tube") : `${r.v} mL<br><span class="muted" style="font-weight:500;font-size:var(--fs-xs)">${Math.round(r.v/FULL[r.tw]*100)}%</span>`)
         : r.kind==="weight" ? `${fmtG(r.v)} g${r.approx?' <span class="badge warn">est.</span>':""}` : `${fmtG(r.v)} mL`;
       const note = r.kind==="feed" ? (canWrite?`<button class="notebtn" data-note="${esc(r.id)}" aria-label="Edit note for ${esc(r.tw)} at ${fmtWhen(r.t)}">${esc(r.note)||"+ note"}</button>`:esc(r.note))
         : r.kind==="count" ? '<span class="badge ok">Counted</span>' : "";
       const del = canWrite && r.kind!=="count" ? `<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${lbl[r.kind]}${r.tw?" for "+esc(r.tw):""} at ${fmtWhen(r.t)}">×</button>` : "";
       return `<tr data-kind="${r.kind}"><td>${r.kind==="weight"?`${md(dKey(new Date(r.t)))}<br>8 PM`:fmtWhen(r.t).replace(" ","<br>")}</td>
-        <td><div class="rk">${who(r)}<span class="rt">${lbl[r.kind]}</span></div></td><td class="num">${amt}</td><td>${note}</td><td class="muted">${r.kind==="count"?"":esc(whoName(r.by))}</td><td>${del}</td></tr>`;
-    }).join("") || `<tr><td colspan="6" class="muted">Nothing here yet.</td></tr>`;
+        <td><div class="rk">${who(r)}<span class="rt">${lbl[r.kind]}</span>${r.kind!=="count"&&r.by?`<span class="rby">by ${esc(whoName(r.by))}</span>`:""}</div></td><td class="num">${amt}</td><td>${note}</td><td>${del}</td></tr>`;
+    }).join("") || `<tr><td colspan="5" class="muted">Nothing here yet.</td></tr>`;
     $("moreBtn").style.display = rows.length>state.logN ? "" : "none";
   }
   function renderCare(){
@@ -951,7 +953,7 @@
         if(f){ tot+=f.v; n++; }
         const cls=["slot", i===due?"due":"", (!f && t>now+20*60e3)?"future":""].join(" ");
         return `<div class="${cls}"><label for="s-${ti}-${i}">${hm(t)}</label>
-          <input id="s-${ti}-${i}" type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} data-tw="${esc(tw)}" data-day="${state.day}" data-i="${i}" value="${f?f.v:""}" placeholder="—">
+          <input id="s-${ti}-${i}" type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} data-tw="${esc(tw)}" data-day="${state.day}" data-i="${i}" data-had="${esc(fSig(f))}" value="${f?f.v:""}" placeholder="—">
           <span class="p">${f?(MARK.test(f.note||"")&&!f.v?(f.note.startsWith("Skip")?"skipped":"tube"):Math.round(f.v/FULL[tw]*100)+"%"):""}</span></div>`;
       }).join("");
       const goal=FULL[tw]*FEEDS_PER_DAY;
@@ -974,8 +976,16 @@
       return `${v} mL for ${tw} at ${hm(t)}?\n\nThat's ${pct}% of full feed (${FULL[tw]} mL)${avg!=null?` and her recent average is ${Math.round(avg)} mL`:""}.\n\nTap OK if that's right.`;
     return "";
   }
+  const fSig = f => f ? `${f.id}:${f.v}:${f.note||""}` : "";
+  const wSig = w => w ? `${w.v}:${w.approx?1:0}` : "";
+  // The entry changed since this screen showed it, and someone else made it: ask before replacing.
+  function otherTook(old,had,what,amount){
+    if(!old || had==null || had===what || !old.by || old.by===myEmail) return true;
+    return confirm(`${amount} was just logged by ${whoName(old.by)||"the other parent"}.\n\nReplace it?`);
+  }
   async function saveSlot(tw,day,i,inp,cell,opt={}){ // returns true when saved
     const raw = opt.v!=null ? String(opt.v) : inp.value.trim(), v=parseFloat(raw), old=slotFeed(tw,day,i), t=slotT(tw,day,i);
+    if(old && !otherTook(old, opt.had, fSig(old), `${tw}'s ${hm(t)} feed (${old.v?old.v+" mL":(old.note||"no amount")})`)){ inp.value=opt.had===""?"":old.v; return false; }
     if(raw!=="" && (!isFinite(v)||v<0||v>150)){ inp.value=old?old.v:""; flash("Enter mL for one feed (0–150)."); return false; }
     if(raw!=="" && opt.note==null && !opt.full){ const warn=unusual(tw,t,v); if(warn && !confirm(warn)){ inp.value=old?old.v:""; return false; } }
     cell.classList.add("saving");
@@ -1008,7 +1018,7 @@
   });
   $("sheet").addEventListener("change", e=>{
     const inp=e.target.closest("input"); if(!inp) return;
-    saveSlot(inp.dataset.tw, inp.dataset.day||state.day, +inp.dataset.i, inp, inp.parentElement);
+    saveSlot(inp.dataset.tw, inp.dataset.day||state.day, +inp.dataset.i, inp, inp.parentElement, {had:inp.dataset.had});
   });
 
   // ---------- next feed (the 2 AM view) ----------
@@ -1017,9 +1027,9 @@
     const now=Date.now(), d0=feedDay(now), d1=dKey(new Date(keyDate(d0).getTime()+36*3600e3)), dm=dKey(new Date(keyDate(d0).getTime()-12*3600e3));
     const all=[dm,d0,d1].flatMap(day=>SLOT_H.map((_,i)=>({day,i,t:slotT(tw,day,i)}))).sort((a,b)=>a.t-b.t);
     const open=all.filter(x=>!slotFeed(tw,x.day,x.i));
-    const due=open.filter(x=>x.t<=now+30*60e3 && x.t>=now-3*3600e3).pop();
+    const due=open.filter(x=>x.t<=now+30*60e3 && x.t>=now-60*60e3).pop();   // a slot stays "due" for 1 h, then becomes a Not logged chip
     const nx=open.find(x=>x.t>now+30*60e3), pick=due ? {...due, due:true} : nx ? {...nx, due:false} : null;
-    if(pick) pick.missed=open.filter(x=>x.t<pick.t && x.t>=now-12*3600e3 && x.t<now-30*60e3 && x.t>=FIRST_NIGHT.getTime());
+    if(pick) pick.missed=open.filter(x=>x.t<pick.t && x.t>=now-12*3600e3 && x.t<=now-60*60e3 && x.t>=FIRST_NIGHT.getTime());
     return pick;
   }
   const nextPick={};   // per baby: a missed slot the parent chose to fill instead
@@ -1138,7 +1148,7 @@
   $("todayMilk").addEventListener("click",()=>showTab("milk"));
   async function saveTodayWeight(row){
     const inp=row.querySelector(".wIn"); if(!inp) return; if(inp.value.trim()===""){ inp.focus(); return; }
-    nextBusy++; row.dataset.busy="1"; const ok=await saveWeight(row.dataset.tw, inp.dataset.day, inp, row);
+    nextBusy++; row.dataset.busy="1"; const ok=await saveWeight(row.dataset.tw, inp.dataset.day, inp, row, "");
     if(ok){ inp.value=""; inp.blur(); }
     setTimeout(()=>{ nextBusy--; delete row.dataset.busy; renderNext(); }, ok?600:0);
   }
@@ -1147,7 +1157,7 @@
     if(!opt && inp.value.trim()===""){ inp.focus(); return; }
     nextBusy++; row.dataset.busy="1";
     const tags=[...row.querySelectorAll('.tags [aria-pressed="true"]')].map(b=>b.textContent);
-    const ok=await saveSlot(tw,day,i,inp,row,{...(opt||{}),tags});
+    const ok=await saveSlot(tw,day,i,inp,row,{...(opt||{}),tags,had:""});
     if(ok){ inp.blur(); delete nextPick[tw];
       const what = opt&&opt.note ? opt.note.toLowerCase() : `${opt&&opt.v!=null?opt.v:inp.value} mL${opt&&opt.v!=null?" (full)":""}`;
       row.querySelector(".ok").textContent=`✓ ${tw} · ${hm(slotT(tw,day,i))} · ${what}${tags.length?" · "+tags.join(", "):""}`;
@@ -1230,7 +1240,9 @@
   $("dNext").addEventListener("click",()=>shiftDay(1));
   $("dToday").addEventListener("click",()=>{ state.day=feedDay(Date.now()); renderSheet(); });
 
-  function renderAll(){ renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); }
+  function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
+  function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -1386,7 +1398,7 @@
     return {done:c.done, need:c.need, next:open[0]&&open[0][1]}; }
   const ckMeta=c=>`<div class="ckmeta"><span class="mk done">${c.done} marked done</span><span class="mk open">${c.open} open</span>${c.na?`<span class="mk">${c.na} not needed</span>`:""}</div>`;
   function checklistHTML(tw){ const i=twIdx(tw), c=COLORS()[tw], ids=DIS_BABY.map(([k])=>`b${i}-${k}`), n=ckCounts(ids);
-    return `<div class="cl"><h4><span>Checklist</span><span>${n.done}/${n.need}</span></h4>${ckMeta(n)}${DIS_BABY.map(([k,l])=>ckRow(`b${i}-${k}`,l,c)).join("")}</div>`; }
+    return `<div class="cl" data-ids="${ids.join(" ")}"><h4><span>Checklist</span><span class="ckn">${n.done}/${n.need}</span></h4>${ckMeta(n)}${DIS_BABY.map(([k,l])=>ckRow(`b${i}-${k}`,l,c)).join("")}</div>`; }
   function renderBabyChecklists(){
     const C=COLORS();
     $("ckBabies").innerHTML = shown().map(tw=>{ const letter=TWINS.indexOf(tw)?"B":"A";
@@ -1395,8 +1407,25 @@
         <div class="note">Items are marked by your family. The NICU team confirms each step.</div></section>`; }).join("");
   }
   function renderFam(){ if(TWINS[0]==="A") return; const ids=DIS_FAM.map(([k])=>"f-"+k), n=ckCounts(ids);
-    $("famList").innerHTML=`<section class="card"><h2>Family checklist <span class="muted" style="font-size:var(--fs-xs);font-weight:600">${n.done}/${n.need}</span></h2>${ckMeta(n)}
+    $("famList").innerHTML=`<section class="card" data-ids="${ids.join(" ")}"><h2>Family checklist <span class="muted ckn" style="font-size:var(--fs-xs);font-weight:600">${n.done}/${n.need}</span></h2>${ckMeta(n)}
       <div class="cl" style="margin-top:0">${DIS_FAM.map(([k,l])=>ckRow("f-"+k,l)).join("")}</div></section>`; }
+  // Update checklist rows where they are, so the tapped button (and the page) stays put.
+  function patchChecklists(){
+    if(TWINS[0]==="A") return;
+    document.querySelectorAll("[data-ck]").forEach(btn=>{
+      const id=btn.dataset.ck, row=btn.closest(".ckrow"), label=btn.querySelector(".lb").textContent;
+      const tmp=document.createElement("div"); tmp.innerHTML=ckRow(id,label,btn.style.getPropertyValue("--c")||undefined);
+      const nb=tmp.querySelector("[data-ck]"), nn=tmp.querySelector("[data-na]");
+      btn.className=nb.className; btn.setAttribute("aria-pressed",nb.getAttribute("aria-pressed")); btn.setAttribute("aria-label",nb.getAttribute("aria-label"));
+      btn.querySelector(".box2").textContent=nb.querySelector(".box2").textContent; btn.querySelector(".dt").innerHTML=nb.querySelector(".dt").innerHTML;
+      const na=row&&row.querySelector("[data-na]"); if(na){ na.textContent=nn.textContent; na.setAttribute("aria-label",nn.getAttribute("aria-label")); }
+    });
+    document.querySelectorAll("[data-ids]").forEach(box=>{
+      const n=ckCounts(box.dataset.ids.split(" ")), c=box.querySelector(".ckn"), m=box.querySelector(".ckmeta");
+      if(c) c.textContent=`${n.done}/${n.need}`; if(m) m.outerHTML=ckMeta(n);
+    });
+    renderNext();   // Today's single-baby view shows a checklist summary
+  }
   async function ckToggle(id,to){
     const old=CK[id]; const today=dKey(new Date());
     try{
@@ -1535,7 +1564,7 @@
     const vId=kind==="pump"?"pmV":"dpV", tId=kind==="pump"?"pmT":"dpT", col=kind==="pump"?"pumps":"drops";
     const v=parseFloat($(vId).value); if(!isFinite(v)||v<=0||v>3000){ $(vId).focus(); flash("Enter the mL (e.g. 120)."); return; }
     const t=whenOf(tId); if(t>Date.now()+10*60e3){ flash("That time is in the future."); return; }
-    const id=`${kind[0]}-${t}`, rec={t,v:Math.round(v*10)/10};
+    const id=`${kind[0]}-${t}-${Math.random().toString(36).slice(2,6)}`, rec={t,v:Math.round(v*10)/10};
     Store.put(col,id,rec).then(()=>{ $(vId).value=""; $(vId).blur(); $(tId).value=localNow();
       undoBar(`${kind==="pump"?"Pumped":"To NICU"} ${rec.v} mL · ${hm(t)}`, ()=>Store.remove(col,id)); }).catch(failWrite);
   }
@@ -1597,7 +1626,7 @@
     if(Store.watch){
       unsubs.push(Store.watch("pumps",list=>{ P=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
       unsubs.push(Store.watch("drops",list=>{ D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
-      unsubs.push(Store.watch("checklist",list=>{ CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); renderAll(); }, ()=>{}));
+      unsubs.push(Store.watch("checklist",list=>{ CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); if(document.querySelector("#ckBabies [data-ck]")) patchChecklists(); else { renderFam(); renderBabyChecklists(); renderNext(); } }, ()=>{}));
       unsubs.push(Store.watch("plans",list=>{ PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
       unsubs.push(Store.watch("questions",list=>{ QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
