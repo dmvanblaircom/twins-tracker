@@ -1,6 +1,6 @@
 // Screenshot every screen at iPhone size (390×844 @2x) with the fictional test babies.
 // Usage: node screens.js <out-dir>     (e.g. node screens.js shots/after)
-// Covers: all five tabs, Both + each baby, light + night themes, A++ text, offline header.
+// Covers: all five tabs, Both + each baby, light / phone-dark / night themes, A++ text, offline header.
 const path = require("path"), fs = require("fs");
 const { chromium } = require("playwright");
 const { serve, newPage, importData, tab } = require("./smoke.js");
@@ -30,8 +30,8 @@ const view = async (p, n) => { await p.click(`#view button:nth-child(${n})`); aw
   const srv = await serve(), base = `http://127.0.0.1:${srv.address().port}/`;
   const browser = await chromium.launch();
   const ctxOpts = { deviceScaleFactor: 2 };
-  for (const theme of ["light", "night"]) {
-    const p = await newPage(browser, base, { now: theme === "light" ? DAY : NIGHT, ctx: ctxOpts, prefs: { night: "manual" } });
+  for (const theme of ["light", "dark", "night"]) {   // dark = phone set to Dark appearance
+    const p = await newPage(browser, base, { now: theme === "night" ? NIGHT : DAY, ctx: { ...ctxOpts, colorScheme: theme === "dark" ? "dark" : "light" }, prefs: { night: "manual" } });
     if (theme === "night") { await p.evaluate(() => localStorage.setItem("night", "1")); await p.reload(); await p.waitForTimeout(600); }
     await seed(p);
     await tab(p, "feed"); await view(p, 3); await p.evaluate(() => scrollTo(0, 0)); await shot(p, `${theme}-1-today-both`);
