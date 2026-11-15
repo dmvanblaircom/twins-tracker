@@ -12,6 +12,8 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 - `sw.js` — app-shell cache, network-first. Bump `CACHE` name when shell files change.
 - `fonts/inter-latin-var.woff2` — Inter variable font (latin, self-hosted, OFL; licence in `fonts/LICENSE-Inter.txt`). Cached with the shell for offline.
 - `manifest.webmanifest`, `icons/`.
+- `privacy.html` — privacy policy (linked from sign-in and Settings). `SUPPORT_EMAIL` placeholder must be replaced before release.
+- `native/` — iOS wrapper (Capacitor 6). `npm run build` copies the web app into `native/www` with Chart.js and Firebase bundled locally (no service worker in iOS web views, so offline needs local files); `npm run sync` then copies into `ios/`. iPhone only, portrait. `appId` in `capacitor.config.json` is a placeholder (`com.example.twinstracker`). Build/sign/submit needs a Mac with Xcode and an Apple Developer account. `firebase-store.js` uses `initializeAuth` (no popup/redirect iframe) so auth works in the web view.
 
 ## Families
 - `users/{uid}` → `{hid}` (which family this sign-in uses). `households/{hid}` → `{owner, code, codeExp (ms), created}`. `households/{hid}/members/{uid}` → `{email, t, code?}`. `invites/{CODE}` → `{hid, exp}` (get-only lookup, 8 chars from an unambiguous alphabet, 7 days).

@@ -1,0 +1,10 @@
+{
+  "appId": "com.example.twinstracker",
+  "appName": "Twins Tracker",
+  "webDir": "www",
+  "backgroundColor": "#F3F6F9",
+  "ios": {
+    "contentInset": "never",
+    "scheme": "TwinsTracker"
+  }
+}

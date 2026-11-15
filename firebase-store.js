@@ -2,8 +2,8 @@
 // Data lives under households/{hid}/…; a signed-in person belongs to one family (users/{uid} → {hid}).
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
-  sendPasswordResetEmail, setPersistence, indexedDBLocalPersistence,
+  initializeAuth, browserLocalPersistence, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
+  sendPasswordResetEmail, indexedDBLocalPersistence,
   deleteUser, reauthenticateWithCredential, EmailAuthProvider
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -14,8 +14,8 @@ import { firebaseConfig } from "./firebase-config.js";
 
 if (!window.Store) {
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  setPersistence(auth, indexedDBLocalPersistence).catch(() => {});
+  // initializeAuth (not getAuth): email/password only, no popup/redirect iframe, which also lets it run inside the iOS app's web view.
+  const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
   // Offline cache: the app opens and accepts entries with no signal; writes sync later.
   const db = initializeFirestore(app, {
     localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
