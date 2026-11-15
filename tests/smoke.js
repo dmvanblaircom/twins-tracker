@@ -91,6 +91,7 @@ async function importData(p) {
     check("next card shows the 2 AM feed as due", (await p.textContent(`${A} .when`)).includes("Due: 2a"));
     check("note chips hidden until + Note", await p.$eval(`${A} .tags`, e => e.hidden));
     check("Both view is compact (no mini charts)", (await p.$$(`${A} .spk`)).length === 0);
+    check("feed count is out of the full day (of 8)", / of 8 feeds/.test(await p.textContent(`${A} .tsum`)), await p.textContent(`${A} .tsum`));
     await p.fill(`${A} .box input`, "40"); await p.click(`${A} [data-act=save]`); await p.waitForTimeout(200);
     const slot2 = new Date("2026-02-11T02:00:00-05:00").getTime();
     check("Save logs the feed", await db(p, t => __db.feeds[`Ada Rose-${t}`]?.v, slot2) === 40);
@@ -104,10 +105,18 @@ async function importData(p) {
     await p.waitForTimeout(2700);
     check("card moves on to the next feed", (await p.textContent(`${A} .when`)).includes("Next: 5a"));
     const B = '.nx[data-tw="Bea Joy"]';
+    await p.click(`${B} [data-act=notes]`); await p.click(`${B} .tags button:has-text("Fussy")`); await p.click(`${B} [data-act=notes]`);
+    check("hiding notes clears a chosen chip", await p.$$eval(`${B} .tags [aria-pressed="true"]`, x => x.length) === 0);
     await p.click(`${B} [data-act=tube]`); await p.waitForTimeout(200);
     const slotB = new Date("2026-02-11T02:30:00-05:00").getTime();
-    check("All by tube logs 0 mL with its note", await db(p, t => { const x = __db.feeds[`Bea Joy-${t}`]; return x && x.v === 0 && x.note === "All by tube"; }, slotB));
+    check("All by tube logs 0 mL with its note (no hidden chip)", await db(p, t => { const x = __db.feeds[`Bea Joy-${t}`]; return x && x.v === 0 && x.note === "All by tube"; }, slotB));
     await p.waitForTimeout(2700);
+    await p.click(`${A} [data-act=full]`); await p.click(`${B} [data-act=full]`); await p.waitForTimeout(300);
+    const s5a = new Date("2026-02-11T05:00:00-05:00").getTime(), sBnext = await db(p, () => Object.values(__db.feeds).filter(x => x.twin === "Bea Joy" && x.v === 53).length);
+    check("both babies can be logged back to back", await db(p, t => __db.feeds[`Ada Rose-${t}`]?.v, s5a) === 49 && sBnext >= 1, `Bea full feeds: ${sBnext}`);
+    await p.waitForTimeout(2700);
+    check("missed 11p shows as due, not logged", (await p.textContent(`${A} .tsum`)).includes("1 due, not logged"), await p.textContent(`${A} .tsum`));
+    check("sheet inputs carry their own day", await p.$eval("#sheet input", i => !!i.dataset.day));
     p.answers = [false];
     await p.fill(`${B} .box input`, "95"); await p.click(`${B} [data-act=save]`); await p.waitForTimeout(200);
     check("unusual amount asks first (and Cancel keeps it unsaved)", p.dialogs.some(d => d.startsWith("95 mL for Bea Joy")) && await db(p, () => !Object.values(__db.feeds).some(x => x.v === 95)));
@@ -151,16 +160,23 @@ async function importData(p) {
     await p.touchscreen.tap(20, 300); await p.waitForTimeout(200);
     check("chart callout opens on tap and closes on a tap elsewhere", opened > 0 && (await tip()) === 0);
 
-    // ---- more: settings tucked away ----
+    // ---- more: export ----
     await tab(p, "more");
+    await p.evaluate(() => { document.querySelector("details.settings").open = true; });
+    await p.click("#csvBtn"); await p.waitForTimeout(200);
+    const csv = await p.evaluate(async () => document.querySelector("#csvBox").value || await navigator.clipboard.readText().catch(() => ""));
+    check("CSV export quotes names", csv.includes(',"Ada Rose",') && csv.split("\n").length > 50, csv.slice(0, 80));
     check("no page errors in main walk-through", p.errors.length === 0, p.errors.join(" | "));
 
     // ---- rename moves everything ----
+    const other = new Date("2026-02-10T20:00:00-05:00").getTime();
+    await db(p, t => { const id = `Ada Rose-${t}`; Store.setFeed(id, { ...__db.feeds[id], by: "parent2@example.com" }); }, other);
     await p.click("#editProfile"); await p.fill("#suN0", "Ada"); await p.fill("#suN1", "Bea");
     p.answers = [true]; await p.click("#suSave"); await p.waitForTimeout(800);
     const names = await db(p, () => [...new Set([...Object.values(__db.weights), ...Object.values(__db.feeds)].map(x => x.twin))].sort().join(","));
     check("rename moves every entry", names === "Ada,Bea", names);
     check("checklist survives the rename", await db(p, () => !!__db.checklist["b0-hearing"]));
+    check("rename keeps who logged each feed", await db(p, t => __db.feeds[`Ada-${t}`]?.by, other) === "parent2@example.com");
     check("no page errors after rename", p.errors.length === 0, p.errors.join(" | "));
     await p.context().close();
 
@@ -187,6 +203,17 @@ async function importData(p) {
     check("4-hour schedule builds 6 slots from 9 AM", labels === "9a 1p 5p 9p 1a 5a", labels);
     check("no page errors on night/4-hour", r.errors.length === 0, r.errors.join(" | "));
     await r.context().close();
+
+    // ---- 2-hour schedule, "36+0" age format ----
+    PROFILE.schedule = { everyH: 2, startH: 8 }; PROFILE.ga = "36+0";
+    const u = await newPage(browser, base);
+    check("age accepts 36+0", (await u.textContent("#ageLine")).includes("37w3d"), await u.textContent("#ageLine"));
+    await u.evaluate(() => Store.setFeed("Ada Rose-stray", { twin: "Ada Rose", t: new Date("2026-02-10T08:50:00-05:00").getTime(), v: 30, note: "", diet: "" }));
+    await tab(u, "feed"); await u.waitForTimeout(200);
+    const filled = await u.$$eval("#sheet .tw", t => [...t[0].querySelectorAll("input")].filter(i => i.value).length);
+    check("2-hour schedule: an off-slot feed counts once", filled === 1, `${filled} slots show it`);
+    check("no page errors on 2-hour", u.errors.length === 0, u.errors.join(" | "));
+    await u.context().close();
   } catch (e) { fails.push("crashed: " + e.message); console.error(e); }
   await browser.close(); srv.close();
   console.log(`\n${passed} passed, ${fails.length} failed`);

@@ -104,6 +104,7 @@
   }
   .tday{grid-column:1/-1;display:grid;gap:10px;margin-top:4px;padding-top:10px;border-top:1px dashed var(--grid)}
   .tsum{font-size:14.5px} .tsum b{font-variant-numeric:tabular-nums}
+  .tsum .lag{color:var(--danger);font-weight:600}
   .tsum .bar{height:8px}
   .twt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14.5px}
   .twt input{width:92px;font-size:18px;padding:8px;text-align:center}
@@ -640,9 +641,9 @@
   const feedDay = t => { const d=new Date(t); if(d.getHours()<DAY_START_H) d.setDate(d.getDate()-1); return dKey(d); };
   const slotT = (tw,day,i) => { const d=keyDate(day); d.setHours(SLOT_H[i], SLOT_M[tw], 0, 0); return d.getTime(); };
   const hm = t => { const d=new Date(t); return clock(d.getHours(),d.getMinutes(),true); };
-  function slotFeed(tw,day,i){ // exact slot, else a stray feed within ±90 min (e.g. imported)
-    const t=slotT(tw,day,i);
-    return F.find(f=>f.twin===tw && f.t===t) || F.find(f=>f.twin===tw && Math.abs(f.t-t)<90*60e3);
+  function slotFeed(tw,day,i){ // exact slot, else a stray feed within half an interval (≤90 min), e.g. imported
+    const t=slotT(tw,day,i), win=Math.min(90, (24/FEEDS_PER_DAY)*30)*60e3;
+    return F.find(f=>f.twin===tw && f.t===t) || F.find(f=>f.twin===tw && Math.abs(f.t-t)<win);
   }
   state.day = feedDay(Date.now());
   function renderSheet(){
@@ -660,7 +661,7 @@
         if(f){ tot+=f.v; n++; }
         const cls=["slot", i===due?"due":"", (!f && t>now+20*60e3)?"future":""].join(" ");
         return `<div class="${cls}"><label for="s-${ti}-${i}">${hm(t)}</label>
-          <input id="s-${ti}-${i}" type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} data-tw="${esc(tw)}" data-i="${i}" value="${f?f.v:""}" placeholder="—">
+          <input id="s-${ti}-${i}" type="number" inputmode="decimal" min="0" step="any" ${canWrite?"":"disabled"} data-tw="${esc(tw)}" data-day="${state.day}" data-i="${i}" value="${f?f.v:""}" placeholder="—">
           <span class="p">${f?(MARK.test(f.note||"")&&!f.v?(f.note.startsWith("Skip")?"skipped":"tube"):Math.round(f.v/FULL[tw]*100)+"%"):""}</span></div>`;
       }).join("");
       const goal=FULL[tw]*FEEDS_PER_DAY;
@@ -717,7 +718,7 @@
   });
   $("sheet").addEventListener("change", e=>{
     const inp=e.target.closest("input"); if(!inp) return;
-    saveSlot(inp.dataset.tw, state.day, +inp.dataset.i, inp, inp.parentElement);
+    saveSlot(inp.dataset.tw, inp.dataset.day||state.day, +inp.dataset.i, inp, inp.parentElement);
   });
 
   // ---------- next feed (the 2 AM view) ----------
@@ -732,10 +733,10 @@
     return pick;
   }
   const nextPick={};   // per baby: a missed slot the parent chose to fill instead
-  let nextBusy=false;
-  const notesOpen=new Set();     // babies whose note chips are showing           // hold the box (and its ✓) steady while a save lands
+  let nextBusy=0;                // saves in flight: hold re-renders so each card's ✓ stays visible
+  const notesOpen=new Set();     // babies whose note chips are showing
   function renderNext(){
-    if(TWINS[0]==="A" || nextBusy || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
+    if(TWINS[0]==="A" || nextBusy>0 || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
     const C=COLORS(), now=new Date();
     $("nextClock").textContent = "now "+hm(now.getTime()); $("ageLine").textContent=ageLine(); renderTodayMilk();
     $("next").innerHTML = shown().map(tw=>{
@@ -773,7 +774,9 @@
   function todayBlock(tw){
     const C=COLORS(), day=feedDay(Date.now()), full=FULL[tw], goal=full*FEEDS_PER_DAY;
     const fd=F.filter(f=>f.twin===tw && feedDay(f.t)===day), po=fd.reduce((a,f)=>a+f.v,0), pct=Math.round(po/goal*100);
-    const past=SLOT_H.filter((_,i)=>slotT(tw,day,i)<=Date.now()).length;
+    const past=SLOT_H.filter((_,i)=>slotT(tw,day,i)<=Date.now()).length, total=SLOT_H.length;
+    const behind=SLOT_H.filter((_,i)=>slotT(tw,day,i)<=Date.now() && !slotFeed(tw,day,i)).length;   // due today, not logged
+    const feedsTxt=`<b>${fd.length}</b> of ${total} feeds${behind?` · <span class="lag">${behind} due, not logged</span>`:""}`;
     // tonight's weight belongs to the feed day (8 PM weigh-in)
     const w=W[tw+"|"+day], prev=wSeries(tw).filter(x=>x.date<day).pop();
     const wRow = w ? `<span>Weight ${md(day)}: <b>${wtMain(w.v)}</b>${w.approx?" ≈":""} ${prev?`<span class="muted">(${sgn(w.v-prev.v)} g)</span>`:""}</span>`
@@ -784,13 +787,13 @@
     if(state.view==="both"){
       const pl=latestPlan(tw).today;
       return `<div class="tday">
-        <div class="tsum"><b>${fd.length}</b>/${past} feeds · <b>${pct}%</b> by mouth today${pl?` · <span class="muted">plan: ${esc(pl.text)}</span>`:""}
+        <div class="tsum">${feedsTxt} · <b>${pct}%</b> of today's ${goal} mL${pl?` · <span class="muted">plan: ${esc(pl.text)}</span>`:""}
           <div class="bar"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div></div>
         <div class="twt">${wRow}</div>
         <button class="tgo" data-act="detail">All of ${esc(tw)}'s day ›</button></div>`;
     }
     return `<div class="tday">
-      <div class="tsum">Today so far: <b>${fd.length}</b>/${past} feeds · <b>${Math.round(po)}</b> / ${goal} mL by mouth (<b>${pct}%</b>)${(k=>k!=null?` · last 24 h <b>${k}</b> mL/kg/day`:"")(poPerKg(tw))}
+      <div class="tsum">Today: ${feedsTxt} · <b>${Math.round(po)}</b> / ${goal} mL by mouth (<b>${pct}%</b> of the day)${(k=>k!=null?` · last 24 h <b>${k}</b> mL/kg/day`:"")(poPerKg(tw))}
         <div class="bar"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div></div>
       <div class="twt">${wRow}</div>
       <div class="tplan">${(p=>p.today?`<span><b>Plan ${md(p.day)}:</b> ${esc(p.today.text)}</span><button class="link" data-act="plan">edit</button>`
@@ -803,7 +806,7 @@
   function ageLine(){
     if(!profile) return "";
     const b=keyDate(profile.born), t=new Date(); t.setHours(0,0,0,0); const dol=Math.round((t-b)/DAY);
-    const m=/(\d+)\s*w\s*(\d+)?/i.exec(profile.ga||""); if(!m) return `· day ${dol}`;
+    const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""); if(!m) return `· day ${dol}`;
     const pma=(+m[1])*7+(+(m[2]||0))+dol; return `· day ${dol} · ${Math.floor(pma/7)}w${pma%7}d`;
   }
   function renderTodayMilk(){
@@ -814,28 +817,30 @@
   $("todayMilk").addEventListener("click",()=>showTab("milk"));
   async function saveTodayWeight(row){
     const inp=row.querySelector(".wIn"); if(!inp) return; if(inp.value.trim()===""){ inp.focus(); return; }
-    nextBusy=true; const ok=await saveWeight(row.dataset.tw, inp.dataset.day, inp, row);
+    nextBusy++; row.dataset.busy="1"; const ok=await saveWeight(row.dataset.tw, inp.dataset.day, inp, row);
     if(ok){ inp.value=""; inp.blur(); }
-    setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?600:0);
+    setTimeout(()=>{ nextBusy--; delete row.dataset.busy; renderNext(); }, ok?600:0);
   }
   async function nextSave(row,opt){
     const inp=row.querySelector(".box input"), tw=row.dataset.tw, day=row.dataset.day, i=+row.dataset.i;
     if(!opt && inp.value.trim()===""){ inp.focus(); return; }
-    nextBusy=true;
+    nextBusy++; row.dataset.busy="1";
     const tags=[...row.querySelectorAll('.tags [aria-pressed="true"]')].map(b=>b.textContent);
     const ok=await saveSlot(tw,day,i,inp,row,{...(opt||{}),tags});
     if(ok){ inp.blur(); delete nextPick[tw];
       const what = opt&&opt.note ? opt.note.toLowerCase() : `${opt&&opt.v!=null?opt.v:inp.value} mL${opt&&opt.v!=null?" (full)":""}`;
       row.querySelector(".ok").textContent=`✓ ${tw} · ${hm(slotT(tw,day,i))} · ${what}${tags.length?" · "+tags.join(", "):""}`;
       inp.value=""; row.querySelectorAll(".tags button").forEach(b=>b.setAttribute("aria-pressed","false")); }   // saved: a clear card can move on to the next feed
-    setTimeout(()=>{ nextBusy=false; renderNext(); }, ok?2500:0);
+    setTimeout(()=>{ nextBusy--; delete row.dataset.busy; renderNext(); }, ok?2500:0);
   }
   $("next").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); const row=e.target.closest(".nx"); e.target.classList.contains("wIn") ? saveTodayWeight(row) : nextSave(row); } });
   $("next").addEventListener("click",e=>{
-    const b=e.target.closest("button[data-act]"); if(!b || nextBusy) return;
+    const b=e.target.closest("button[data-act]"); if(!b) return;
     const row=b.closest(".nx"), tw=row.dataset.tw, act=b.dataset.act;
+    if(row.dataset.busy) return;          // this baby's save is still landing
     if(act==="notes"){ const open=!notesOpen.has(tw); open?notesOpen.add(tw):notesOpen.delete(tw);
-      row.querySelector(".tags").hidden=!open; b.setAttribute("aria-expanded",open); b.textContent=open?"− Hide notes":"+ Note"; return; }
+      row.querySelector(".tags").hidden=!open; b.setAttribute("aria-expanded",open);
+      if(!open) row.querySelectorAll(".tags button").forEach(x=>x.setAttribute("aria-pressed","false")); b.textContent=open?"− Hide notes":"+ Note"; return; }
     if(act==="detail"){ state.view=tw; try{ localStorage.setItem("view",tw); }catch{} restoreView(); sheetDirty=gridDirty=false; renderAll(); scrollTo(0,0); return; }
     if(act==="tag"){ b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")==="true"?"false":"true"); return; }
     if(act==="wsave"){ saveTodayWeight(row); return; }
@@ -893,7 +898,7 @@
       [...el.children].forEach(x=>{ x.classList.toggle("on",x===b); x.setAttribute("aria-pressed",x===b?"true":"false"); }); after&&after(); });
   }
   prefSeg("pfUnits","units",()=>TWINS[0]!=="A"&&renderAll());
-  prefSeg("pfClock","clock",()=>{ if(TWINS[0]!=="A"&&profile) applyProfile(profile); TWINS[0]!=="A"&&renderAll(); });
+  prefSeg("pfClock","clock",()=>{ $("dayRun").textContent=`${hmH(DAY_START_H)}–${hmH(DAY_START_H)}`; TWINS[0]!=="A"&&renderAll(); });
   prefSeg("pfText","text",applyText);
   prefSeg("pfNight","night",()=>{ if(PREF.night==="auto") setNight(nightDue()); });
   applyText();
@@ -936,10 +941,11 @@
   });
   $("moreBtn").addEventListener("click",()=>{ state.logN+=40; renderLog(); });
   $("csvBtn").addEventListener("click", async ()=>{
+    const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
     const rows=[["datetime","twin","type","value","unit","pct_of_full_feed","estimated","note","diet"]];
-    TWINS.forEach(tw=>rows.push([new Date(BIRTH[tw].t).toISOString(),tw,"birth weight",BIRTH[tw].g,"g","","",""]));
-    Object.values(W).sort((a,b)=>a.date<b.date?-1:1).forEach(w=>rows.push([new Date(nightT(w.date)).toISOString(),w.twin,"weight",w.v,"g","",w.approx?"yes":"",""]));
-    [...F].sort((a,b)=>a.t-b.t).forEach(f=>rows.push([new Date(f.t).toISOString(),f.twin,"PO feed",f.v,"mL",Math.round(f.v/FULL[f.twin]*100),"",`"${(f.note||"").replace(/"/g,'""')}"`,`"${(f.diet||"").replace(/"/g,'""')}"`]));
+    TWINS.forEach(tw=>rows.push([new Date(BIRTH[tw].t).toISOString(),q(tw),"birth weight",BIRTH[tw].g,"g","","",""]));
+    Object.values(W).sort((a,b)=>a.date<b.date?-1:1).forEach(w=>rows.push([new Date(nightT(w.date)).toISOString(),q(w.twin),"weight",w.v,"g","",w.approx?"yes":"",""]));
+    [...F].sort((a,b)=>a.t-b.t).forEach(f=>rows.push([new Date(f.t).toISOString(),q(f.twin),"PO feed",f.v,"mL",Math.round(f.v/FULL[f.twin]*100),"",q(f.note),q(f.diet)]));
     [...P].sort((a,b)=>a.t-b.t).forEach(x=>rows.push([new Date(x.t).toISOString(),"","pump",x.v,"mL","","","",""]));
     [...D].sort((a,b)=>a.t-b.t).forEach(x=>rows.push([new Date(x.t).toISOString(),"","nicu drop-off",x.v,"mL","","","",""]));
     const csv=rows.map(r=>r.join(",")).join("\n");
@@ -1286,7 +1292,7 @@
         $("suMsg").textContent="Renaming… copying entries";
         await Promise.all([
           ...ws.map(w=>Store.setWeight(`${map[w.twin]}-${w.date}`,{twin:map[w.twin],date:w.date,v:w.v,approx:w.approx})),
-          ...fs.map(f=>{ const rec={twin:map[f.twin],t:f.t,v:f.v,note:f.note,diet:f.diet}; return Store.setFeed(feedId(rec),rec); })]);
+          ...fs.map(f=>{ const rec={twin:map[f.twin],t:f.t,v:f.v,note:f.note,diet:f.diet,...(f.by?{by:f.by}:{})}; return Store.setFeed(feedId(rec),rec); })]);
         $("suMsg").textContent="Renaming… switching names";
         await Store.setProfile(p);
         $("suMsg").textContent="Renaming… cleaning up";
