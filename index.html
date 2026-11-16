@@ -715,6 +715,7 @@
 </nav>
 </div>
 
+<script src="milk-sources.js"></script>
 <script>
 (() => {
   // ---------- fixed facts ----------
@@ -1079,7 +1080,11 @@
   $("sheet").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.target.blur(); } });
   const MARK=/^(est\.|All by tube|Skipped)/;
   const TAGS=["Spit up","Sleepy","Desat/brady","Paced","Fussy"];   // system notes replaced when a value is re-entered
-  const strip=f=>{ const {id,by,hasI,...r}=f; r.i=TWINS.indexOf(r.twin); return by?{...r,by}:r; };   // keep the original author on restores/edits
+  // Fields a feed document carries that this version doesn't know about (a later version's): kept on every save,
+  // note edit and Undo, so a re-save never silently drops them. `by` is excluded (the Store stamps the author).
+  const rawFeed = id => (rawF.find(([k])=>k===id)||[])[1] || null;
+  const extraF = d => { if(!d||typeof d!=="object") return {}; const {twin,i,t,v,note,diet,by,...x}=d; return x; };
+  const strip=f=>{ const {id,by,hasI,...r}=f; r.i=TWINS.indexOf(r.twin); const out={...extraF(rawFeed(id)),...r}; return by?{...out,by}:out; };   // keep the original author on restores/edits
   function unusual(tw,t,v){ // returns a warning string, or "" if the amount looks normal
     if(!(v>0)) return "";
     const recent=fSeries(tw).filter(f=>f.v>0 && f.t<t).slice(-4), avg=recent.length>=3 ? recent.reduce((a,f)=>a+f.v,0)/recent.length : null;
@@ -1102,18 +1107,21 @@
     if(raw!=="" && opt.note==null && !opt.full){ const warn=unusual(tw,t,v); if(warn && !confirm(warn)){ inp.value=old?old.v:""; return false; } }
     cell.classList.add("saving");
     try{
-      if(raw===""){ if(!old) return false; await Store.delFeed(old.id); undoBar(`Cleared ${tw} · ${hm(t)}`, ()=>Store.setFeed(old.id,strip(old))); }
+      if(raw===""){ if(!old) return false; await Store.delFeed(old.id); followFeed(TWINS.indexOf(tw),t,null);
+        undoBar(`Cleared ${tw} · ${hm(t)}`, async()=>{ await Store.setFeed(old.id,strip(old)); followFeed(TWINS.indexOf(tw),t,old.v); }); }
       else {
         const tags=opt.tags||[], keep=old&&!MARK.test(old.note||"")?old.note||"":"";
         const note=opt.note ? [opt.note,...tags].join(", ") : tags.length ? tags.join(", ") : keep;
-        const rec={twin:tw,i:TWINS.indexOf(tw),t,v:Math.round(v*10)/10,note:note.slice(0,200),diet:$("diet").value.trim().slice(0,120)};
+        const rec={...extraF(old&&rawFeed(old.id)),twin:tw,i:TWINS.indexOf(tw),t,v:Math.round(v*10)/10,note:note.slice(0,200),diet:$("diet").value.trim().slice(0,120)};
         if(old && old.diet && old.t===t) rec.diet=old.diet;    // keep the diet it was charted under
         const id=feedId(rec);
         await Store.setFeed(id,rec);
         if(old && old.id!==id) await Store.delFeed(old.id);
+        followFeed(rec.i,t,rec.v);
         undoBar(`Saved ${opt.note&&!rec.v?opt.note.toLowerCase():rec.v+" mL"} · ${tw} · ${hm(t)}`, async()=>{
           const cur=F.find(x=>x.id===id); if(cur && cur.by && cur.by!==myEmail && (cur.v!==rec.v || cur.note!==rec.note) && !confirm(`${whoName(cur.by)} changed this feed after you saved it. Undo anyway?`)) return false;
-          if(old){ await Store.setFeed(old.id,strip(old)); if(old.id!==id) await Store.delFeed(id); } else await Store.delFeed(id); });
+          if(old){ await Store.setFeed(old.id,strip(old)); if(old.id!==id) await Store.delFeed(id); } else await Store.delFeed(id);
+          followFeed(rec.i,t,old?old.v:null); });
       }
       return true;
     }catch(err){ failWrite(err); inp.value=old?old.v:""; return false; }
@@ -1388,7 +1396,8 @@
     if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Delete?"; setTimeout(()=>{ if(b.isConnected){b.classList.remove("armed"); b.textContent="×";} },3000); return; }
     const id=b.dataset.id, kind=b.dataset.kind||"feed";
     try{
-      if(kind==="feed"){ const old=F.find(f=>f.id===id); await Store.delFeed(id); if(old) undoBar(`Deleted ${old.twin} feed · ${fmtWhen(old.t)}`, ()=>Store.setFeed(old.id,strip(old))); }
+      if(kind==="feed"){ const old=F.find(f=>f.id===id); await Store.delFeed(id); if(old){ followFeed(old.i,old.t,null);
+        undoBar(`Deleted ${old.twin} feed · ${fmtWhen(old.t)}`, async()=>{ await Store.setFeed(old.id,strip(old)); followFeed(old.i,old.t,old.v); }); } }
       else if(kind==="weight"){ const old=Object.values(W).find(w=>w.id===id); await Store.delWeight(id);
         if(old) undoBar(`Deleted ${old.twin} weight · ${md(old.date)}`, ()=>Store.setWeight(id,wRec(old))); }
       else { const col=kind==="pump"?"pumps":"drops", list=kind==="pump"?P:D, old=list.find(x=>x.id===id); await Store.remove(col,id);
@@ -1398,10 +1407,12 @@
   $("moreBtn").addEventListener("click",()=>{ state.logN+=40; renderLog(); });
   $("csvBtn").addEventListener("click", async ()=>{
     const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
-    const rows=[["datetime","twin","type","value","unit","pct_of_full_feed","estimated","note","diet"]];
+    const rows=[["datetime","twin","type","value","unit","pct_of_full_feed","estimated","note","diet","milk_mother_ml","milk_donor_ml","milk_formula_ml"]];
     TWINS.forEach(tw=>rows.push([new Date(BIRTH[tw].t).toISOString(),q(tw),"birth weight",BIRTH[tw].g,"g","","",""]));
     Object.values(W).sort((a,b)=>a.date<b.date?-1:1).forEach(w=>rows.push([new Date(nightT(w.date)).toISOString(),q(w.twin),"weight",w.v,"g","",w.approx?"yes":"",""]));
-    [...F].sort((a,b)=>a.t-b.t).forEach(f=>rows.push([new Date(f.t).toISOString(),q(f.twin),"PO feed",f.v,"mL",Math.round(f.v/FULL[f.twin]*100),"",q(f.note),q(f.diet)]));
+    // Milk-source columns: the recorded (actual) mL per source for that feed; blank when it follows usual milk or isn't recorded.
+    [...F].sort((a,b)=>a.t-b.t).forEach(f=>{ const a=allocForFeed(f), m=a?MS.SRC.map(k=>a.mL10[k]/10):["","",""];
+      rows.push([new Date(f.t).toISOString(),q(f.twin),"PO feed",f.v,"mL",Math.round(f.v/FULL[f.twin]*100),"",q(f.note),q(f.diet),...m]); });
     [...P].sort((a,b)=>a.t-b.t).forEach(x=>rows.push([new Date(x.t).toISOString(),"","pump",x.v,"mL","","","",""]));
     [...D].sort((a,b)=>a.t-b.t).forEach(x=>rows.push([new Date(x.t).toISOString(),"","nicu drop-off",x.v,"mL","","","",""]));
     const csv=rows.map(r=>r.join(",")).join("\n");
@@ -1477,6 +1488,7 @@
     const rows=parseCSV($("impBox").value.trim()); if(rows.length<2){ $("impMsg").textContent="Nothing to import."; return; }
     const h=rows[0].map(x=>x.trim().toLowerCase()), ix=n=>h.indexOf(n);
     const iT=ix("datetime"), iTw=ix("twin"), iTy=ix("type"), iV=ix("value"), iE=ix("estimated"), iN=ix("note"), iD=ix("diet");
+    const iM=["milk_mother_ml","milk_donor_ml","milk_formula_ml"].map(ix); let srcN=0, srcSkip=0;
     if(iT<0||iTw<0||iTy<0||iV<0){ $("impMsg").textContent="Header row not recognised."; return; }
     let w=0,f=0,skip=0; $("impGo").disabled=true;
     try{
@@ -1488,10 +1500,15 @@
         if(ty==="weight" ? (v<800||v>8000) : ty.includes("feed") && (v<0||v>150)){ skip++; continue; }
         if(ty==="weight"){ const date=dKey(new Date(t)); const ow=W[tw+"|"+date]; await Store.setWeight(weightId(tw,date),{twin:tw,i:TWINS.indexOf(tw),date,v:Math.round(v),approx:(r[iE]||"")==="yes"}); if(ow&&ow.id!==weightId(tw,date)) await Store.delWeight(ow.id); w++; }
         else if(ty.includes("feed")){ const rec={twin:tw,i:TWINS.indexOf(tw),t,v,note:iN>=0?(r[iN]||"").slice(0,200):"",diet:iD>=0?(r[iD]||"").slice(0,120):""}; const id=feedId(rec);
-          if(F.some(x=>x.twin===tw&&x.t===t)){ skip++; continue; } await Store.setFeed(id,rec); f++; }
+          const dup=F.some(x=>x.twin===tw&&x.t===t);
+          if(!dup){ await Store.setFeed(id,rec); f++; } else skip++;
+          // Milk sources (merge-only, like the feed): an allocation for that feed's scheduled occurrence, if none exists
+          // and the parts reconcile exactly to the feed's amount (or, for a tube/skipped feed, the scheduled amount).
+          if(iM.every(k=>k>=0) && iM.some(k=>(r[k]||"").trim()!=="")){ const res=await importAlloc(rec.i,t,iM.map(k=>parseFloat(r[k])||0),v); res?srcN++:srcSkip++; }
+          continue; }
         else skip++;
       }
-      $("impMsg").textContent=`Imported ${w} weights, ${f} feeds${skip?`, skipped ${skip}`:""}.`; $("impBox").value="";
+      $("impMsg").textContent=`Imported ${w} weights, ${f} feeds${srcN?`, ${srcN} milk sources`:""}${skip?`, skipped ${skip}`:""}${srcSkip?` (${srcSkip} milk sources didn't add up and were left out)`:""}.`; $("impBox").value="";
     }catch(err){ failWrite(err); $("impMsg").textContent=`Stopped after ${w} weights, ${f} feeds.`; }
     finally{ $("impGo").disabled=false; }
   });
@@ -1606,7 +1623,7 @@
     return Object.keys(days).sort().reverse().map(day=>({day, items:days[day].sort((a,b)=>b.t-a.t)}));
   }
   const addDays = (k,n) => { const d=keyDate(k); d.setDate(d.getDate()+n); return dKey(d); };
-  window.__nicu = { buildTimeline, validEvent };   // read-only, for tests
+  window.__nicu = { buildTimeline, validEvent };   // for tests (milk sources add .src below)
 
   // Firsts (from your logs) and date milestones: suggestions only (D9). Nothing is saved until a parent taps Add.
   const jDismissed = () => { try{ return new Set(JSON.parse(localStorage.getItem("jDismiss")||"[]")); }catch{ return new Set(); } };
@@ -1869,7 +1886,17 @@
 
   // ---------- milk log ----------
   let P=[], D=[], milkCfg=null, mkN=20;     // pumps, NICU drop-offs, {count,t} correction
-  const need = () => TWINS.reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for both babies
+  // ---------- milk sources (Phase 2b, milk-sources.js) ----------
+  // A family that has never configured sources (no allocations, usual-milk entries or schedule periods) uses the
+  // original code paths below, untouched. Once configured, the estimate walks the schedule history (each occurrence keeps
+  // the schedule and scheduled amount it had) and charges only the mother's-milk share of each scheduled amount.
+  const MS = window.MilkSources;
+  let ALLOC={}, USUAL=[], PERIODS=[], CLIENTS={};
+  const srcOn = () => PERIODS.length>0 || USUAL.length>0 || Object.keys(ALLOC).length>0;
+  const livePeriod = () => ({id:"s-0-live", from:0, ...MS.periodFromProfile(profile)});   // before the first saved period
+  const srcState = () => ({periods: PERIODS.length?PERIODS:[livePeriod()], usual:USUAL, alloc:ALLOC});
+  const legacyNeed = () => TWINS.reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for both babies
+  const need = () => srcOn() ? MS.needPerDay10(srcState(),Date.now())/10 : legacyNeed();
   // Same estimate as before, returned with its parts so the screen can show the working.
   function stockParts(){
     const now=Date.now(), base=milkCfg&&isFinite(milkCfg.t)?milkCfg:null;
@@ -1878,10 +1905,12 @@
     const after = drops.filter(d=> base ? d.t>start : true);
     const added = after.reduce((a,d)=>a+d.v,0), used=usedSince(start,now);
     return {base, start, first: base?null:drops[0], added, nDrops:after.length, used, nFeeds:feedsSince(start,now),
+      src: srcOn() ? MS.usage(srcState(),start,now) : null,      // the working by source (shown in B2)
       est: Math.max(0, (base?base.count:0) + added - used)};
   }
   function stock(){ const p=stockParts(); return p ? p.est : null; }
   function feedsSince(start,end){   // how many scheduled feeds the estimate subtracted (display only)
+    if(srcOn()) return MS.usage(srcState(),start,end).n;
     let n=0, day=feedDay(start); const last=feedDay(end);
     for(let guard=0; day<=last && guard<400; guard++){
       TWINS.forEach(tw=>SLOT_H.forEach((_,i)=>{ const t=slotT(tw,day,i); if(t>start && t<=end) n++; }));
@@ -1891,6 +1920,7 @@
   }
   // Each scheduled feed uses that baby's full feed (by mouth + tube), taken out at the feed time.
   function usedSince(start,end){
+    if(srcOn()) return MS.usage(srcState(),start,end).mom10/10;   // mother's milk only (tenths, exact)
     let used=0, day=feedDay(start); const last=feedDay(end);
     for(let guard=0; day<=last && guard<400; guard++){
       TWINS.forEach(tw=>SLOT_H.forEach((_,i)=>{ const t=slotT(tw,day,i); if(t>start && t<=end) used+=FULL[tw]; }));
@@ -1899,10 +1929,104 @@
     return used;
   }
   function nextUse(){ // next feed time that draws on the stock, and how much
+    if(srcOn()){ const n=MS.nextDraw(srcState(),Date.now()); return n ? {t:n.t, tw:TWINS[n.i], ml:n.mom10/10} : null; }
     const now=Date.now(), day=feedDay(now), d=keyDate(day); d.setDate(d.getDate()+1);
     const slots=[day,dKey(d)].flatMap(k=>TWINS.flatMap(tw=>SLOT_H.map((_,i)=>({tw,t:slotT(tw,k,i)})))).filter(x=>x.t>now).sort((a,b)=>a.t-b.t);
     return slots.length ? {t:slots[0].t, tw:slots[0].tw, ml:FULL[slots[0].tw]} : null;
   }
+  // ---- milk-source writes (logic only; the screens that call these arrive in Phase 2b B2) ----
+  const rand4 = () => (Math.random().toString(36).slice(2,6)+"0000").slice(0,4);
+  const strayWin = () => Math.min(90, (24/FEEDS_PER_DAY)*30)*60e3;             // the same window slotFeed() uses
+  // The logged feed for baby i at occurrence t (exact slot, else the nearest within the stray window), as slotFeed() matches.
+  const feedAt = (i,t) => F.find(f=>f.i===i && f.t===t) || F.filter(f=>f.i===i && Math.abs(f.t-t)<strayWin()).sort((a,b)=>Math.abs(a.t-t)-Math.abs(b.t-t))[0] || null;
+  // The occurrence a feed belongs to: its own time if scheduled, else the nearest scheduled time within the window.
+  function occForFeed(i,t){ const st=srcState(), o=MS.occurrenceAt(st.periods,i,t); if(o) return o;
+    return MS.occurrences(st.periods,i,t-strayWin(),t+strayWin()).sort((a,b)=>Math.abs(a.t-t)-Math.abs(b.t-t))[0] || null; }
+  function allocForFeed(f){ const o=occForFeed(f.i,f.t), a=o&&ALLOC[`b${f.i}-${o.t}`]; return a&&a.state==="set"?a:null; }
+  // The first configuration of any source records the current schedule as the family's first period (from 0), which
+  // reproduces exactly the grid the estimate already uses, so no number changes at that moment.
+  async function ensurePeriods(){
+    if(PERIODS.length) return;
+    // Guardrail: tracking starts only once every member's phone runs a version that understands milk sources.
+    if(!srcOn()){ if(!famInfo && Store.familyInfo) famInfo=await Store.familyInfo().catch(()=>null);
+      if(!sourcesReady()) throw Object.assign(new Error("Update the app on both phones first."),{code:"not-ready"}); }
+    const id=`s-0-${rand4()}`, rec={from:0, ...MS.periodFromProfile(profile), src:"first-use"};
+    if(!profile || !MS.validPeriod(id,{...rec,by:""})) throw Object.assign(new Error("Set up the babies first."),{code:"invalid"});
+    await Store.create("schedPeriods",id,rec);
+    if(!PERIODS.length) PERIODS=[{id,...rec,by:myEmail}];
+  }
+  // A new schedule period from `from` (setup save: now; B2: an old-app change the parent has confirmed).
+  async function recordPeriod(from,src,prof){
+    const id=`s-${from}-${rand4()}`, rec={from, ...MS.periodFromProfile(prof||profile), src};
+    if(!MS.validPeriod(id,{...rec,by:""})) throw Object.assign(new Error("Feed times couldn't be recorded."),{code:"invalid"});
+    await Store.create("schedPeriods",id,rec); return id;
+  }
+  // Usual milk for baby i from now on (whole percentages totalling exactly 100, or null = Not recorded). Never backdated.
+  async function setUsual(i,pct){
+    if(!(i===0||i===1) || !MS.validPct(pct)) return {error:"invalid"};
+    try{ await ensurePeriods(); }catch(e){ return {error:e.code||"invalid"}; }
+    const from=Date.now(), id=`u-${i}-${from}-${rand4()}`;
+    await Store.create("milkUsual",id,{i,from,pct}); return {id};
+  }
+  // Undo a usual-milk entry: delete it only if no feed time for that baby fell since it took effect; otherwise add an
+  // entry restoring the previous setting, so no estimate already shown changes.
+  async function undoUsual(id){
+    const e=USUAL.find(u=>u.id===id); if(!e) return {error:"gone"};
+    if(MS.undoCanDelete(srcState(),e,Date.now())){ await Store.remove("milkUsual",id); return {deleted:true}; }
+    const prev=MS.usualAt(USUAL.filter(u=>u.id!==id),e.i,e.from);
+    return {restored:true, ...(await setUsual(e.i, prev?prev.pct:null))};
+  }
+  // Per-feed sources for occurrence (i, t). mL10: {mom, donor, formula} in tenths of a mL that total exactly the
+  // reference (the logged by-mouth amount, or the scheduled amount for a tube/skipped/unlogged feed); null = follow
+  // usual milk again. seenRev: the rev the screen showed (0 when it showed none) — a different stored rev is a conflict.
+  async function setAlloc(i,t,mL10,seenRev){
+    try{ await ensurePeriods(); }catch(e){ return {error:e.code||"invalid"}; }
+    const occ=MS.occurrenceAt(srcState().periods,i,t); if(!occ) return {error:"not-scheduled"};
+    const id=`b${i}-${t}`, cur=ALLOC[id], curRev=cur?cur.rev:0;
+    if(seenRev!==curRev) return {conflict:true, current:cur};
+    let rec;
+    if(mL10==null){ if(!cur || cur.state==="usual") return {unchanged:true}; rec={i,t,state:"usual",mL10:null,total10:null,basis:null}; }
+    else {
+      const m={mom:mL10.mom,donor:mL10.donor,formula:mL10.formula}, tot=m.mom+m.donor+m.formula, f=feedAt(i,t), ref=MS.reference(occ,f?f.v:null);
+      if(!MS.SRC.every(k=>Number.isInteger(m[k])&&m[k]>=0) || tot!==ref.total10) return {error:"mismatch", ref};
+      rec={i,t,state:"set",mL10:m,total10:tot,basis:ref.basis};
+    }
+    Object.assign(rec,{rev:curRev+1, editT:Date.now(), editBy:myEmail}); if(cur&&cur.by) rec.by=cur.by;
+    return {id, rev:rec.rev, ...(await Store.guardedPut("slotMilk",id,rec))};
+  }
+  // One tap: the whole reference amount from one source.
+  function singleAlloc(i,t,src,seenRev){
+    const occ=MS.occurrenceAt(srcState().periods,i,t); if(!occ || !MS.SRC.includes(src)) return Promise.resolve({error:"not-scheduled"});
+    const f=feedAt(i,t), ref=MS.reference(occ,f?f.v:null), m={mom:0,donor:0,formula:0}; m[src]=ref.total10;
+    return setAlloc(i,t,m,seenRev);
+  }
+  // After a feed is saved, cleared or restored by Undo: a single-source allocation follows the new amount; a mixed one
+  // is left alone (it shows as a mismatch). v = the feed's by-mouth amount now, or null when no feed is logged.
+  function followFeed(i,t,v){
+    if(!srcOn()) return;
+    const occ=occForFeed(i,t); if(!occ) return;
+    const id=`b${i}-${occ.t}`, cur=ALLOC[id], nx=cur&&MS.follow(cur,MS.reference(occ,v)); if(!nx) return;
+    const rec={i,t:occ.t,state:"set",...nx,rev:cur.rev+1,editT:Date.now(),editBy:myEmail}; if(cur.by) rec.by=cur.by;
+    Promise.resolve(Store.guardedPut("slotMilk",id,rec)).catch(()=>{});
+  }
+  // CSV import: create an allocation for the feed's occurrence if none exists and the parts reconcile exactly.
+  async function importAlloc(i,t,mL,v){
+    try{ await ensurePeriods(); }catch{ return false; }
+    const occ=occForFeed(i,t); if(!occ || ALLOC[`b${i}-${occ.t}`]) return false;
+    const m={mom:Math.round(mL[0]*10),donor:Math.round(mL[1]*10),formula:Math.round(mL[2]*10)}, ref=MS.reference(occ,v);
+    if(m.mom<0||m.donor<0||m.formula<0||m.mom+m.donor+m.formula!==ref.total10) return false;
+    const r=await Store.guardedPut("slotMilk",`b${i}-${occ.t}`,{i,t:occ.t,state:"set",mL10:m,total10:ref.total10,basis:ref.basis,rev:1,editT:Date.now(),editBy:myEmail});
+    return !(r&&(r.conflict||r.refused));
+  }
+  // A phone on an older app changed the schedule (the profile no longer matches the period in effect). Reported only:
+  // the effective time is never assumed; B2 shows it and asks a parent, then records it with recordPeriod(from,"observed").
+  const scheduleDrift = () => PERIODS.length ? MS.drift(srcState(),profile,Date.now()) : null;
+  // Milk-source tracking may start only when every current member's phone runs this version (or later).
+  const sourcesReady = () => !!(famInfo && MS.allReady(famInfo.members.map(m=>m.uid),CLIENTS,MS.CLIENT_V));
+  window.__nicu.src = Object.freeze({ setUsual, undoUsual, setAlloc, singleAlloc, recordPeriod, scheduleDrift, sourcesReady,
+    stranded:()=>MS.stranded(srcState()), on:srcOn, state:()=>JSON.parse(JSON.stringify(srcState())),
+    usage:(a,b)=>MS.usage(srcState(),a,b), parts:()=>{ const p=stockParts(); return p&&JSON.parse(JSON.stringify(p)); },
+    need, nextUse:()=>nextUse(), legacyNeed, allocForFeed:id=>{ const f=F.find(x=>x.id===id); return f?allocForFeed(f):null; } });
   const agoShort = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`; };
   const ago = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`; };
   function renderMilk(){
@@ -2041,7 +2165,14 @@
       unsubs.push(Store.watch("plans",list=>{ RAW.plans=list; PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
       // Collections with no screen yet (events, needs: Phase 2+) are watched only so backups carry them.
       bkCols().filter(c=>!["weights","feeds","pumps","drops","checklist","plans","questions"].includes(c)).forEach(c=>unsubs.push(Store.watch(c,list=>{ RAW[c]=list;
-        if(c==="events"){ EV=list.map(([id,d])=>cleanE(id,d)).filter(Boolean); renderJourney(); } }, ()=>{})));
+        if(c==="events"){ EV=list.map(([id,d])=>cleanE(id,d)).filter(Boolean); renderJourney(); }
+        // Milk sources: only documents that pass the same validation as the rules are used.
+        if(c==="slotMilk"){ ALLOC={}; list.forEach(([id,d])=>{ if(MS.validAlloc(id,d)) ALLOC[id]=d; }); renderMilk(); }
+        if(c==="milkUsual"){ USUAL=list.filter(([id,d])=>MS.validUsual(id,d)).map(([id,d])=>({id,...d})); renderMilk(); }
+        if(c==="schedPeriods"){ PERIODS=list.filter(([id,d])=>MS.validPeriod(id,d)).map(([id,d])=>({id,...d})); renderMilk(); } }, ()=>{})));
+      // This phone's app version, and every member's, so milk-source tracking waits until both phones are updated.
+      if(Store.markClient){ unsubs.push(Store.watch("clients",list=>{ CLIENTS={}; list.forEach(([id,d])=>{ if(d&&Number.isInteger(d.v)) CLIENTS[id]=d; }); }, ()=>{}));
+        Promise.resolve(Store.markClient(MS.CLIENT_V)).catch(()=>{}); }
       if(Store.watchPrivate) bkPriv().forEach(n=>unsubs.push(Store.watchPrivate(n,list=>{ RAWP[n]=list; }, ()=>{})));
       unsubs.push(Store.watch("questions",list=>{ RAW.questions=list; QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ RAWC.milk=c; milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
@@ -2105,7 +2236,12 @@
       if(o.name && o.name!==t.name) aka.add(o.name); aka.delete(t.name); aka.delete(p.twins[1-i].name); if(aka.size) t.aka=[...aka].slice(-10); });
     const renamed=profile && p.twins.some((t,i)=>t.name!==profile.twins[i].name);
     $("suSave").disabled=true;
-    try{ await Store.setProfile(p); if(renamed){ try{ localStorage.removeItem("view"); }catch{} flash("Renamed — every entry follows the new name."); } }
+    try{
+      // Families using milk sources: a change to feed times or a full-feed amount starts a new schedule period from now,
+      // so earlier feed times keep the schedule and scheduled amounts they had (never reinterpreted).
+      if(srcOn() && Store.create){ const st=srcState(), cur=MS.periodAt(MS.sortPeriods(st.periods),Date.now());
+        if(!MS.samePeriod(cur,MS.periodFromProfile(p))){ await ensurePeriods(); await recordPeriod(Date.now(),"setup",p); } }
+      await Store.setProfile(p); if(renamed){ try{ localStorage.removeItem("view"); }catch{} flash("Renamed — every entry follows the new name."); } }
     catch(err){ failWrite(err); }
     finally{ $("suSave").disabled=false; }
   });
@@ -2167,7 +2303,7 @@
         Store.family().then(f=>{ if(f) enterFamily(); else showFamily(); })
           .catch(err=>banner(err&&err.code==="cleanup-pending"?err.message:"Couldn't reach your family's data. Check your connection and reopen the app."));
       } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k])); EV=[];
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; ALLOC={}; USUAL=[]; PERIODS=[]; CLIENTS={}; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k])); EV=[];
         $("setup").style.display="none"; $("family").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
       }
     });

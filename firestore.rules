@@ -37,6 +37,42 @@ service cloud.firestore {
         && (!('ref' in d) || d.ref == null || (d.ref is map && d.ref.keys().hasOnly(['col', 'id']) && d.ref.col is string && d.ref.id is string));
     }
 
+    // Milk sources (Phase 2b). The same shapes the app enforces (milk-sources.js). Amounts are integer tenths of a mL.
+    function srcParts(m) {
+      return m is map && m.keys().hasAll(['mom', 'donor', 'formula']) && m.keys().hasOnly(['mom', 'donor', 'formula'])
+        && m.mom is int && m.donor is int && m.formula is int && m.mom >= 0 && m.donor >= 0 && m.formula >= 0;
+    }
+    // One allocation per scheduled occurrence: the id is derived from (baby index, occurrence time).
+    function validAlloc(id, d) {
+      return d.keys().hasAll(['i', 't', 'state', 'mL10', 'total10', 'basis', 'rev', 'by', 'editT', 'editBy'])
+        && d.keys().hasOnly(['i', 't', 'state', 'mL10', 'total10', 'basis', 'rev', 'by', 'editT', 'editBy'])
+        && d.i in [0, 1] && d.t is int && id == 'b' + string(d.i) + '-' + string(d.t)
+        && d.rev is int && d.rev >= 1 && d.by is string && d.editBy is string && d.editT is number
+        && ((d.state == 'usual' && d.mL10 == null && d.total10 == null && d.basis == null)
+          || (d.state == 'set' && srcParts(d.mL10) && d.total10 is int && d.total10 > 0
+              && d.total10 == d.mL10.mom + d.mL10.donor + d.mL10.formula
+              // basis feed: the parts total the logged by-mouth amount, which the app already limits to 0–150 mL
+              && ((d.basis == 'feed' && d.total10 <= 1500) || d.basis == 'scheduled')));
+    }
+    // Usual-milk history: whole percentages that total exactly 100, or null ("Not recorded" from here on).
+    function validUsual(id, d) {
+      return d.keys().hasAll(['i', 'from', 'pct', 'by']) && d.keys().hasOnly(['i', 'from', 'pct', 'by'])
+        && d.i in [0, 1] && d.from is int && d.from >= 0 && d.by is string
+        && id.matches('u-' + string(d.i) + '-' + string(d.from) + '-[a-z0-9]{4}')
+        && (d.pct == null || (srcParts(d.pct) && d.pct.mom <= 100 && d.pct.donor <= 100 && d.pct.formula <= 100
+            && d.pct.mom + d.pct.donor + d.pct.formula == 100));
+    }
+    // Schedule history for families that use milk sources: the values the feed grid and scheduled amounts come from.
+    function validPeriod(id, d) {
+      return d.keys().hasAll(['from', 'everyH', 'startH', 'dayH', 'slotMin', 'full10', 'src', 'by'])
+        && d.keys().hasOnly(['from', 'everyH', 'startH', 'dayH', 'slotMin', 'full10', 'src', 'by'])
+        && d.from is int && d.from >= 0 && id.matches('s-' + string(d.from) + '-[a-z0-9]{4}')
+        && d.everyH in [2, 3, 4] && d.startH is int && d.startH >= 0 && d.startH <= 23 && d.dayH is int && d.dayH >= 0 && d.dayH <= 12
+        && d.slotMin is list && d.slotMin.size() == 2 && d.slotMin[0] in [0, 30] && d.slotMin[1] in [0, 30]
+        && d.full10 is list && d.full10.size() == 2 && d.full10[0] is int && d.full10[1] is int && d.full10[0] > 0 && d.full10[1] > 0
+        && d.src in ['setup', 'first-use', 'observed'] && d.by is string;
+    }
+
     match /users/{uid} {
       allow read, delete: if signedIn() && request.auth.uid == uid;
       allow create, update: if signedIn() && request.auth.uid == uid
@@ -73,17 +109,46 @@ service cloud.firestore {
         allow delete: if signedIn() && (request.auth.uid == uid || owner(hid));
       }
 
-      // All shared family data: feeds, weights, pumps, drops, checklist, plans, questions, events, needs, config.
-      // `members`, `private`, `revoked` and `events` are excluded here on purpose (events have their own validated rule): Firestore rules are additive, so if this catch-all
+      // All shared family data: feeds, weights, pumps, drops, checklist, plans, questions, needs, config.
+      // `members`, `private`, `revoked`, `events`, `slotMilk`, `milkUsual`, `schedPeriods` and `clients` are excluded here on purpose (each has its own rule below): Firestore rules are additive, so if this catch-all
       // matched them, any family member could read another member's private subtree regardless of the rules below.
       match /{col}/{rest=**} {
-        allow read, write: if !(col in ['members', 'private', 'revoked', 'events']) && inFamily(hid);
+        allow read, write: if !(col in ['members', 'private', 'revoked', 'events', 'slotMilk', 'milkUsual', 'schedPeriods', 'clients']) && inFamily(hid);
       }
 
       // Journey events: family members read and delete; every create/update must match the event shape.
       match /events/{eid} {
         allow read, delete: if inFamily(hid);
         allow create, update: if inFamily(hid) && validEvent(request.resource.data);
+      }
+
+      // Milk-source allocations: create only when absent; every change must carry rev = stored rev + 1, so an edit made
+      // from a stale copy (two parents, or a phone that was offline) is refused instead of silently overwriting.
+      // "Use usual milk" is an update (state "usual"), not a delete; deletes are for Undo of a create and lifecycle.
+      match /slotMilk/{aid} {
+        allow read, delete: if inFamily(hid);
+        allow create: if inFamily(hid) && validAlloc(aid, request.resource.data);
+        allow update: if inFamily(hid) && validAlloc(aid, request.resource.data)
+          && request.resource.data.rev == resource.data.rev + 1
+          && request.resource.data.i == resource.data.i && request.resource.data.t == resource.data.t
+          && request.resource.data.editBy == request.auth.token.email.lower();
+      }
+      // Usual-milk and schedule history: append-only (create, or delete for Undo and lifecycle); never edited.
+      match /milkUsual/{uid} {
+        allow read, delete: if inFamily(hid);
+        allow create: if inFamily(hid) && validUsual(uid, request.resource.data);
+      }
+      match /schedPeriods/{pid} {
+        allow read, delete: if inFamily(hid);
+        allow create: if inFamily(hid) && validPeriod(pid, request.resource.data);
+      }
+      // Which app version each member's phone runs (milk-source tracking starts only once every phone is updated).
+      // Each person writes only their own; any member may delete (lifecycle), which only ever blocks, never unlocks.
+      match /clients/{cuid} {
+        allow read, delete: if inFamily(hid);
+        allow create, update: if inFamily(hid) && request.auth.uid == cuid
+          && request.resource.data.keys().hasAll(['v', 't']) && request.resource.data.keys().hasOnly(['v', 't'])
+          && request.resource.data.v is int && request.resource.data.v >= 1 && request.resource.data.t is number;
       }
 
       // Revocations (original family only): written by the owner when removing an allowlisted member. A revocation stays

@@ -3,7 +3,7 @@
   "private": true,
   "description": "Firestore security rules tests and real-Store integration tests against the local emulators (needs Java 11+, Playwright).",
   "scripts": {
-    "test": "firebase emulators:exec --only firestore,auth --project demo-twins \"node rules.test.js && node store.test.js\""
+    "test": "firebase emulators:exec --only firestore,auth --project demo-twins \"node rules.test.js && node store.test.js && node sources.rules.test.js && node sources.store.test.js && node mutate.js\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "3.0.4",

@@ -3,7 +3,10 @@
   "private": true,
   "description": "Smoke tests: run the app in headless Chromium against an in-memory Store with synthetic data. Needs Playwright with Chromium installed (npx playwright install chromium).",
   "scripts": {
-    "test": "node smoke.js"
+    "test": "node smoke.js && node sources.unit.js && node sources.test.js",
+    "smoke": "node smoke.js",
+    "unit": "node sources.unit.js",
+    "sources": "node sources.test.js"
   },
   "devDependencies": {
     "chart.js": "4.4.1"

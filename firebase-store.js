@@ -32,7 +32,9 @@ if (!window.Store) {
   const email = () => (me()?.email || "").toLowerCase();
   // The one place collection names live. Later phases add a name here once (e.g. photos, photoData, private photos);
   // deletion, cleanup and backup (index.html reads Store.lists) all follow.
-  const SHARED = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions", "events", "needs"];
+  const SHARED = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions", "events", "needs",
+    "slotMilk", "milkUsual", "schedPeriods"];         // milk sources (Phase 2b): allocations, usual-milk and schedule history
+  const META = ["clients"];                      // per-phone app version markers: deleted with the family, never backed up
   const PRIVATE = ["checkins"];                  // households/{hid}/private/{uid}/{name}: owner-only (see firestore.rules)
   const CONFIG = ["profile", "diet", "people", "milk"];
   const notReady = () => Object.assign(new Error("Not signed in to a family yet."), { code: "no-family" });
@@ -61,6 +63,25 @@ if (!window.Store) {
   // A late rejection (e.g. permission denied after the timeout) is reported via a "store-error" event.
   const w = p => { p.catch(err => window.dispatchEvent(new CustomEvent("store-error", { detail: err })));
     return Promise.race([p, new Promise(r => setTimeout(r, 1500))]); };
+
+  // Stable comparison of two stored documents (nested maps, any key order).
+  const canon = v => Array.isArray(v) ? v.map(canon) : v && typeof v === "object"
+    ? Object.keys(v).sort().reduce((o, k) => (o[k] = canon(v[k]), o), {}) : v;
+  const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+  // Guarded write (milk-source allocations): the rules accept a change only when rec.rev = stored rev + 1. If the server
+  // refuses it, read the server copy: identical to what we wrote → it was already saved (a resend after a lost
+  // acknowledgement), so it counts as saved; otherwise it's a real conflict, reported as code "conflict" with the
+  // current server copy (store-error), never retried or overwritten.
+  function guarded(ref, name, id, rec) {
+    const p = setDoc(ref, rec).then(() => ({ saved: true }), async err => {
+      if (!denied(err)) throw err;
+      const s = await getDocFromServer(ref).catch(() => null);
+      if (s && s.exists() && same(s.data(), rec)) return { saved: true, already: true };
+      throw Object.assign(new Error("Someone else changed this first."), { code: "conflict", name, id, current: s && s.exists() ? s.data() : null, cause: err });
+    });
+    p.catch(err => window.dispatchEvent(new CustomEvent("store-error", { detail: err })));
+    return Promise.race([p, new Promise(r => setTimeout(() => r({ pending: true }), 1500))]);
+  }
 
   // Which family is this person in? null = none yet (show create / join).
   async function family() {
@@ -178,6 +199,7 @@ if (!window.Store) {
     const u = me(), info = await familyStrict(), others = info.members.filter(m => m.uid !== u.uid);
     fault("purge"); await purgePrivate(HID, u.uid);
     if (info.owner === u.uid && others.length) { fault("transfer"); await updateDoc(doc(db, "households", HID), { owner: others[0].uid }); }
+    for (const c of META) await deleteDoc(doc(db, H, c, u.uid));
     fault("member"); await deleteDoc(doc(db, "households", HID, "members", u.uid));
     fault("pointer"); await deleteDoc(doc(db, "users", u.uid));
     try { localStorage.removeItem("hid:" + u.uid); } catch {}
@@ -193,7 +215,7 @@ if (!window.Store) {
       const info = await familyStrict(), others = info.members.filter(m => m.uid !== u.uid);
       if (!others.length) {
         fault("purge"); await purgePrivate(HID, u.uid);
-        fault("shared"); for (const c of SHARED) { const s = await getDocsFromServer(collection(db, H, c)); for (const d of s.docs) await deleteDoc(d.ref); }
+        fault("shared"); for (const c of [...SHARED, ...META]) { const s = await getDocsFromServer(collection(db, H, c)); for (const d of s.docs) await deleteDoc(d.ref); }
         fault("config"); for (const k of CONFIG) await deleteDoc(doc(db, H, "config", k));
         if (info.code) { fault("invite"); await deleteInvite(info.code); }
         if (info.exists) {   // the original family may never have had a family record
@@ -218,7 +240,7 @@ if (!window.Store) {
     signOut: () => signOut(auth),
     reset: e => sendPasswordResetEmail(auth, e),
     family, createFamily, joinFamily, familyInfo, newInvite, removeMember, leave, deleteAccount,
-    lists: Object.freeze({ shared: SHARED.slice(), private: PRIVATE.slice(), config: CONFIG.slice() }),
+    lists: Object.freeze({ shared: SHARED.slice(), private: PRIVATE.slice(), config: CONFIG.slice(), meta: META.slice() }),
     watchWeights: (cb, err) => watchCol("weights", cb, err),
     watchFeeds: (cb, err) => watchCol("feeds", cb, err),
     watchDiet: (cb, err) => onSnapshot(doc(db, H, "config", "diet"), d => cb(d.exists() ? d.data().text : null), err),
@@ -238,6 +260,17 @@ if (!window.Store) {
     // patch(name, id, fields): merge only these fields into an existing family document. Uses updateDoc, so it
     // fails (store-error) instead of recreating a document the other parent deleted; `by` is never changed.
     patch: (name, id, fields) => { const { by, ...f } = fields || {}; return w(updateDoc(doc(db, H, name, id), f)); },
+    // create(name, id, rec): history entries (milk sources). The rules make these create-only, so writing an id that
+    // already exists is refused (store-error) rather than changing history.
+    create: (name, id, rec) => w(setDoc(doc(db, H, name, id), { by: email(), ...rec })),
+    // guardedPut(name, id, rec): a full write whose rec.rev must be the stored rev + 1 (see guarded()). Resolves
+    // {saved} / {saved, already} / {pending} (offline, after 1.5 s); a conflict arrives later as store-error code "conflict".
+    guardedPut: (name, id, rec) => guarded(doc(db, H, name, id), name, id, { by: email(), ...rec, editBy: email() }),
+    // This phone's app version, so milk-source tracking can wait until every member's phone is updated.
+    markClient: async v => { const u = me(); if (!u || !HID) return; const ref = doc(db, H, "clients", u.uid);
+      const cur = await getDoc(ref).catch(() => null);
+      if (!cur || !cur.exists() || !(cur.data().v >= v)) return w(setDoc(ref, { v, t: Date.now() })); },
+    uid: () => (me() ? me().uid : null),
     // Private collections of the signed-in person only: households/{hid}/private/{auth uid}/{name}.
     watchPrivate: (name, cb, err) => {
       if (!me() || !HID) { setTimeout(() => cb([], { fromCache: true, pending: false })); return () => {}; }

@@ -9,7 +9,7 @@ const FB = "10.12.2";
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(path.join(out, "vendor"), { recursive: true });
 const copy = (rel, to = rel) => fs.cpSync(path.join(root, rel), path.join(out, to), { recursive: true });
-["firebase-config.js", "privacy.html", "manifest.webmanifest", "fonts", "icons"].forEach(f => copy(f));
+["firebase-config.js", "milk-sources.js", "privacy.html", "manifest.webmanifest", "fonts", "icons"].forEach(f => copy(f));
 
 const must = (s, from, to) => { if (!s.includes(from)) throw new Error(`build: expected to find ${from}`); return s.split(from).join(to); };
 let html = fs.readFileSync(path.join(root, "index.html"), "utf8");
