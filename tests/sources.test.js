@@ -68,7 +68,9 @@ async function main() {
     check("first use writes exactly one first-use period (from 0, today's schedule)", await p.evaluate(() => { const ps = Object.values(__db.schedPeriods); return ps.length === 1 && ps[0].from === 0 && ps[0].src === "first-use" && ps[0].everyH === 3; }));
     check("sources are now on", await p.evaluate(() => __nicu.src.on()));
     const S1 = await snap(p);
-    check("first use: every number and the Milk / Today text are identical to before", sameSnap(S1, S0), JSON.stringify([S0.parts, S1.parts]));
+    const num = x => JSON.stringify([x.parts, x.need, x.next, x.today]);
+    check("first use: every number (estimate, used, feeds, need, next draw) and the Today milk row are identical to before", num(S1) === num(S0), JSON.stringify([S0.parts, S1.parts]));
+    check("first use: the Milk tab now shows the working by source, with the same used total", S1.inv.includes("Mother's milk used by scheduled feeds since (" + S0.parts.nFeeds + ")") && S1.inv.includes("Not recorded"), S1.inv.slice(0, 300));
     check("0 / 0 / 100 is accepted", !(await p.evaluate(() => __nicu.src.setUsual(1, { mom: 0, donor: 0, formula: 100 }))).error);
     await p.context().close();
 

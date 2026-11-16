@@ -158,6 +158,19 @@ const periodOf = (cfg, from = 0, id = "s-0-aaaa") => ({ id, from, everyH: cfg.ev
   check("one phone not yet updated → not ready", !MS.allReady(["u1", "u2"], { u1: { v: 1 } }, 1) && !MS.allReady(["u1", "u2"], { u1: { v: 1 }, u2: { v: 0 } }, 1));
   check("no members known → not ready", !MS.allReady([], {}, 1));
 
+  // ---------- 8b. B2 additions: mixed / other counts and the single-source rule (Journey) ----------
+  const occM = { i: 0, t: t9, S10: 600 }, UM = [{ id: "u-0-0-aaaa", i: 0, from: 0, pct: { mom: 50, donor: 50, formula: 0 } }];
+  const um = MS.usage({ periods: P3, usual: UM, alloc: {} }, t9 - 1, t9);
+  check("usage counts a mixed occurrence and its mother's share, and any donor/formula as 'other'", um.mixed.n === 1 && um.mixed.mom10 === 300 && um.other.n === 1);
+  const umSingle = MS.usage({ periods: P3, usual: [{ ...UM[0], pct: { mom: 100, donor: 0, formula: 0 } }], alloc: {} }, t9 - 1, t9);
+  check("a single-source mother's-milk occurrence is neither mixed nor other", umSingle.mixed.n === 0 && umSingle.other.n === 0);
+  const R = (parts, how = "alloc") => ({ parts, how });
+  check("oneSource: a whole day of donor milk → donor", MS.oneSource([R([0, 600, 0]), R([0, 490, 0], "usual")]) === "donor");
+  check("oneSource: any mixed feed → none", MS.oneSource([R([0, 600, 0]), R([300, 300, 0])]) === null);
+  check("oneSource: any Not recorded feed → none", MS.oneSource([R([0, 600, 0]), R([600, 0, 0], "none")]) === null);
+  check("oneSource: different single sources → none", MS.oneSource([R([0, 600, 0]), R([0, 0, 600])]) === null);
+  check("oneSource: no feeds → none", MS.oneSource([]) === null);
+
   // ---------- 9. validation (same fixtures as the rules tests) ----------
   for (const [name, id, d] of FX.allocOk) check(`app accepts allocation: ${name}`, MS.validAlloc(id, d));
   for (const [name, id, d] of FX.allocBad) check(`app refuses allocation: ${name}`, !MS.validAlloc(id, d));

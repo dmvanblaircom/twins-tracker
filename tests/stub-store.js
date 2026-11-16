@@ -21,7 +21,7 @@
   if (window.__TEST_PROFILE) db.config.profile = copy(window.__TEST_PROFILE);
   // Same collection lists as firebase-store.js (Store.lists).
   const SHARED = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions", "events", "needs", "slotMilk", "milkUsual", "schedPeriods"],
-    PRIVATE = ["checkins"], CONFIG = ["profile", "diet", "people", "milk"], META = ["clients"];
+    PRIVATE = ["checkins"], CONFIG = ["profile", "diet", "people", "milk", "sources"], META = ["clients"];
   // Milk sources: the stub refuses what firestore.rules refuses (same validators as the app), so the browser tests
   // can't pass with data the real backend would reject. __TEST_WRITES logs every write attempt for the tests.
   const deny = (msg, extra) => { const e = Object.assign(new Error(msg), { code: "permission-denied", ...extra }); window.dispatchEvent(new CustomEvent("store-error", { detail: e })); return e; };
@@ -80,7 +80,7 @@
       if (VAL[n] && !window.MilkSources[VAL[n]](id, d)) { deny("invalid " + n); return { refused: true }; }
       if (cur && !(d.rev === cur.rev + 1 && d.i === cur.i && d.t === cur.t)) {
         if (same(cur, d)) return { saved: true, already: true };
-        const e = Object.assign(new Error("Someone else changed this first."), { code: "conflict", name: n, id, current: copy(cur) });
+        const e = Object.assign(new Error("Someone else changed this first."), { code: "conflict", name: n, id, current: copy(cur), mine: copy(d) });
         window.dispatchEvent(new CustomEvent("store-error", { detail: e })); return { conflict: true };
       }
       col(n)[id] = d; fire(n); return { saved: true }; },

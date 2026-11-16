@@ -139,12 +139,15 @@
   // The estimate over (start, end]: mother's milk charged, with the working by how each occurrence resolved.
   // src = {periods, usual, alloc (map id → doc)}. All sums are integers (tenths).
   function usage(src, start, end) {
-    const sum = { n: 0, mom10: 0, donor10: 0, formula10: 0, by: { alloc: { n: 0, mom10: 0 }, usual: { n: 0, mom10: 0 }, none: { n: 0, mom10: 0 } }, sched10: 0 };
+    const sum = { n: 0, mom10: 0, donor10: 0, formula10: 0, by: { alloc: { n: 0, mom10: 0 }, usual: { n: 0, mom10: 0 }, none: { n: 0, mom10: 0 } }, sched10: 0,
+      mixed: { n: 0, mom10: 0 }, other: { n: 0 } };   // mixed = more than one source; other = any donor milk or formula
     for (const i of [0, 1]) for (const o of occurrences(src.periods, i, start, end)) {
       const r = resolve(o, src.alloc[`b${i}-${o.t}`], src.usual);
       sum.n++; sum.sched10 += o.S10;
       sum.mom10 += r.parts[0]; sum.donor10 += r.parts[1]; sum.formula10 += r.parts[2];
       sum.by[r.how].n++; sum.by[r.how].mom10 += r.parts[0];
+      if (r.parts.filter(x => x > 0).length > 1) { sum.mixed.n++; sum.mixed.mom10 += r.parts[0]; }
+      if (r.parts[1] + r.parts[2] > 0) sum.other.n++;
     }
     return sum;
   }
@@ -191,7 +194,15 @@
   // Milk-source tracking may begin only once every current member's phone runs a version that understands it.
   const allReady = (memberUids, clients, v) => memberUids.length > 0 && memberUids.every(u => clients[u] && isInt(clients[u].v) && clients[u].v >= v);
 
-  const api = { SRC, slotHours, periodFromProfile, samePeriod, sortPeriods, periodAt, occurrences, occurrenceAt, split,
+  // The single source a set of resolved occurrences all used ("mom" / "donor" / "formula"), or null when any was mixed,
+  // Not recorded, or they differ (Journey shows a source only when the whole day was one source).
+  function oneSource(resolved) {
+    let src = null;
+    for (const r of resolved) { if (r.how === "none") return null; const nz = SRC.filter((s, k) => r.parts[k] > 0);
+      if (nz.length !== 1 || (src && src !== nz[0])) return null; src = nz[0]; }
+    return src;
+  }
+  const api = { oneSource, SRC, slotHours, periodFromProfile, samePeriod, sortPeriods, periodAt, occurrences, occurrenceAt, split,
     validAlloc, validPct, validUsual, validPeriod, usualAt, resolve, usage, nextDraw, needPerDay10,
     reference, reconciles, follow, stranded, undoCanDelete, drift, allReady, CLIENT_V: 1 };
   if (typeof module === "object" && module.exports) module.exports = api; else root.MilkSources = Object.freeze(api);

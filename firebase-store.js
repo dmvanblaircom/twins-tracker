@@ -36,7 +36,7 @@ if (!window.Store) {
     "slotMilk", "milkUsual", "schedPeriods"];         // milk sources (Phase 2b): allocations, usual-milk and schedule history
   const META = ["clients"];                      // per-phone app version markers: deleted with the family, never backed up
   const PRIVATE = ["checkins"];                  // households/{hid}/private/{uid}/{name}: owner-only (see firestore.rules)
-  const CONFIG = ["profile", "diet", "people", "milk"];
+  const CONFIG = ["profile", "diet", "people", "milk", "sources"];   // sources: milk-source tracking switched on (never backed up)
   const notReady = () => Object.assign(new Error("Not signed in to a family yet."), { code: "no-family" });
   // Private collection of the signed-in person. The uid always comes from Firebase Auth, never from the caller.
   const priv = name => { const u = me(); if (!u || !HID) throw notReady(); return collection(db, "households", HID, "private", u.uid, name); };
@@ -77,7 +77,7 @@ if (!window.Store) {
       if (!denied(err)) throw err;
       const s = await getDocFromServer(ref).catch(() => null);
       if (s && s.exists() && same(s.data(), rec)) return { saved: true, already: true };
-      throw Object.assign(new Error("Someone else changed this first."), { code: "conflict", name, id, current: s && s.exists() ? s.data() : null, cause: err });
+      throw Object.assign(new Error("Someone else changed this first."), { code: "conflict", name, id, current: s && s.exists() ? s.data() : null, mine: rec, cause: err });
     });
     p.catch(err => window.dispatchEvent(new CustomEvent("store-error", { detail: err })));
     return Promise.race([p, new Promise(r => setTimeout(() => r({ pending: true }), 1500))]);
