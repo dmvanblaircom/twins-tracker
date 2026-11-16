@@ -1676,13 +1676,28 @@
       + (all.length>1 && !jSugAll ? `<button class="link" type="button" data-sg="more">${all.length-1} more suggestion${all.length===2?"":"s"}</button>` : "");
   }
   $("jMore").addEventListener("click",()=>{ jDays+=14; renderJourney(); });
+  // Undo for journey entries never silently overwrites the other parent's later change (same rule as feeds and weights).
+  // op: "new" (undo removes what I added), "edit" (undo restores my earlier version), "delete" (undo puts it back).
+  // mineT: the editT I wrote with the save being undone (null for delete).
+  function evUndo(op, id, mineT, action){
+    return async ()=>{
+      const cur=EV.find(x=>x.id===id), other = cur && cur.editBy && cur.editBy!==myEmail, name = cur && (whoName(cur.editBy)||"The other parent");
+      if(op==="new"){ if(!cur) return false;   // already gone: nothing to undo
+        if(cur.editT!==mineT && other && !confirm(`${name} changed this after you saved it. Remove it anyway?`)) return false; }
+      else if(op==="edit"){
+        if(!cur){ if(!confirm("This was removed after you saved it. Put your earlier version back?")) return false; }
+        else if(cur.editT!==mineT && other && !confirm(`${name} changed this after you saved it. Undo anyway?`)) return false; }
+      else if(op==="delete"){ if(cur && other && !confirm(`${name} has since added this back. Replace it with your earlier version?`)) return false; }
+      return action();
+    };
+  }
   $("jSuggest").addEventListener("click", async e=>{
     const b=e.target.closest("[data-sg]"); if(!b) return; if(b.dataset.sg==="more"){ jSugAll=true; renderJourney(); return; }
     const card=b.closest(".jsug"), key=card.dataset.key, i=+card.dataset.i;
     const x=suggestions().find(s=>s.key===key && s.i===i); if(!x) return;
     if(b.dataset.sg==="dismiss"){ const g=jDismissed(); g.add(key+"|"+i); try{ localStorage.setItem("jDismiss",JSON.stringify([...g])); }catch{} renderJourney(); return; }
     const now=Date.now(), id=evId(now), rec={kind:"milestone",scope:"baby",i,key,t:x.t,title:FIRSTS[key],note:"",ref:x.ref||null,src:null,createdT:now,editT:now,editBy:myEmail};
-    try{ await Store.put("events",id,rec); undoBar("Saved to your journey", ()=>Store.remove("events",id)); }catch(err){ failWrite(err); }
+    try{ await Store.put("events",id,rec); undoBar("Saved to your journey", evUndo("new",id,now,()=>Store.remove("events",id))); }catch(err){ failWrite(err); }
   });
 
   // ---- Add / edit sheet ----
@@ -1742,26 +1757,26 @@
       if(!mState.id){
         const id=evId(now), rec={...f,ref:null,src:null,createdT:now,editT:now,editBy:myEmail};
         if(!validEvent(rec)){ $("mMsg").textContent="That can't be saved — check the details."; return; }
-        await Store.put("events",id,rec); closeMoment(); undoBar("Saved to your journey", ()=>Store.remove("events",id)); return;
+        await Store.put("events",id,rec); closeMoment(); undoBar("Saved to your journey", evUndo("new",id,now,()=>Store.remove("events",id))); return;
       }
       const id=mState.id, old=RAW.events&&RAW.events.find(([x])=>x===id), cur=EV.find(x=>x.id===id);
       if(!cur){   // removed meanwhile (by the other parent or another phone)
         if(!confirm("This was removed from your journey. Save yours as a new entry?")) return;
         const nid=evId(now), rec={...f,ref:null,src:null,createdT:now,editT:now,editBy:myEmail};
-        await Store.put("events",nid,rec); closeMoment(); undoBar("Saved to your journey", ()=>Store.remove("events",nid)); return;
+        await Store.put("events",nid,rec); closeMoment(); undoBar("Saved to your journey", evUndo("new",nid,now,()=>Store.remove("events",nid))); return;
       }
       if(`${cur.editT}|${cur.editBy}`!==mState.had && cur.editBy && cur.editBy!==myEmail && !confirm(`${whoName(cur.editBy)||"The other parent"} just edited this. Replace their changes with yours?`)) return;
       const before=evRec(cur), fields={kind:f.kind,scope:f.scope,i:f.i,key:f.key,t:f.t,title:f.title,note:f.note,editT:now,editBy:myEmail};
       if(cur.ref){ fields.kind=cur.kind; fields.key=cur.key; fields.scope=cur.scope; fields.i=cur.i; if(!$("mTitle").value.trim()) fields.title=cur.title; }   // a saved first keeps its link
       if(!validEvent({...before,...fields})){ $("mMsg").textContent="That can't be saved — check the details."; return; }
       await Store.patch("events",id,fields); closeMoment();
-      undoBar("Saved to your journey", ()=>Store.put("events",id,before));
+      undoBar("Saved to your journey", evUndo("edit",id,now,()=>Store.put("events",id,before)));
     }catch(err){ failWrite(err); }
   });
   $("mDel").addEventListener("click", async ()=>{
     if(!mState||!mState.id) return; const cur=EV.find(x=>x.id===mState.id); if(!cur){ closeMoment(); return; }
     const before=evRec(cur), id=cur.id;
-    try{ await Store.remove("events",id); closeMoment(); undoBar("Removed from your journey", ()=>Store.put("events",id,before)); }catch(err){ failWrite(err); }
+    try{ await Store.remove("events",id); closeMoment(); undoBar("Removed from your journey", evUndo("delete",id,null,()=>Store.put("events",id,before))); }catch(err){ failWrite(err); }
   });
   const twIdx = tw => TWINS.indexOf(tw);
   function ckRow(id,label,c){

@@ -455,6 +455,20 @@ async function main() {
       await J.click(`#jRail [data-ev="${holdId}"]`); await J.waitForTimeout(100); await J.click("#mDel"); await J.waitForTimeout(150);
       const gone = !(await J.evaluate(id => !!__db.events[id], holdId)); await J.click("#toast button"); await J.waitForTimeout(150);
       check("delete removes a moment and Undo brings it back", gone && await J.evaluate(id => !!__db.events[id], holdId));
+      // Undo never silently overwrites the other parent's later change
+      await sheet("0", "milestone", "first-story", null, "Goodnight Moon");
+      const stId = (await evs()).find(([, d]) => d.key === "first-story")[0];
+      await J.evaluate(id => { const d = __db.events[id]; Store.put("events", id, { ...d, note: "Their note", editT: Date.now() + 9, editBy: "parent2@example.com", by: d.by }); }, stId); await J.waitForTimeout(100);
+      J.answers = [false]; await J.click("#toast button"); await J.waitForTimeout(150);
+      check("Undo of a new moment asks first if the other parent edited it since (Cancel keeps theirs)", J.dialogs.slice(-1)[0].includes("changed this after you saved it") && (await J.evaluate(id => __db.events[id] && __db.events[id].note, stId)) === "Their note", J.dialogs.slice(-1)[0]);
+      await J.click(`#jRail [data-ev="${stId}"]`); await J.waitForTimeout(100); await J.fill("#mNote", "My edit"); await J.click("#mSave"); await J.waitForTimeout(150);
+      await J.evaluate(id => { const d = __db.events[id]; Store.put("events", id, { ...d, note: "Their second edit", editT: Date.now() + 19, editBy: "parent2@example.com", by: d.by }); }, stId); await J.waitForTimeout(100);
+      J.answers = [false]; await J.click("#toast button"); await J.waitForTimeout(150);
+      check("Undo of an edit asks first if the other parent edited it since (Cancel keeps theirs)", J.dialogs.slice(-1)[0].includes("changed this after you saved it") && (await J.evaluate(id => __db.events[id].note, stId)) === "Their second edit");
+      await J.click(`#jRail [data-ev="${stId}"]`); await J.waitForTimeout(100); await J.fill("#mNote", "Mine again"); J.answers = [true]; await J.click("#mSave"); await J.waitForTimeout(150);
+      const nd = J.dialogs.length; await J.click("#toast button"); await J.waitForTimeout(150);
+      check("Undo with no change from the other parent still works without asking", J.dialogs.length === nd && (await J.evaluate(id => __db.events[id].note, stId)) === "Their second edit");
+
       // summaries and records from existing data
       const rail = await J.textContent("#jRail");
       check("feeds appear as daily summaries per baby", /Ada Rose:\s*[\d,]+ mL by mouth · \d+ of 8 feeds/.test(rail) && /Bea Joy:\s*[\d,]+ mL by mouth · \d+ of 8 feeds/.test(rail));
@@ -481,6 +495,14 @@ async function main() {
       await J.click('#jSuggest [data-sg="add"]'); await J.waitForTimeout(150);
       const added = (await evs()).map(([, d]) => d).find(d => d.key + "|" + d.i === k2);
       check("'Add to journey' saves the first with a ref to its source record", !!added && added.ref && ["feeds", "weights"].includes(added.ref.col) && !!added.ref.id && added.kind === "milestone", JSON.stringify(added));
+      // a saved first stays intact if its source record is deleted
+      const src = added.ref; await J.evaluate(r => r.col === "feeds" ? Store.delFeed(r.id) : Store.delWeight(r.id), src); await J.waitForTimeout(200);
+      const kept = await J.evaluate(k => Object.values(__db.events).find(d => d.key + "|" + d.i === k), k2);
+      check("a saved first stays intact when its source feed or weight is deleted", !!kept && kept.title === added.title && kept.ref && kept.ref.id === src.id && (await J.textContent("#jRail")).includes(added.title));
+      check("…the timeline still shows it, and the same first isn't suggested again", !(await J.$$eval("#jSuggest .jsug", cs => cs.map(c => c.dataset.key + "|" + c.dataset.i))).includes(k2) && J.errors.length === 0, J.errors.join(" | "));
+      const keptId = await J.evaluate(k => Object.entries(__db.events).find(([, d]) => d.key + "|" + d.i === k)[0], k2);
+      await J.click(`#jRail [data-ev="${keptId}"]`); await J.waitForTimeout(100); await J.fill("#mNote", "Still remembered"); await J.click("#mSave"); await J.waitForTimeout(150);
+      check("…and it can still be edited (keeping its title, kind and link)", await J.evaluate(([id, title]) => { const d = __db.events[id]; return d.note === "Still remembered" && d.title === title && d.kind === "milestone" && !!d.ref; }, [keptId, added.title]));
       // offline
       await J.context().setOffline(true); await J.waitForTimeout(200); await tab(J, "trends");
       await sheet("0", "milestone", "first-bath", null, null);
