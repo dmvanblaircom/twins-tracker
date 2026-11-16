@@ -6,7 +6,7 @@ NICUlog is more than a NICU log: it's a family record that parents will want to 
 
 This is the **single source of truth** for NICUlog direction, scope and sequencing. It records the product owner's decisions on the Phase 0 audit (`docs/niculog-phase0-audit.md`) and the phase plan. Where the audit or any other document says otherwise, this file wins. Project context and current architecture are in `CLAUDE.md`.
 
-Last updated: Nov 16, 2026 (Phase 2 content catalog approved; Phase 2b Feeding sources added; multiple-birth vs admission requirement recorded; D16–D17).
+Last updated: Nov 16, 2026 (Phase 2 content catalog approved; Phase 2b Feeding sources added; Phase 2.5 Repository stabilization added; multiple-birth vs admission requirement recorded; D16–D18).
 
 ---
 
@@ -25,7 +25,8 @@ Last updated: Nov 16, 2026 (Phase 2 content catalog approved; Phase 2b Feeding s
 | 1 — Foundations | **Functionally complete and merged** (`main` = `6f70a1e`); production rules published and verified. **Real-device validation outstanding**; other release-readiness checks are tracked in Open items and are not complete. |
 | 2 — Moments and Journey | **In progress.** Content gate passed: catalog approved (`docs/phase2-catalog.md`, D16). Implementation (Stage B) underway. |
 | 2b — Feeding sources | Approved as its own phase (D17); starts only after Phase 2 is approved. |
-| 3 — Parent Support | Scope approved below; starts only after Phase 2b is approved. |
+| 2.5 — Repository stabilization | Approved as its own phase (D18); starts only after Phase 2b is approved. |
+| 3 — Parent Support | Scope approved below; starts only after Phase 2.5 is approved. |
 | 4–6 | Planned. Not started. |
 
 ---
@@ -61,6 +62,7 @@ Last updated: Nov 16, 2026 (Phase 2 content catalog approved; Phase 2b Feeding s
 | D14 | Shape of a shared check-in | `kind: "journal"`, `scope: "parent"`, `i: null`. Optional provenance field `src: "checkin"`: a fixed marker that carries no private information (no id, no link, nothing the parent didn't choose to share). The security rules validate `src` (absent, `null` or exactly `"checkin"`). The Phase 2 `events` schema must accept it. |
 | D16 | Phase 2 content | The milestone and firsts catalog in **`docs/phase2-catalog.md`** is approved (Nov 16, 2026) and is the content source of truth for Phase 2. It includes the vertical dot timeline, the "First donor milk feed" milestone, the checklist label fix "Open crib, maintaining temperature" (text only; id `crib` unchanged), and no per-milestone prompts or interval weight milestones. |
 | D17 | Donor milk and feeding sources | Donor milk becomes a feeding option across the app, not just a milestone, delivered as **its own phase, Phase 2b — Feeding sources**, after Phase 2 and before Phase 3. |
+| D18 | Repository stabilization | **Phase 2.5 — Repository stabilization**, after Phase 2b and before Phase 3: five cleanup passes, each audited, approved, fixed, verified and reported before the next, recorded in a Cleanup Ledger. Stabilization only: no redesign and no new features. |
 | D15 | Privacy policy timing | The check-ins and support-resources sections of `privacy.html` ship **with Phase 3**, not Phase 6, so the policy is never behind the app. Phase 6 keeps photos, the support email and the App Store labels. |
 
 ### Consequences of these decisions
@@ -172,6 +174,38 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 
 **Implementation sequence:** to be detailed in the Phase 2b prompt, from this section.
 
+### Phase 2.5 — Repository stabilization (D18)
+A stabilization effort, **not a redesign or feature-development phase**. It cleans up what Phases 0–2b built so Phase 3 starts from a well-understood codebase.
+
+**Five passes, in this order**
+1. **Architecture:** structure of `index.html`, `firebase-store.js` and the `window.Store` contract; duplicated or dead code; module boundaries within the no-build-step design; naming and comments.
+2. **Rules and logic:** `firestore.rules`, lifecycle and cleanup paths, validation parity between the app and the rules, error handling, and edge cases in calculations. Every frozen calculation is re-checked, never changed.
+3. **UI and CSS:** design-token usage, unused or conflicting styles (for example specificity overrides and display-rule clashes), accessibility (44 px, contrast, focus, screen-reader labels), and consistency across the light, dark and night themes and at A++ text.
+4. **Tests and tooling:** the browser, rules and real-Store suites; flaky or overlapping checks; coverage gaps; test helpers, stubs and scripts; the `native/` build.
+5. **Independent final audit:** a fresh review of the whole repository against this plan and the binding rules, done independently of passes 1–4.
+
+**Each pass follows the same gates**
+1. **Audit:** findings only, with no changes.
+2. **Findings review and approval:** the product owner decides which findings to fix, defer or reject.
+3. **Approved fixes only.**
+4. **Full verification:** all three suites, mutation checks for any rule change, and screenshots for any UI change.
+5. **Before/after report.**
+6. **Approval before the next pass begins.**
+
+**Cleanup Ledger** (`docs/cleanup-ledger.md`, created when the phase starts). For every finding it records: pass, finding, decision (fix / defer / reject, with reason), the change made, the tests that prove it, and any outstanding issue. It's the record of what was cleaned up and why.
+
+**Constraints**
+- Preserve all approved functionality, UX, data behavior and security protections. No change to feeding, weight, pumping, milk or day-boundary results, to stored data, or to the `window.Store` contract (additions only).
+- **No test is removed** unless its coverage is proven redundant; the proof is recorded in the ledger.
+- No merges or deployments without separate approval. Firebase rule changes, if any, are approved and published separately.
+
+**Acceptance criteria** (in addition to the every-phase list)
+1. All five passes complete, each with an approved findings list, a verification record and a before/after report.
+2. The Cleanup Ledger is complete: every finding has a decision, and every fix has the tests that cover it.
+3. Test counts never drop without a recorded redundancy proof; all three suites are green at the end of every pass.
+4. Screenshots before and after any UI-affecting pass show no unapproved change to the experience.
+5. No product behaviour changes except fixes the product owner approved as defects.
+
 ### Phase 3 — Parent Support
 **Scope**
 - **Private check-ins** (`households/{hid}/private/{uid}/checkins`): a 1–5 mood scale plus an optional one-line note.
@@ -198,6 +232,7 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 | `watchPrivate` / `putPrivate` / `removePrivate`; `checkins` in `Store.lists.private`; backup + purge coverage | Done (Phase 1) |
 | `events` with D14 support | **Phase 2** (must be approved first) |
 | Phase 2b | Approved before Phase 3 begins |
+| Phase 2.5 | Approved before Phase 3 begins |
 | More → Support section | Built in this phase |
 | Support messages, parent milestones and resource list approved (D8) | **Required before Phase 3 ships** |
 | Market decision for crisis resources | **Required before Phase 3 ships** |
