@@ -73,6 +73,26 @@ service cloud.firestore {
         && d.src in ['setup', 'first-use', 'observed'] && d.by is string;
     }
 
+    // Milk-source activation (Phase 2b): the record that switches tracking on. It names the member accounts (uids) it
+    // relies on; each named account must be a current member whose own version marker is at the required version, and
+    // the signer must be one of them. A uid is an account, not a device; the marker is self-reported by that account's
+    // app, not proof of what any device runs. Rules can't list the members collection, so they can't prove no member was
+    // left out: the app always names every member from a server read (Store.activateSources). Unrolled for up to 4
+    // accounts (rules have no loops; this also stays within the per-request document-read limit).
+    function phoneReady(hid, u) {
+      return exists(/databases/$(database)/documents/households/$(hid)/members/$(u))
+        && get(/databases/$(database)/documents/households/$(hid)/clients/$(u)).data.v >= 1;
+    }
+    function validActivation(hid, d) {
+      return d.keys().hasAll(['on', 't', 'by', 'phones']) && d.keys().hasOnly(['on', 't', 'by', 'phones'])
+        && d.on == true && d.t is number && d.by == request.auth.token.email.lower()
+        && d.phones is list && d.phones.size() >= 1 && d.phones.size() <= 4 && request.auth.uid in d.phones
+        && phoneReady(hid, d.phones[0])
+        && (d.phones.size() < 2 || phoneReady(hid, d.phones[1]))
+        && (d.phones.size() < 3 || phoneReady(hid, d.phones[2]))
+        && (d.phones.size() < 4 || phoneReady(hid, d.phones[3]));
+    }
+
     match /users/{uid} {
       allow read, delete: if signedIn() && request.auth.uid == uid;
       allow create, update: if signedIn() && request.auth.uid == uid
@@ -113,7 +133,7 @@ service cloud.firestore {
       // `members`, `private`, `revoked`, `events`, `slotMilk`, `milkUsual`, `schedPeriods` and `clients` are excluded here on purpose (each has its own rule below): Firestore rules are additive, so if this catch-all
       // matched them, any family member could read another member's private subtree regardless of the rules below.
       match /{col}/{rest=**} {
-        allow read, write: if !(col in ['members', 'private', 'revoked', 'events', 'slotMilk', 'milkUsual', 'schedPeriods', 'clients']) && inFamily(hid);
+        allow read, write: if !(col in ['members', 'private', 'revoked', 'events', 'slotMilk', 'milkUsual', 'schedPeriods', 'clients', 'config']) && inFamily(hid);
       }
 
       // Journey events: family members read and delete; every create/update must match the event shape.
@@ -144,6 +164,18 @@ service cloud.firestore {
       }
       // Which app version each member's phone runs (milk-source tracking starts only once every phone is updated).
       // Each person writes only their own; any member may delete (lifecycle), which only ever blocks, never unlocks.
+      // Config: every document as before, except the activation record, which has its own rule below.
+      match /config/{cfg} {
+        allow read: if inFamily(hid);
+        allow write: if inFamily(hid) && cfg != 'sources';
+      }
+      // Activation: create only, by a member (redundant with phoneReady for the signer; kept as defence in depth), naming
+      // ready accounts. Never updated, so it can't be overwritten. Deleting it only switches tracking off: source data in
+      // slotMilk / milkUsual / schedPeriods is untouched. Members may delete it (the last member out deletes all config).
+      match /config/sources {
+        allow create: if member(hid) && validActivation(hid, request.resource.data);
+        allow delete: if inFamily(hid);
+      }
       match /clients/{cuid} {
         allow read, delete: if inFamily(hid);
         allow create, update: if inFamily(hid) && request.auth.uid == cuid

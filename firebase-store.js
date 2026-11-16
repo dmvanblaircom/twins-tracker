@@ -266,6 +266,25 @@ if (!window.Store) {
     // guardedPut(name, id, rec): a full write whose rec.rev must be the stored rev + 1 (see guarded()). Resolves
     // {saved} / {saved, already} / {pending} (offline, after 1.5 s); a conflict arrives later as store-error code "conflict".
     guardedPut: (name, id, rec) => guarded(doc(db, H, name, id), name, id, { by: email(), ...rec, editBy: email() }),
+    // activateSources(v): switch milk-source tracking on for the family. Reads the complete current member list FROM THE
+    // SERVER and names every member account (uid) in the record; the rules accept it only if each named account is a
+    // current member whose own version marker is at v or later (and the signer is one of them). Needs a connection.
+    // Create-only: if tracking is already on, the existing record is returned unchanged.
+    // Errors: code "offline" (no server read), "too-many" (> 4 members, beyond what the rules check), "not-ready"
+    // (the rules refused: an account's marker is missing or out of date).
+    activateSources: async v => {
+      const ref = doc(db, H, "config", "sources");
+      let info, cur;
+      try { info = await familyStrict(); cur = await getDocFromServer(ref); }
+      catch (e) { throw Object.assign(new Error("Turning on milk sources needs a connection."), { code: "offline", cause: e }); }
+      if (cur.exists()) return cur.data();
+      const phones = info.members.map(m => m.uid);
+      if (phones.length > 4) throw Object.assign(new Error("Milk sources support up to 4 family members."), { code: "too-many" });
+      const rec = { on: true, t: Date.now(), by: email(), phones };
+      try { await setDoc(ref, rec); }
+      catch (e) { throw Object.assign(new Error("Update the app for everyone in the family first."), { code: denied(e) ? "not-ready" : (e.code || "failed"), cause: e }); }
+      return rec;
+    },
     // This phone's app version, so milk-source tracking can wait until every member's phone is updated.
     markClient: async v => { const u = me(); if (!u || !HID) return; const ref = doc(db, H, "clients", u.uid);
       const cur = await getDoc(ref).catch(() => null);

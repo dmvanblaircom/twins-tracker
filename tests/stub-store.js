@@ -17,7 +17,9 @@
     col(n)[id] = d; fire(n); };
   const remove = async (n, id) => { delete col(n)[id]; fire(n); };
   const watchConfig = (n, cb) => { (cfgSubs[n] = cfgSubs[n] || []).push(cb); setTimeout(() => cb(copy(db.config[n]) || null)); return () => { cfgSubs[n] = cfgSubs[n].filter(x => x !== cb); }; };
-  const setConfig = async (n, v) => { db.config[n] = copy(v); fireCfg(n); };
+  // config/sources (activation) has its own rule: never written through setConfig (mirrors firestore.rules).
+  const setConfig = async (n, v) => { if (n === "sources") { const e = Object.assign(new Error("denied"), { code: "permission-denied" }); window.dispatchEvent(new CustomEvent("store-error", { detail: e })); throw e; }
+    db.config[n] = copy(v); fireCfg(n); };
   if (window.__TEST_PROFILE) db.config.profile = copy(window.__TEST_PROFILE);
   // Same collection lists as firebase-store.js (Store.lists).
   const SHARED = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions", "events", "needs", "slotMilk", "milkUsual", "schedPeriods"],
@@ -84,6 +86,13 @@
         window.dispatchEvent(new CustomEvent("store-error", { detail: e })); return { conflict: true };
       }
       col(n)[id] = d; fire(n); return { saved: true }; },
+    // Same contract as firebase-store.js: names every current member; each needs a marker at v (the rules' check).
+    activateSources: async v => { if (window.__TEST_OFFLINE_ACTIVATE) throw Object.assign(new Error("offline"), { code: "offline" });
+      if (db.config.sources) return copy(db.config.sources);
+      const phones = fam.members.map(m => m.uid), c = col("clients");
+      if (phones.length > 4) throw Object.assign(new Error("too many"), { code: "too-many" });
+      if (!phones.every(u => c[u] && Number.isInteger(c[u].v) && c[u].v >= 1)) throw Object.assign(new Error("not ready"), { code: "not-ready" });
+      db.config.sources = { on: true, t: Date.now(), by: me, phones }; fireCfg("sources"); return copy(db.config.sources); },
     markClient: async v => { const c = col("clients"); if (!(c.u1 && c.u1.v >= v)) { c.u1 = { v, t: Date.now() }; fire("clients"); } },
     uid: () => "u1",
     watchPrivate: (n, cb) => { (psubs[n] = psubs[n] || []).push(cb); setTimeout(() => pfire(n)); return () => { psubs[n] = psubs[n].filter(x => x !== cb); }; },

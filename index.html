@@ -1946,7 +1946,7 @@
   let ALLOC={}, USUAL=[], PERIODS=[], CLIENTS={}, SRC_CFG=null;
   // Tracking is ON only once config/sources says so. That record is written only when every member's phone runs this
   // version, and is never restored from a backup: restored source data stays intact but dormant until a parent turns it on.
-  const srcOn = () => !!(SRC_CFG && SRC_CFG.on===true);
+  const srcOn = () => !!(SRC_CFG && SRC_CFG.on===true && Array.isArray(SRC_CFG.phones));   // the record the rules validate
   const srcData = () => PERIODS.length>0 || USUAL.length>0 || Object.keys(ALLOC).length>0;
   const livePeriod = () => ({id:"s-0-live", from:0, ...MS.periodFromProfile(profile)});   // before the first saved period
   const srcState = () => ({periods: PERIODS.length?PERIODS:[livePeriod()], usual:USUAL, alloc:ALLOC});
@@ -2002,16 +2002,22 @@
   // reproduces exactly the grid the estimate already uses, so no number changes at that moment.
   async function ensurePeriods(){
     if(srcOn() && PERIODS.length) return;
-    // Guardrail: tracking starts (or restored data is turned on) only once every member's phone runs this version.
-    if(!srcOn()){ if(!famInfo && Store.familyInfo) famInfo=await Store.familyInfo().catch(()=>null);
-      if(!sourcesReady()) throw Object.assign(new Error("Update the app on both phones first."),{code:"not-ready"}); }
+    // Guardrail: tracking starts (or saved data is turned on) only once every member account runs this version. The early
+    // check below is only for a friendly message; the backend decides: Store.activateSources reads the full member list
+    // from the server, names every member account, and the rules refuse it unless each one's marker is current.
+    if(!srcOn()){
+      if(!profile) throw Object.assign(new Error("Set up the babies first."),{code:"invalid"});
+      if(!famInfo && Store.familyInfo) famInfo=await Store.familyInfo().catch(()=>null);
+      if(!sourcesReady() || !Store.activateSources) throw Object.assign(new Error("Everyone in the family needs the updated app first."),{code:"not-ready"});
+      const c=await Store.activateSources(MS.CLIENT_V); SRC_CFG=c&&c.on===true?c:SRC_CFG;
+      if(!srcOn()) throw Object.assign(new Error("Milk sources couldn't be turned on."),{code:"not-ready"});
+    }
     if(!PERIODS.length){
       const id=`s-0-${rand4()}`, rec={from:0, ...MS.periodFromProfile(profile), src:"first-use"};
       if(!profile || !MS.validPeriod(id,{...rec,by:""})) throw Object.assign(new Error("Set up the babies first."),{code:"invalid"});
       await Store.create("schedPeriods",id,rec);
       if(!PERIODS.length) PERIODS=[{id,...rec,by:myEmail}];
     }
-    if(!srcOn()){ const c={on:true,t:Date.now(),by:myEmail}; await Store.setConfig("sources",c); SRC_CFG=c; }
   }
   // A new schedule period from `from` (setup save: now; B2: an old-app change the parent has confirmed).
   async function recordPeriod(from,src,prof){
@@ -2195,7 +2201,7 @@
     const r=await setAlloc(i,t,mL10,SS.seen);
     if(r.conflict){ const known=CONFL.find(c=>c.id===id);   // keep the server copy if the store-error already recorded it
       addConflict(id, mL10?{state:"set",mL10,editBy:myEmail}:{state:"usual",editBy:myEmail}, r.current||(known&&known.theirs)||null); SS={mode:"conflict",i,t,c:CONFL.find(c=>c.id===id),msg:""}; renderSS(); return; }
-    if(r.error){ SS.msg = r.error==="mismatch"?`The amounts need to add up to ${ml10(r.ref.total10)} mL.`:r.error==="not-ready"?"Update the app on both phones first.":r.error==="not-scheduled"?"This time isn't one of the recorded feed times.":"Couldn't save — try again."; renderSS(); return; }
+    if(r.error){ SS.msg = r.error==="mismatch"?`The amounts need to add up to ${ml10(r.ref.total10)} mL.`:["not-ready","offline","too-many"].includes(r.error)?gateMsg(r.error):r.error==="not-scheduled"?"This time isn't one of the recorded feed times.":"Couldn't save — try again."; renderSS(); return; }
     closeSS(); dropConflict(id); if(r.unchanged) return;
     if(r.pending || !navigator.onLine) flash("Saved on this phone. It will sync when you're back online.");
     undoBar(`Milk: ${mL10?allocLabel({mL10},true):"usual milk"} · ${tw} · ${hm(t)}`, ()=>undoAlloc(id,before,r.rev));
@@ -2234,11 +2240,16 @@
   $("sSheet").addEventListener("keydown", e=>{ if(e.key==="Escape") closeSS(); });
 
   // ---- Care: usual milk per baby, the version gate, restored data ----
+  const gateMsg = code => code==="not-ready"?"Everyone in the family needs the updated app first.":code==="offline"?"Turning on milk sources needs a connection. Try again with signal.":code==="too-many"?"Milk sources work for families of up to 4 members.":"Couldn't save — try again.";
   let srcEdit=null, srcFamBusy=false;
+  // Each family member account and whether its app has reported this version. A member account, not a device: the
+  // version is reported by that account's app, so a second device on an old version wouldn't show here.
+  const memberName = m => m.uid===famInfo.me ? "You" : whoSays(m.email,"The other parent");
   function phoneList(){
-    if(!famInfo) return `<p class="muted">Checking the family's phones…</p>`;
-    return `<ul class="carelist phones">${famInfo.members.map(m=>{ const c=CLIENTS[m.uid], ok=!!c&&c.v>=MS.CLIENT_V, me=m.uid===famInfo.me;
-      return `<li><b>${me?"This phone":(p=>p?`${esc(p)}'s phone`:"The other parent's phone")(whoSays(m.email,""))}</b> <span class="mk ${ok?"on":"open"}">${ok?"Updated":c?"Needs the update":"Not opened since the update"}</span></li>`; }).join("")}</ul>`;
+    if(!famInfo) return `<p class="muted">Checking the family's members…</p>`;
+    const inc=srcOn()?new Set(SRC_CFG.phones):null;
+    return `<ul class="carelist phones">${famInfo.members.map(m=>{ const c=CLIENTS[m.uid], ok=!!c&&c.v>=MS.CLIENT_V;
+      return `<li><b>${esc(memberName(m))}</b> <span class="mk ${ok?"on":"open"}">${ok?"Has the updated app":c?"Needs the app update":"Hasn't opened the updated app"}</span>${inc&&!inc.has(m.uid)?`<span class="meta">Joined after milk sources were turned on</span>`:""}</li>`; }).join("")}</ul>`;
   }
   function renderSrcCare(){
     const el=$("srcCare"); if(!el || TWINS[0]==="A") return;
@@ -2246,11 +2257,17 @@
     if(el.contains(document.activeElement) && document.activeElement.matches("input")) return;   // don't interrupt typing
     const on=srcOn(), ready=sourcesReady(), dis=canWrite?"":"disabled";
     const intro=`<p class="slead">Record whether each baby usually gets mother's milk, donor milk or formula, or a mix. The milk estimate then counts only mother's milk. You can change a single feed on Today or in Records.</p>`;
-    if(!on && !ready){ el.innerHTML=intro+`<p class="slead"><b>Update the app on both phones first.</b> Milk sources start only when both phones have this version, so both show the same estimate.</p>${phoneList()}${srcData()?`<p class="note">Milk sources from a backup are saved here. They'll be ready to turn on once both phones are updated.</p>`:""}`; return; }
-    if(!on && srcData()){ el.innerHTML=intro+`<p class="slead">Milk sources restored from a backup are saved here but not in use yet. Turning them on uses them for the milk estimate, with the dates they were originally set.</p>${phoneList()}<div class="row"><button class="btn" type="button" data-se="turnon" ${dis}>Turn on milk sources</button></div><div class="msg" id="srcMsg" role="status"></div>`; return; }
-    const lag = on && famInfo && famInfo.members.some(m=>!(CLIENTS[m.uid]&&CLIENTS[m.uid].v>=MS.CLIENT_V));
-    el.innerHTML=(on?"":intro+`<p class="note">Saving the first setting starts milk-source tracking. Estimates for the past stay as they are.</p>`)
-      + (lag?`<div class="srcwarn">A phone in the family hasn't been updated. Until it is, that phone shows the milk estimate without milk sources.</div>${phoneList()}`:"")
+    const perDevice=`<p class="note">This is checked for each family member's account. If you use the app on more than one device, open the updated app on each.</p>`;
+    if(!on && !ready){ el.innerHTML=intro+`<p class="slead"><b>Everyone in the family needs the updated app first.</b> Milk sources start only when every member has opened this version, so everyone sees the same estimate.</p>${phoneList()}${perDevice}${srcData()?`<p class="note">Milk-source settings are saved here (for example from a backup). They'll be ready to turn on once everyone has the updated app.</p>`:""}`; return; }
+    if(!on && srcData()){ el.innerHTML=intro+`<p class="slead">Milk-source settings are saved here (for example from a backup) but not in use yet. Turning them on uses them for the milk estimate, with the dates they were originally set.</p>${phoneList()}<div class="row"><button class="btn" type="button" data-se="turnon" ${dis}>Turn on milk sources</button></div><div class="msg" id="srcMsg" role="status"></div>`; return; }
+    const lagM = on && famInfo ? famInfo.members.filter(m=>!(CLIENTS[m.uid]&&CLIENTS[m.uid].v>=MS.CLIENT_V)) : [];
+    const late = on && famInfo ? famInfo.members.filter(m=>!SRC_CFG.phones.includes(m.uid)) : [];
+    const names = l => l.map(m=>esc(memberName(m))).join(", ");
+    const incNames = on && famInfo ? famInfo.members.filter(m=>SRC_CFG.phones.includes(m.uid)) : [];
+    el.innerHTML=(on?`<p class="meta">Milk sources turned on ${fmtWhen(SRC_CFG.t)}${SRC_CFG.by?` by ${esc(whoSays(SRC_CFG.by,"a parent"))}`:""}${incNames.length?` · included: ${names(incNames)}`:""}.</p>`:intro+`<p class="note">Saving the first setting starts milk-source tracking. Estimates for the past stay as they are.</p>`)
+      + (late.length?`<div class="srcwarn">${names(late)} joined after milk sources were turned on.${late.some(m=>lagM.includes(m))?" Until the updated app is opened on that account, it shows the milk estimate without milk sources.":" Their app shows milk sources."}</div>`:"")
+      + (lagM.length&&!late.every(m=>lagM.includes(m))||lagM.some(m=>!late.includes(m))?`<div class="srcwarn">${names(lagM.filter(m=>!late.includes(m)))} hasn't opened the updated app. Until then, that account shows the milk estimate without milk sources.</div>`:"")
+      + (lagM.length||late.length?phoneList():"")
       + shown().map(tw=>{ const i=TWINS.indexOf(tw), u=MS.usualAt(USUAL,i,Date.now()), ed=srcEdit&&srcEdit.i===i, C=COLORS();
         return `<div class="srow" data-i="${i}">
           <div class="srow-h"><b><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</b><span class="sval">${esc(pctLabel(u&&u.pct))}</span></div>
@@ -2283,12 +2300,12 @@
     if(a==="pick"){ srcEdit.k=b.dataset.k; renderSrcCare(); if(srcEdit.k==="mixed") $("srcCare").querySelector("[data-pk]").focus(); return; }
     if(a==="save"){ const i=srcEdit.i, p=srcPct(); if(p!==null && !MS.validPct(p)) return; b.disabled=true;
       const r=await setUsual(i,p);
-      if(r.error){ $("srcMsg").textContent=r.error==="not-ready"?"Update the app on both phones first.":"Couldn't save — try again."; b.disabled=false; return; }
+      if(r.error){ $("srcMsg").textContent=gateMsg(r.error); b.disabled=false; return; }
       srcEdit=null; renderSrcCare(); if(!navigator.onLine) flash("Saved on this phone. It will sync when you're back online.");
       undoBar(`Usual milk: ${pctLabel(p)} · ${TWINS[i]}`, ()=>undoUsualUI(r.id)); return; }
     if(a==="turnon"){ b.disabled=true;
       try{ await ensurePeriods(); flash("Milk sources are on."); renderAll(); }
-      catch(err){ const m=$("srcMsg"); if(m) m.textContent=err.code==="not-ready"?"Update the app on both phones first.":"Couldn't turn them on — try again."; b.disabled=false; } }
+      catch(err){ const m=$("srcMsg"); if(m) m.textContent=gateMsg(err.code); b.disabled=false; } }
   });
   $("srcCare").addEventListener("input", e=>{ const k=e.target.dataset.pk; if(k&&srcEdit){ srcEdit.pct[k]=e.target.value; srcPreview(); } });
 
@@ -2464,7 +2481,7 @@
           if(had && srcOn()) USUAL.filter(u=>!had.has(u.id) && u.by && u.by!==myEmail && Date.now()-u.from<6*3600e3).forEach(u=>flash(`${whoSays(u.by)} changed ${TWINS[u.i]}'s usual milk to ${pctLabel(u.pct).toLowerCase()}.`));
           usualSeen=true; renderMilk(); renderSrcCare(); }
         if(c==="schedPeriods"){ PERIODS=list.filter(([id,d])=>MS.validPeriod(id,d)).map(([id,d])=>({id,...d})); renderMilk(); } }, ()=>{})));
-      // This phone's app version, and every member's, so milk-source tracking waits until both phones are updated.
+      // This account's app version, and every member's, so milk-source tracking waits until everyone has the updated app.
       if(Store.markClient){ unsubs.push(Store.watch("clients",list=>{ CLIENTS={}; list.forEach(([id,d])=>{ if(d&&Number.isInteger(d.v)) CLIENTS[id]=d; }); renderSrcCare(); }, ()=>{}));
         Promise.resolve(Store.markClient(MS.CLIENT_V)).catch(()=>{}); }
       if(Store.watchPrivate) bkPriv().forEach(n=>unsubs.push(Store.watchPrivate(n,list=>{ RAWP[n]=list; }, ()=>{})));
