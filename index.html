@@ -1250,8 +1250,8 @@
   function ageLine(){
     if(!profile) return "";
     const b=keyDate(profile.born), t=new Date(); t.setHours(0,0,0,0); const dol=Math.round((t-b)/DAY);
-    const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""); if(!m) return `Day ${dol} of life`;
-    const pma=(+m[1])*7+(+(m[2]||0))+dol; return `Day ${dol} · ${Math.floor(pma/7)}w${pma%7}d PMA`;
+    const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""); if(!m) return `Day ${dol+1} of life`;   // display: the birth date is Day 1
+    const pma=(+m[1])*7+(+(m[2]||0))+dol; return `Day ${dol+1} · ${Math.floor(pma/7)}w${pma%7}d PMA`;
   }
   function renderTodayMilk(){
     const el=$("todayMilk"); if(TWINS[0]==="A" || !P.length && !D.length && !milkCfg){ el.textContent=""; return; }
@@ -1625,7 +1625,7 @@
       // calendar milestones: offered from the day itself for a week, so a busy day doesn't lose them
       const born=keyDate(profile.born), dates=[["one-week",addDays(profile.born,7)],["one-month",monthLater(born)],["hundred-days",addDays(profile.born,99)]];
       const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""); if(m){ const ga=(+m[1])*7+(+(m[2]||0)); if(ga<280) dates.push(["due-date",addDays(profile.born,280-ga)]); }
-      dates.forEach(([key,day])=>{ if(today>=day && today<=addDays(day,6)) push(key,i,keyDate(day).getTime()+12*36e5,mdD(keyDate(day)),null,true); });
+      dates.forEach(([key,day])=>{ if(today>=day && today<=addDays(day,6)) push(key,i,keyDate(day).getTime()+12*36e5,`${day===today?"Today":"On"} ${longD(keyDate(day))}`,null,day===today?"today":"week"); });
     });
     return out.sort((a,b)=>a.t-b.t);
   }
@@ -1641,7 +1641,7 @@
     const scopeName = e => e.scope==="baby" ? esc(TWINS[e.i]) : e.scope==="family" ? "Our family" : "Me";
     const rows=[];
     tl.slice(0,jDays).forEach(g=>{
-      const dol=dayOfLife(g.day); rows.push(`<li class="jday">${longD(keyDate(g.day))}${dol!=null&&dol>=0?` · Day ${dol}`:""}</li>`);
+      const dol=dayOfLife(g.day); rows.push(`<li class="jday">${longD(keyDate(g.day))}${dol!=null&&dol>=0?` · Day ${dol+1}`:""}</li>`);   // birth date = Day 1
       g.items.forEach(it=>{
         if(it.type==="milestone"||it.type==="journal"){ const e=it.ev, c=e.scope==="baby"?col(e.i):"var(--muted)", isJ=it.type==="journal";
           const initial=e.scope==="baby"?esc((TWINS[e.i].trim()[0]||"").toUpperCase()):"";
@@ -1670,7 +1670,7 @@
     em.textContent = empty ? "This is where your story lives. Add a first hold, a first bath, or anything you want to remember about these days." : ""; em.hidden=!empty;
     $("jMore").style.display = tl.length>jDays ? "" : "none";
     const all=suggestions(), sg=jSugAll ? all : all.slice(0,1);   // one at a time keeps the journey calm
-    $("jSuggest").innerHTML = sg.map(x=>`<div class="jsug" data-key="${x.key}" data-i="${x.i}"><span class="jlabel">${x.date?"Today":"From your logs"}</span>
+    $("jSuggest").innerHTML = sg.map(x=>`<div class="jsug" data-key="${x.key}" data-i="${x.i}"><span class="jlabel">${x.date==="today"?"Today":x.date?"This week":"From your logs"}</span>
       <div class="jt">${esc(TWINS[x.i])} · ${FIRSTS[x.key]}</div><div class="jm">${esc(x.detail)}</div>
       <div class="row"><button class="btn" type="button" data-sg="add">Add to journey</button><button class="btn ghost" type="button" data-sg="dismiss">Not now</button></div></div>`).join("")
       + (all.length>1 && !jSugAll ? `<button class="link" type="button" data-sg="more">${all.length-1} more suggestion${all.length===2?"":"s"}</button>` : "");
@@ -1701,6 +1701,7 @@
     const k=$("mPick").value, isM=mState.kind==="milestone";
     $("mTitleL").hidden = isM && !!k;
     $("mTitleL").firstChild.textContent = mState.kind==="journal" ? "Title (optional)" : "What happened?";
+    $("mTitle").placeholder = mState.kind==="journal" ? "" : "e.g. First hold";
   }
   const toLocal = t => toLocalInput(new Date(t));
   function openMoment(ev){

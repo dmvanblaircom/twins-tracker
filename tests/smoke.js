@@ -86,7 +86,7 @@ async function main() {
     const p = await newPage(browser, base);
     check("boots to the app with both names", (await p.textContent("#title")) === "Ada Rose & Bea Joy");
     check("day runs 7 AM–7 AM by default", (await p.textContent("#dayRun")) === "7 AM–7 AM", await p.textContent("#dayRun"));
-    check("age line (day of life + corrected age)", (await p.textContent("#ageLine")).includes("Day 10 · 37w3d PMA"), await p.textContent("#ageLine"));
+    check("age line (day of life + corrected age)", (await p.textContent("#ageLine")).includes("Day 11 · 37w3d PMA"), await p.textContent("#ageLine"));
     const msg = await importData(p);
     check("CSV import", /Imported 18 weights, \d+ feeds\./.test(msg), msg);
 
@@ -493,10 +493,33 @@ async function main() {
       await J.click("#mCancel");
       check("no page errors on Journey", J.errors.length === 0, J.errors.join(" | "));
       await J.context().close(); }
+    { const M = await newPage(browser, base);
+      await M.evaluate(() => { const d0 = new Date("2026-02-10T12:00:00-05:00").getTime();
+        for (let k = 0; k < 20; k++) Store.put("events", "e-m" + k, { kind: "moment", scope: "family", i: null, key: null, t: d0 - k * 864e5, title: "Moment " + k, note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "x" }); });
+      await tab(M, "trends"); await M.waitForTimeout(150);
+      const days1 = (await M.$$("#jRail .jday")).length, more1 = await M.isVisible("#jMore");
+      await M.click("#jMore"); await M.waitForTimeout(150);
+      check("the timeline shows 14 days at a time; 'Show earlier days' loads the next 14", days1 === 14 && more1 && (await M.$$("#jRail .jday")).length === 20 && !(await M.isVisible("#jMore")), `${days1} days, more=${more1}`);
+      await M.context().close(); }
     { const E = await newPage(browser, base);
       await tab(E, "trends");
       check("an empty journey invites the first entry", (await E.textContent("#jEmpty")).includes("This is where your story lives"));
       await E.context().close(); }
+    { const B1 = await newPage(browser, base, { now: "2026-02-01T12:00:00-05:00" });
+      check("the birth date shows as Day 1 (PMA unchanged: 36w0d)", (await B1.textContent("#ageLine")).includes("Day 1 · 36w0d PMA"), await B1.textContent("#ageLine"));
+      await B1.context().close(); }
+    { const D100 = await newPage(browser, base, { now: "2026-05-11T12:00:00-04:00" });
+      await D100.evaluate(() => Store.put("events", "e-d100", { kind: "moment", scope: "baby", i: 0, key: null, t: Date.now(), title: "Big day", note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "x" }));
+      await tab(D100, "feed");
+      check("the 100th day of life shows Day 100 on Today", (await D100.textContent("#ageLine")).startsWith("Day 100 ·"), await D100.textContent("#ageLine"));
+      await tab(D100, "trends"); await D100.waitForTimeout(150);
+      check("…and Day 100 on the Journey day header", (await D100.textContent("#jRail .jday")).includes("Day 100"), await D100.textContent("#jRail .jday"));
+      await D100.context().close(); }
+    { const W2 = await newPage(browser, base, { now: "2026-02-11T12:00:00-05:00" });
+      await tab(W2, "trends");
+      const wk = await W2.textContent("#jSuggest");
+      check("later in the 7-day window, a date milestone still names its actual date", wk.includes("One week old") && wk.includes("This week") && wk.includes("On Sun, Feb 8"), wk.replace(/\s+/g, " "));
+      await W2.context().close(); }
     { const W1 = await newPage(browser, base, { now: "2026-02-08T12:00:00-05:00" });
       await tab(W1, "trends");
       check("date milestone: 'One week old' is suggested on the day", (await W1.textContent("#jSuggest")).includes("One week old") && (await W1.textContent("#jSuggest")).includes("Today"));
