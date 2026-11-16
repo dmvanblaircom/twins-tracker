@@ -6,7 +6,7 @@ NICUlog is more than a NICU log: it's a family record that parents will want to 
 
 This is the **single source of truth** for NICUlog direction, scope and sequencing. It records the product owner's decisions on the Phase 0 audit (`docs/niculog-phase0-audit.md`) and the phase plan. Where the audit or any other document says otherwise, this file wins. Project context and current architecture are in `CLAUDE.md`.
 
-Last updated: Nov 16, 2026 (Phase 2 content catalog approved; Phase 2b Feeding sources added; Phase 2.5 Repository stabilization added; multiple-birth vs admission requirement recorded; D16–D18).
+Last updated: Nov 16, 2026 (Phase 2 complete: merged, rules published, real-device checked; Phase 1 real-device validation done; Phase 2b started).
 
 ---
 
@@ -22,9 +22,9 @@ Last updated: Nov 16, 2026 (Phase 2 content catalog approved; Phase 2b Feeding s
 
 | Phase | Status |
 |---|---|
-| 1 — Foundations | **Functionally complete and merged** (`main` = `6f70a1e`); production rules published and verified. **Real-device validation outstanding**; other release-readiness checks are tracked in Open items and are not complete. |
-| 2 — Moments and Journey | **In progress.** Content gate passed: catalog approved (`docs/phase2-catalog.md`, D16). Implementation (Stage B) underway. |
-| 2b — Feeding sources | Approved as its own phase (D17); starts only after Phase 2 is approved. |
+| 1 — Foundations | **Complete.** Merged (`6f70a1e`); production rules published and verified; real-device validation done by the product owner (Nov 16, 2026). Other release-readiness checks are tracked in Open items and Phase 6. |
+| 2 — Moments and Journey | **Complete.** Approved and merged to `main` at `9be9957` (Nov 16, 2026); events rules published to production by the product owner; real-device check done by the product owner. |
+| 2b — Feeding sources | **In progress.** Stage A (design and wording gate) awaiting product-owner approval; no implementation yet. |
 | 2.5 — Repository stabilization | Approved as its own phase (D18); starts only after Phase 2b is approved. |
 | 3 — Parent Support | Scope approved below; starts only after Phase 2.5 is approved. |
 | 4–6 | Planned. Not started. |
@@ -84,7 +84,7 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 - Any new rule is mutation-checked (deliberately weakened in a scratch copy, and the tests fail).
 - No personal data in the repo; `CLAUDE.md` updated; `sw.js` cache bumped.
 
-### Phase 1 — Foundations — **functionally complete and merged; real-device validation outstanding**
+### Phase 1 — Foundations — **complete**
 - **Shipped:**
   - Navigation per D1: Journey / More, with tab ids unchanged.
   - The catch-all rule excludes `members`, `private` and `revoked`.
@@ -99,9 +99,21 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
   - The deployed text matches `firestore.rules` at `6f70a1e`; the only difference is the two real allowlist emails, which are lowercase.
   - Both emulator suites passed against the deployed text (rules 50/50, real Store 50/50). Nothing was changed in production during verification.
 - **Tests at completion:** browser 176/176, rules 50/50, real Store 50/50. All eight mutation checks are caught.
-- **Not yet done:** real-device validation of the published app on both phones. Release-readiness work (device testing, App Check, privacy labels, bundle id, support email) is not complete; see Open items and Phase 6. "Complete" here means the Phase 1 scope is built, tested, merged and its rules are live, not that the app is release-ready.
+- **Real-device validation:** done by the product owner on both phones (Nov 16, 2026).
+- **Not release-ready yet:** App Check, privacy labels, bundle id, support email and VoiceOver testing remain; see Open items and Phase 6. "Complete" means the Phase 1 scope is built, tested, merged, its rules are live and it was checked on real phones.
 
-### Phase 2 — Moments and Journey
+### Phase 2 — Moments and Journey — **complete**
+- **Merged:** `main` = `9be9957` (Nov 16, 2026), a fast-forward of `26aeced`, `ec7af7d`, `ee238c2` (plus the roadmap commit `9be9957`).
+- **Rules:** the events validation rules were published to production by the product owner.
+- **Real-device check:** done by the product owner.
+- **Tests at completion:** browser 221/221, rules 56/56, real Store 53/53; three events-rule mutations and the Undo-guard mutation were caught.
+- **Carried forward** (Phase 2.5 / release readiness):
+  - VoiceOver testing;
+  - timeline performance with months of data;
+  - timeline placement low on the Journey tab;
+  - no jump-to-date or search;
+  - "Not now" remembered per phone only.
+
 **Scope**
 - **`events` collection:**
   ```
@@ -297,7 +309,6 @@ A stabilization effort, **not a redesign or feature-development phase**. It clea
 ---
 
 ## Open items
-- **Real-device validation of the published app (`6f70a1e`) on both phones (Phase 1 sign-off):** each opens the family, both parents appear under More → Settings → Family, offline entry syncs, and nothing regressed in daily use.
 - **Original family owner:** check in the Firebase console whether `households/main` exists and who its `owner` is. Whoever first taps "New code" or "Remove" becomes the owner.
 - **Account sign-up:** confirm it's enabled in Firebase Authentication if new families should be able to join.
 - **Wording approvals (D8):** Phase 2 catalog approved (D16). Still to come: Phase 3 support messages, parent milestones and resource list.
