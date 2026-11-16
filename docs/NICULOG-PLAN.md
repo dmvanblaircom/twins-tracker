@@ -6,7 +6,7 @@ NICUlog is more than a NICU log: it's a family record that parents will want to 
 
 This is the **single source of truth** for NICUlog direction, scope and sequencing. It records the product owner's decisions on the Phase 0 audit (`docs/niculog-phase0-audit.md`) and the phase plan. Where the audit or any other document says otherwise, this file wins. Project context and current architecture are in `CLAUDE.md`.
 
-Last updated: Nov 15, 2026 (roadmap approved: Phase 1 status recorded; Phase 2–3 scope, dependencies, acceptance criteria and sequence added; D12–D15 approved).
+Last updated: Nov 16, 2026 (Phase 2 content catalog approved; Phase 2b Feeding sources added; multiple-birth vs admission requirement recorded; D16–D17).
 
 ---
 
@@ -23,8 +23,9 @@ Last updated: Nov 15, 2026 (roadmap approved: Phase 1 status recorded; Phase 2�
 | Phase | Status |
 |---|---|
 | 1 — Foundations | **Functionally complete and merged** (`main` = `6f70a1e`); production rules published and verified. **Real-device validation outstanding**; other release-readiness checks are tracked in Open items and are not complete. |
-| 2 — Moments and Journey | Next. Scope approved below. First gate: milestone wording approved before implementation begins. Implementation prompt not yet written. |
-| 3 — Parent Support | Scope approved below; starts only after Phase 2 is approved. |
+| 2 — Moments and Journey | **In progress.** Content gate passed: catalog approved (`docs/phase2-catalog.md`, D16). Implementation (Stage B) underway. |
+| 2b — Feeding sources | Approved as its own phase (D17); starts only after Phase 2 is approved. |
+| 3 — Parent Support | Scope approved below; starts only after Phase 2b is approved. |
 | 4–6 | Planned. Not started. |
 
 ---
@@ -58,6 +59,8 @@ Last updated: Nov 15, 2026 (roadmap approved: Phase 1 status recorded; Phase 2�
 | D12 | Phase 2–3 acceptance criteria and sequence | **Approved as written in the Phase 2 and Phase 3 sections below** (Nov 15, 2026). |
 | D13 | Finding a shared check-in's copy | The private check-in stores the copy's event id (`sharedEv`). The family copy carries **no** id or link back to the private document (`ref: null`), so the partner never sees a pointer into private data. |
 | D14 | Shape of a shared check-in | `kind: "journal"`, `scope: "parent"`, `i: null`. Optional provenance field `src: "checkin"`: a fixed marker that carries no private information (no id, no link, nothing the parent didn't choose to share). The security rules validate `src` (absent, `null` or exactly `"checkin"`). The Phase 2 `events` schema must accept it. |
+| D16 | Phase 2 content | The milestone and firsts catalog in **`docs/phase2-catalog.md`** is approved (Nov 16, 2026) and is the content source of truth for Phase 2. It includes the vertical dot timeline, the "First donor milk feed" milestone, the checklist label fix "Open crib, maintaining temperature" (text only; id `crib` unchanged), and no per-milestone prompts or interval weight milestones. |
+| D17 | Donor milk and feeding sources | Donor milk becomes a feeding option across the app, not just a milestone, delivered as **its own phase, Phase 2b — Feeding sources**, after Phase 2 and before Phase 3. |
 | D15 | Privacy policy timing | The check-ins and support-resources sections of `privacy.html` ship **with Phase 3**, not Phase 6, so the policy is never behind the app. Phase 6 keeps photos, the support email and the App Store labels. |
 
 ### Consequences of these decisions
@@ -107,7 +110,7 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
   - `i` is required (0 or 1) when `scope` is `"baby"`, and `null` otherwise.
   - `src: "checkin"` is reserved for Phase 3 shared check-ins (D14). Phase 2 must accept and display such events, but doesn't create them.
   - **Security rules validate the `events` shape** (D14): `src` absent, `null` or exactly `"checkin"`; `i` in `[0, 1, null]`; `kind` and `scope` from the allowed values. Emulator tests and a mutation check cover it.
-- **Curated milestone lists** (D8), kept in code next to `DIS_BABY` / `DIS_FAM`.
+- **Curated milestone lists** (D8), kept in code next to `DIS_BABY` / `DIS_FAM`, exactly as approved in `docs/phase2-catalog.md` (D16). That file also defines the firsts and date-milestone rules, the timeline wording and the vertical dot timeline design.
 - **"Add moment" sheet:** baby A / baby B / parent / family; milestone or free text; editable date.
 - **`buildTimeline()`:** a pure function over in-memory state (`F`, `W`, `CK`, `PLANS`, `QS`, `P`, `D`, events). No copies; feeds and pumping appear as daily summaries.
   - Shown on Journey below the existing Progress content.
@@ -149,6 +152,26 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 6. Firsts suggestions.
 7. Tests, `CLAUDE.md`, cache bump, report. **Stop for approval.**
 
+### Phase 2b — Feeding sources (D17)
+**Scope**
+- **Milk type on each feed:** mom's milk, donor milk, formula, or a mix.
+  - Set from a family default, like the diet line; changeable with one tap per feed.
+  - Recorded by a parent only, never inferred.
+- **Milk estimate:** only feeds of mom's milk draw down her NICU stock; donor milk and formula feeds don't.
+- **Existing feeds stay "not recorded"** and keep today's maths, so nothing already logged changes.
+- **Shown neutrally everywhere:** Today, Records, the timeline, the CSV export and backup. No milk type is presented as better or expected.
+
+**Dependencies:** Phase 2 approved. A new optional field on `feeds` (a schema addition; existing documents untouched); validation in the security rules if feed rules are tightened.
+
+**Acceptance criteria** (in addition to the every-phase list)
+1. A family that never sets a milk type sees exactly today's milk estimate and feed displays.
+2. Donor milk and formula feeds don't reduce the mom's-milk stock estimate; mom's-milk and mixed feeds behave as specified.
+3. The milk type round-trips through backup and appears in the CSV export without breaking older CSV imports.
+4. All milk types use neutral wording and equal visual weight.
+5. The overwrite guard and Undo cover milk-type changes.
+
+**Implementation sequence:** to be detailed in the Phase 2b prompt, from this section.
+
 ### Phase 3 — Parent Support
 **Scope**
 - **Private check-ins** (`households/{hid}/private/{uid}/checkins`): a 1–5 mood scale plus an optional one-line note.
@@ -174,6 +197,7 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 | Owner-only private subtree, rules, removed-member cleanup | Done (Phase 1); published and verified in production |
 | `watchPrivate` / `putPrivate` / `removePrivate`; `checkins` in `Store.lists.private`; backup + purge coverage | Done (Phase 1) |
 | `events` with D14 support | **Phase 2** (must be approved first) |
+| Phase 2b | Approved before Phase 3 begins |
 | More → Support section | Built in this phase |
 | Support messages, parent milestones and resource list approved (D8) | **Required before Phase 3 ships** |
 | Market decision for crisis resources | **Required before Phase 3 ships** |
@@ -241,7 +265,10 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 - **Real-device validation of the published app (`6f70a1e`) on both phones (Phase 1 sign-off):** each opens the family, both parents appear under More → Settings → Family, offline entry syncs, and nothing regressed in daily use.
 - **Original family owner:** check in the Firebase console whether `households/main` exists and who its `owner` is. Whoever first taps "New code" or "Remove" becomes the owner.
 - **Account sign-up:** confirm it's enabled in Firebase Authentication if new families should be able to join.
-- **Wording approvals (D8):** Phase 2 milestone and firsts wording; Phase 3 support messages, parent milestones and resource list.
+- **Wording approvals (D8):** Phase 2 catalog approved (D16). Still to come: Phase 3 support messages, parent milestones and resource list.
+- **Future requirement: multiple birth vs NICU admission.** The app must eventually distinguish **how many babies were born** in the multiple birth from **how many were admitted to the NICU** (for example, twins with only one baby admitted).
+  - **It will affect:** conditional milestones (`holding-both`); which babies appear in Today, Growth, the timeline and firsts; the setup screen; milk-need maths; the backup format.
+  - **Not scheduled yet.** Phase 2 keeps the two-baby model and writes `holding-both` as a real "more than one baby in the record" check, so the later change is contained.
 - **Market decision:** US-only, or more countries? This determines crisis resources and country handling in Phase 3.
 - **Name availability for "NICUlog"** (trademark, App Store) before Phase 6.
 - **`SUPPORT_EMAIL` placeholder** in `privacy.html`.
