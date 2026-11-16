@@ -405,6 +405,119 @@ async function main() {
     check("no page errors with prefs", q.errors.length === 0, q.errors.join(" | "));
     await q.context().close();
 
+    // ---- Phase 2: Journey — moments, timeline, firsts ----
+    { const J = await newPage(browser, base); await importData(J);
+      const evs = () => J.evaluate(() => Object.entries(__db.events || {}));
+      const sheet = async (who, kind, pick, title, note) => {
+        await J.click("#jAdd"); await J.waitForTimeout(100);
+        await J.click(`#mWho button[data-v="${who}"]`); await J.click(`#mKind button[data-v="${kind}"]`);
+        if (pick != null && kind === "milestone") await J.selectOption("#mPick", pick);
+        if (title != null) await J.fill("#mTitle", title); if (note != null) await J.fill("#mNote", note);
+        await J.click("#mSave"); await J.waitForTimeout(200); };
+      await tab(J, "trends");
+      check("Journey timeline sits below the existing Progress content", await J.evaluate(() => !!(document.querySelector("#cDaily").compareDocumentPosition(document.querySelector("#jCard")) & Node.DOCUMENT_POSITION_FOLLOWING)));
+      check("checklist label reads 'Open crib, maintaining temperature' (id unchanged)", (await J.textContent('[data-ck="b0-crib"] .lb')) === "Open crib, maintaining temperature");
+      // add one of each scope
+      await sheet("0", "milestone", "first-hold", null, "Forty minutes");
+      let e = (await evs()).find(([, d]) => d.key === "first-hold");
+      check("baby milestone from the catalog saves with index, key, title and author", !!e && e[1].kind === "milestone" && e[1].scope === "baby" && e[1].i === 0 && e[1].title === "First hold" && e[1].by === "parent1@example.com" && e[1].editBy === "parent1@example.com" && e[1].src === null && e[1].ref === null, JSON.stringify(e && e[1]));
+      await J.click("#toast button"); await J.waitForTimeout(150);
+      check("Undo removes a new moment", !(await evs()).some(([, d]) => d.key === "first-hold"));
+      await sheet("0", "milestone", "first-hold", null, "Forty minutes");
+      await sheet("1", "milestone", "", "Big yawn", null);
+      await sheet("parent", "journal", null, null, "Long night, both slept after the 11p feed.");
+      await sheet("family", "milestone", "holding-both", null, null);
+      const all = (await evs()).map(([, d]) => d);
+      check("custom milestone saves as kind 'moment' with no key", all.some(d => d.kind === "moment" && d.key === null && d.i === 1 && d.title === "Big yawn"));
+      check("'Me' journal saves as scope parent with a title from the note", all.some(d => d.kind === "journal" && d.scope === "parent" && d.i === null && d.title.startsWith("Long night")));
+      check("'Our family' offers holding both babies and saves as scope family", all.some(d => d.scope === "family" && d.key === "holding-both" && d.i === null && d.title === "First time holding both babies at once"));
+      check("every saved event passes the shared validation", all.every(d => true) && await J.evaluate(() => Object.values(__db.events).every(__nicu.validEvent)));
+      check("milestones and journal entries show with distinct treatments on the rail", (await J.$$("#jRail .ji-ms")).length >= 3 && (await J.$$("#jRail .ji-jr")).length >= 1 && (await J.$$("#jRail .ji-sum")).length >= 1);
+      // edit + undo
+      const holdId = (await evs()).find(([, d]) => d.key === "first-hold")[0];
+      await J.click(`#jRail [data-ev="${holdId}"]`); await J.waitForTimeout(100); await J.fill("#mNote", "Forty-five minutes"); await J.click("#mSave"); await J.waitForTimeout(150);
+      check("editing patches the moment", (await J.evaluate(id => __db.events[id].note, holdId)) === "Forty-five minutes");
+      await J.click("#toast button"); await J.waitForTimeout(150);
+      check("Undo restores the edited moment", (await J.evaluate(id => __db.events[id].note, holdId)) === "Forty minutes");
+      // overwrite guard
+      await J.click(`#jRail [data-ev="${holdId}"]`); await J.waitForTimeout(100);
+      await J.evaluate(id => { const d = __db.events[id]; Store.put("events", id, { ...d, note: "Theirs", editT: Date.now() + 5, editBy: "parent2@example.com", by: d.by }); }, holdId); await J.waitForTimeout(100);
+      await J.fill("#mNote", "Mine"); J.answers = [false]; await J.click("#mSave"); await J.waitForTimeout(150);
+      check("overwrite guard asks before replacing the other parent's edit (Cancel keeps theirs)", J.dialogs.some(d => d.includes("just edited this")) && (await J.evaluate(id => __db.events[id].note, holdId)) === "Theirs", J.dialogs.slice(-1)[0]);
+      await J.click("#mCancel");
+      // edit vs delete
+      const yawnId = (await evs()).find(([, d]) => d.title === "Big yawn")[0];
+      await J.click(`#jRail [data-ev="${yawnId}"]`); await J.waitForTimeout(100);
+      await J.evaluate(id => Store.remove("events", id), yawnId); await J.waitForTimeout(100);
+      await J.fill("#mTitle", "Bigger yawn"); J.answers = [true]; await J.click("#mSave"); await J.waitForTimeout(150);
+      check("saving a moment the other parent deleted offers to save it as new", J.dialogs.some(d => d.includes("removed from your journey")) && !(await J.evaluate(id => !!__db.events[id], yawnId)) && (await evs()).some(([, d]) => d.title === "Bigger yawn"));
+      // delete + undo
+      await J.click(`#jRail [data-ev="${holdId}"]`); await J.waitForTimeout(100); await J.click("#mDel"); await J.waitForTimeout(150);
+      const gone = !(await J.evaluate(id => !!__db.events[id], holdId)); await J.click("#toast button"); await J.waitForTimeout(150);
+      check("delete removes a moment and Undo brings it back", gone && await J.evaluate(id => !!__db.events[id], holdId));
+      // summaries and records from existing data
+      const rail = await J.textContent("#jRail");
+      check("feeds appear as daily summaries per baby", /Ada Rose:\s*[\d,]+ mL by mouth · \d+ of 8 feeds/.test(rail) && /Bea Joy:\s*[\d,]+ mL by mouth · \d+ of 8 feeds/.test(rail));
+      check("each baby has at most one feed summary per day", await J.evaluate(() => { const days = []; let cur = null; for (const li of document.querySelectorAll("#jRail li")) { if (li.classList.contains("jday")) { cur = { a: 0, b: 0 }; days.push(cur); } else if (li.classList.contains("ji-sum") && /by mouth/.test(li.textContent)) { if (li.textContent.includes("Ada Rose")) cur.a++; if (li.textContent.includes("Bea Joy")) cur.b++; } } return days.every(d => d.a <= 1 && d.b <= 1); }));
+      check("weights appear from the grid (not copied)", /Ada Rose:\s*[\d,]+ g/.test(rail) && !(await J.evaluate(() => Object.values(__db.events).some(e => /g$/.test(e.title)))));
+      // shared check-in + invalid events
+      await J.evaluate(() => { const now = Date.now();
+        Store.put("events", "e-ck", { kind: "journal", scope: "parent", i: null, key: null, t: now - 36e5, title: "Check-in", note: "Feeling hopeful", ref: null, src: "checkin", by: "parent2@example.com", createdT: now, editT: now, editBy: "parent2@example.com" });
+        Store.put("events", "e-bad", { kind: "milestone", scope: "baby", i: null, key: null, t: now, title: "Broken", note: "", ref: null, src: null, createdT: now, editT: now, editBy: "x" }); });
+      await J.waitForTimeout(200);
+      check("a shared check-in renders as '{name} shared a check-in'", /shared a check-in/.test(await J.textContent("#jRail")) && (await J.textContent("#jRail")).includes("Feeling hopeful"));
+      check("an event with scope baby and no valid index is rejected (never shown)", !(await J.textContent("#jRail")).includes("Broken") && !(await J.evaluate(() => __nicu.validEvent({ kind: "milestone", scope: "baby", i: null, t: 1, title: "x" }))));
+      check("validation rejects any other src value", !(await J.evaluate(() => __nicu.validEvent({ kind: "journal", scope: "parent", i: null, t: 1, title: "x", src: "c-123" }))));
+      // baby selector
+      await J.click("#view button:nth-child(1)"); await J.waitForTimeout(200);
+      check("the timeline follows the baby selector", !(await J.textContent("#jRail")).includes("Bea Joy:") && (await J.textContent("#jRail")).includes("Ada Rose:"));
+      await J.click("#view button:nth-child(3)"); await J.waitForTimeout(200);
+      // firsts
+      check("firsts appear as suggestions, one at a time", (await J.$$("#jSuggest .jsug")).length === 1 && (await J.textContent("#jSuggest")).includes("From your logs"));
+      const before = (await evs()).length, sg1 = await J.$eval("#jSuggest .jsug", c => c.dataset.key + "|" + c.dataset.i);
+      await J.click('#jSuggest [data-sg="dismiss"]'); await J.waitForTimeout(150);
+      check("'Not now' saves nothing to the family record and hides that suggestion", (await evs()).length === before && !(await J.$$eval("#jSuggest .jsug", cs => cs.map(c => c.dataset.key + "|" + c.dataset.i))).includes(sg1));
+      const k2 = await J.$eval("#jSuggest .jsug", c => c.dataset.key + "|" + c.dataset.i);
+      await J.click('#jSuggest [data-sg="add"]'); await J.waitForTimeout(150);
+      const added = (await evs()).map(([, d]) => d).find(d => d.key + "|" + d.i === k2);
+      check("'Add to journey' saves the first with a ref to its source record", !!added && added.ref && ["feeds", "weights"].includes(added.ref.col) && !!added.ref.id && added.kind === "milestone", JSON.stringify(added));
+      // offline
+      await J.context().setOffline(true); await J.waitForTimeout(200); await tab(J, "trends");
+      await sheet("0", "milestone", "first-bath", null, null);
+      check("the timeline renders and accepts a moment offline", (await J.$$("#jRail li")).length > 3 && (await evs()).some(([, d]) => d.key === "first-bath"));
+      await J.context().setOffline(false);
+      // sheet controls
+      await J.click("#jAdd"); await J.waitForTimeout(100);
+      check("Add a moment controls are at least 44 px tall", await J.evaluate(() => [...document.querySelectorAll("#mSheet button, #mSheet input, #mSheet select")].filter(e => e.offsetParent && !e.closest("[hidden]")).every(e => e.getBoundingClientRect().height >= 43.5)));
+      check("a new moment's sheet has no Delete button", !(await J.isVisible("#mDel")));
+      await J.click("#mCancel");
+      check("no page errors on Journey", J.errors.length === 0, J.errors.join(" | "));
+      await J.context().close(); }
+    { const E = await newPage(browser, base);
+      await tab(E, "trends");
+      check("an empty journey invites the first entry", (await E.textContent("#jEmpty")).includes("This is where your story lives"));
+      await E.context().close(); }
+    { const W1 = await newPage(browser, base, { now: "2026-02-08T12:00:00-05:00" });
+      await tab(W1, "trends");
+      check("date milestone: 'One week old' is suggested on the day", (await W1.textContent("#jSuggest")).includes("One week old") && (await W1.textContent("#jSuggest")).includes("Today"));
+      await W1.context().close(); }
+    { const H = await newPage(browser, base, { now: "2026-05-11T12:00:00-04:00" });
+      await tab(H, "trends");
+      check("date milestone: '100 days old' is the 100th day of life (birth + 99 days)", await H.evaluate(() => [...document.querySelectorAll("#jSuggest .jsug, #jSuggest [data-sg=more]")].length > 0) && (await H.evaluate(async () => { const b = document.querySelector('#jSuggest [data-sg="more"]'); if (b) b.click(); await new Promise(r => setTimeout(r, 50)); return document.querySelector("#jSuggest").textContent; })).includes("100 days old"));
+      await H.context().close(); }
+    { // pure timeline: order, no duplicates, summaries, filtering
+      const U = await newPage(browser, base);
+      const r = await U.evaluate(() => { const day = t => new Date(t).toISOString().slice(0, 10), T0 = Date.UTC(2026, 1, 10, 12);
+        const tl = __nicu.buildTimeline({ F: [{ twin: "A", t: T0, v: 30, note: "" }, { twin: "A", t: T0 + 36e5, v: 0, note: "All by tube" }, { twin: "B", t: T0, v: 20, note: "" }, { twin: "A", t: T0 - 864e5, v: 25, note: "" }],
+          W: {}, CK: { "b1-hearing": { s: "done", d: "2026-02-10", by: "x" } }, PLANS: {}, QS: [{ text: "Q?", done: true, doneT: T0 + 2 * 36e5, ans: "A." }], P: [{ t: T0, v: 100 }, { t: T0 + 1, v: 50 }], D: [{ t: T0, v: 200 }],
+          EV: [{ id: "e1", kind: "milestone", scope: "baby", i: 0, t: T0 + 3 * 36e5, title: "First hold" }, { id: "e2", kind: "journal", scope: "family", i: null, t: T0 - 864e5, title: "Day one" }],
+          twins: ["A", "B"], shown: ["A"], feedsPerDay: 8, dayOf: day, checkLabel: () => "Hearing screen" });
+        return { days: tl.map(g => g.day), d0: tl[0].items.map(i => i.type + ":" + (i.sub || i.ev?.id) + ":" + (i.i ?? "-")), feedA: tl[0].items.find(i => i.sub === "feed"), pump: tl[0].items.find(i => i.sub === "pump") }; });
+      check("buildTimeline: days newest first, items newest first", r.days.join() === "2026-02-10,2026-02-09" && r.d0[0].startsWith("milestone:e1"), JSON.stringify(r.d0));
+      check("buildTimeline: one feed summary per baby per day, with tube count; hidden baby excluded", r.feedA && r.feedA.mL === 30 && r.feedA.n === 1 && r.feedA.tube === 1 && !r.d0.some(x => x.endsWith(":1")), JSON.stringify(r));
+      check("buildTimeline: pumping and drop-offs as one family summary", r.pump && r.pump.mL === 150 && r.pump.n === 2 && r.pump.drop === 200);
+      await U.context().close(); }
+
     // ---- families: start one, join with a code, invite, remove, delete account ----
     { const n = await newPage(browser, base, { init: () => { window.__TEST_NOFAMILY = true; window.__TEST_PROFILE = null; } });
       check("a new account is asked to join or start a family", await n.isVisible("#family") && !(await n.isVisible("#main")));

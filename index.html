@@ -89,6 +89,42 @@
   .wrap{max-width:960px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(160px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
   #login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   #login .card{width:100%;max-width:380px;padding:var(--sp-5)}
+  [hidden]{display:none !important}   /* the hidden attribute always wins over component display rules */
+  /* ===== Journey timeline (Phase 2): vertical dot rail; type shown by dot shape + size, never colour alone ===== */
+  .jhead{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap}
+  .jhead h2{margin:0}
+  .jrail{list-style:none;margin:var(--sp-3) 0 0;padding:0 0 0 22px;position:relative}
+  .jrail::before{content:"";position:absolute;left:9px;top:4px;bottom:4px;width:2px;background:var(--grid)}
+  .jrail li{position:relative}
+  .jday{margin:var(--sp-4) 0 var(--sp-2);font-size:var(--fs-sm);font-weight:700;color:var(--title)}
+  .jday:first-child{margin-top:0}
+  .jday::before{content:"";position:absolute;left:-17px;top:50%;width:10px;height:2px;background:var(--grid)}
+  .jdot{position:absolute;left:-22px;top:14px;box-sizing:border-box;display:grid;place-items:center;border-radius:50%}
+  .ji-ms .jdot{width:22px;height:22px;left:-23px;top:11px;background:var(--c,var(--muted));color:var(--on-accent);font-size:11px;font-weight:800}
+  .ji-jr .jdot{width:20px;height:20px;left:-22px;top:12px;border:3px solid var(--c,var(--muted));background:var(--surface)}
+  .ji-sum .jdot{width:8px;height:8px;left:-16px;top:16px;background:var(--grid)}
+  .ji-rec .jdot{width:10px;height:10px;left:-17px;top:15px;border:2px solid var(--muted);background:var(--surface)}
+  .jcard{display:block;width:100%;text-align:left;font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);margin:0 0 var(--sp-2);min-height:44px;cursor:pointer}
+  .ji-ms .jcard{border-left:4px solid var(--c,var(--muted))}
+  .jcard .jt{font-weight:700;color:var(--title)} .jcard .jn{margin-top:2px;white-space:pre-wrap;overflow-wrap:anywhere}
+  .jcard .jm{margin-top:4px;font-size:var(--fs-xs);color:var(--muted)}
+  .jlabel{display:inline-block;font-size:var(--fs-xs);font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text2);margin-right:6px}
+  .jline{padding:10px 0;min-height:44px;box-sizing:border-box;font-size:var(--fs-sm);color:var(--text2);overflow-wrap:anywhere}
+  .ji-sum .jline{color:var(--muted)}
+  .jline b{color:var(--text);font-weight:650}
+  .jempty{color:var(--text2);margin:var(--sp-3) 0}
+  .jsug{border:1px dashed var(--line);border-radius:var(--r-md);padding:var(--sp-3);margin-top:var(--sp-3);background:var(--surface)}
+  .jsug .jlabel{color:var(--accent)} .jsug .jt{font-weight:700;color:var(--title)} .jsug .jm{font-size:var(--fs-sm);color:var(--text2);margin-top:2px}
+  .jsug .row{margin-top:var(--sp-2)}
+  .msheet{position:fixed;inset:0;z-index:12;display:flex;align-items:flex-end;justify-content:center}
+  .msheet[hidden]{display:none}
+  .msheet-back{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+  .msheet-card{position:relative;width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--surface);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:var(--sp-4) var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom));box-shadow:var(--shadow-2)}
+  .msheet-card h2{margin:0 0 var(--sp-2)}
+  .mlbl{font-size:var(--fs-sm);font-weight:650;color:var(--text2);margin:var(--sp-3) 0 var(--sp-1)}
+  .msheet .mseg{display:flex;flex-wrap:wrap;width:100%} .msheet .mseg button{flex:1 1 auto;min-height:44px}
+  .msheet-card .f{display:block;margin-top:var(--sp-3)} .msheet-card textarea{display:block;height:auto;margin-top:4px;font:inherit;font-size:16px;width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--field);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);min-height:88px}
+  .mbtns{margin-top:var(--sp-4);gap:var(--sp-2);align-items:center} .mbtns .danger{margin-left:auto}
   .fmlist{list-style:none;margin:var(--sp-2) 0 0;padding:0} .fmlist li{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-2);min-height:44px;border-bottom:1px solid var(--grid);font-size:var(--fs-md);overflow-wrap:anywhere}
   .fmlist .tag{font-size:var(--fs-xs);color:var(--muted);margin-left:6px}
   .invite{display:flex;align-items:baseline;gap:var(--sp-3);flex-wrap:wrap;margin-bottom:var(--sp-2)} .invite .code{font-size:var(--fs-title);font-weight:750;letter-spacing:.08em;color:var(--title);font-variant-numeric:tabular-nums}
@@ -554,6 +590,13 @@
     <div class="chartbox"><canvas id="cDaily" aria-label="Daily total by mouth as a percent of the full-feed target" role="img"></canvas></div>
     <div class="note">Target = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
   </div>
+  <!-- JOURNEY TIMELINE (Phase 2) -->
+  <div class="card" id="jCard">
+    <div class="jhead"><h2>Your journey</h2><button class="btn" id="jAdd" type="button">Add a moment</button></div>
+    <div id="jSuggest"></div>
+    <ol class="jrail" id="jRail" aria-label="Journey timeline, newest first"></ol>
+    <div class="row" style="margin-top:var(--sp-2)"><button class="btn ghost" id="jMore" type="button">Show earlier days</button></div>
+  </div>
   </section>
 
   <section class="tab" data-tab="more">
@@ -646,6 +689,22 @@
   </div>
   </section>
 <button class="fab" id="fab" aria-label="Log a feed">+ Log feed</button>
+<div class="msheet" id="mSheet" hidden>
+  <div class="msheet-back" id="mBack"></div>
+  <form class="msheet-card" id="mForm" role="dialog" aria-modal="true" aria-labelledby="mHead" novalidate>
+    <h2 id="mHead">Add a moment</h2>
+    <div class="mlbl" id="mWhoL">Who is it about?</div>
+    <div class="seg mseg" id="mWho" role="group" aria-labelledby="mWhoL"></div>
+    <div class="mlbl" id="mKindL">What would you like to add?</div>
+    <div class="seg mseg" id="mKind" role="group" aria-labelledby="mKindL"><button type="button" data-v="milestone">Milestone</button><button type="button" data-v="journal">Journal</button></div>
+    <label class="f" id="mPickL">Milestone<select id="mPick"></select></label>
+    <label class="f" id="mTitleL">What happened?<input id="mTitle" type="text" maxlength="120" placeholder="e.g. First hold"></label>
+    <label class="f">When?<input id="mWhen" type="datetime-local"></label>
+    <label class="f">Anything you want to remember?<textarea id="mNote" maxlength="2000" rows="3"></textarea></label>
+    <div class="msg" id="mMsg" role="status"></div>
+    <div class="row mbtns"><button class="btn" id="mSave" type="submit">Save</button><button class="btn ghost" id="mCancel" type="button">Cancel</button><button class="link danger" id="mDel" type="button" hidden>Delete</button></div>
+  </form>
+</div>
 <button class="upd" id="upd" type="button" hidden>New version ready — tap to refresh</button>
 <nav class="tabbar" id="tabbar" aria-label="Screens">
   <button data-tab="feed" class="on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Today</span></button>
@@ -1299,7 +1358,7 @@
 
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
-  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); }
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -1489,11 +1548,220 @@
 
   // ---------- discharge checklist, rounds plan, questions ----------
   // Keys use the baby's position (0/1), not her name, so renaming never orphans them.
-  const DIS_BABY=[["crib","Open crib, holding her temperature"],["carseat","Car seat test passed"],["hearing","Hearing screen"],["cchd","Heart screen (CCHD)"],
+  const DIS_BABY=[["crib","Open crib, maintaining temperature"],["carseat","Car seat test passed"],["hearing","Hearing screen"],["cchd","Heart screen (CCHD)"],
     ["nbs","Repeat newborn blood screen"],["hepb","Hep B vaccine"],["rsv","RSV shot (Beyfortus)"],["tube","Feeding tube out"]];
   const DIS_FAM=[["cpr","Infant CPR class"],["roomin","Rooming-in night"],["seats","Car seats installed"],["pedi","Pediatrician chosen"],
     ["appt","First pediatrician visit booked"],["recipe","Home feeding recipe written down"]];
   let CK={}, PLANS={}, QS=[];
+
+  // ===================== Journey (Phase 2): moments, firsts and the timeline =====================
+  // Content is exactly the approved catalog in docs/phase2-catalog.md (D16). Baby records use index i, never names.
+  const MS_GROUPS=[
+    ["Meeting and bonding",[["first-touch","First touch"],["first-hold","First hold"],["skin-to-skin","First skin-to-skin"],["eye-contact","First eye contact"],["finger-grasp","First time holding a finger"]]],
+    ["Feeding",[["first-bottle","First bottle"],["first-nursing","First time nursing"],["first-breast-milk","First breast milk feed"],["first-donor-milk","First donor milk feed"],["first-formula","First formula feed"]]],
+    ["Everyday care",[["first-diaper","First diaper change"],["first-bath","First bath"],["first-outfit","First outfit"],["first-swaddle","First swaddle"],["first-story","First story read aloud"],["first-song","First song sung"]]],
+    ["Family and visitors",[["meets-sibling","First meeting with big brother or sister"],["meets-grandparents","Met grandparents"]]],
+    ["Along the way",[["breathing-own","Breathing without help"],["room-move","Moved to a new room"],["came-home","Came home"]]]];
+  const MS_FAMILY=[["holding-both","First time holding both babies at once"]];   // offered only when more than one baby is in the record
+  const FIRSTS={"first-po":"First feed by mouth","first-full":"First full feed by mouth","first-full-day":"First day with every feed by mouth","birth-weight":"Back to birth weight",
+    "one-week":"One week old","one-month":"One month old","hundred-days":"100 days old","due-date":"Due date"};
+  const EV_KINDS=["milestone","journal","moment"], EV_SCOPES=["baby","parent","family"];
+  let EV=[];   // validated events (from RAW.events)
+  // Same checks as firestore.rules (events): anything else is never written, and never shown if it arrives.
+  function validEvent(e){
+    if(!e || !EV_KINDS.includes(e.kind) || !EV_SCOPES.includes(e.scope)) return false;
+    if(e.scope==="baby" ? !(e.i===0||e.i===1) : e.i!==null) return false;
+    if(!(e.src==null || e.src==="checkin")) return false;
+    if(typeof e.title!=="string" || !e.title.trim() || e.title.length>120) return false;
+    if(e.note!=null && (typeof e.note!=="string" || e.note.length>2000)) return false;
+    if(!(typeof e.t==="number" && isFinite(e.t))) return false;
+    if(e.key!=null && (typeof e.key!=="string" || e.key.length>40)) return false;
+    if(e.ref!=null && !(typeof e.ref==="object" && typeof e.ref.col==="string" && typeof e.ref.id==="string")) return false;
+    return true;
+  }
+  const cleanE = (id,d) => d && validEvent(d) ? {id,kind:d.kind,scope:d.scope,i:d.i,key:d.key??null,t:d.t,title:d.title,note:d.note||"",ref:d.ref??null,src:d.src??null,
+    by:typeof d.by==="string"?d.by:"",createdT:+d.createdT||0,editT:+d.editT||0,editBy:typeof d.editBy==="string"?d.editBy:""} : null;
+  const evId = t => `e-${t}-${Math.random().toString(36).slice(2,6)}`;
+  const evRec = e => { const r={kind:e.kind,scope:e.scope,i:e.i,key:e.key??null,t:e.t,title:e.title,note:e.note||"",ref:e.ref??null,src:e.src??null,createdT:e.createdT,editT:e.editT,editBy:e.editBy}; if(e.by) r.by=e.by; return r; };
+  const dayOfLife = k => profile ? Math.round((keyDate(k)-keyDate(profile.born))/DAY) : null;
+
+  // Pure: the journey as day groups (newest first) built from in-memory records. No record is copied or stored.
+  function buildTimeline(src){
+    const {F,W,CK,PLANS,QS,P,D,EV,twins,shown,feedsPerDay,dayOf,checkLabel} = src, days={};
+    const add=(day,it)=>{ (days[day]=days[day]||[]).push(it); };
+    const showI = i => i==null || shown.includes(twins[i]);
+    EV.forEach(e=>{ if(!showI(e.scope==="baby"?e.i:null)) return; add(dayOf(e.t), {type:e.kind==="journal"?"journal":"milestone", t:e.t, ev:e}); });
+    const fd={}; F.forEach(f=>{ const i=twins.indexOf(f.twin); if(i<0||!showI(i)) return; const k=dayOf(f.t)+"|"+i;
+      const s=fd[k]=fd[k]||{day:dayOf(f.t),i,mL:0,n:0,tube:0,t0:Infinity}; s.mL+=f.v; if(f.v>0) s.n++; if(!f.v && /^All by tube/.test(f.note||"")) s.tube++; s.t0=Math.min(s.t0,f.t); });
+    Object.values(fd).forEach(s=>add(s.day,{type:"summary",sub:"feed",t:s.t0-1,i:s.i,mL:Math.round(s.mL*10)/10,n:s.n,N:feedsPerDay,tube:s.tube}));
+    const pd={}; P.forEach(x=>{ const k=dayOf(x.t); const s=pd[k]=pd[k]||{mL:0,n:0,drop:0,t0:Infinity}; s.mL+=x.v; s.n++; s.t0=Math.min(s.t0,x.t); });
+    D.forEach(x=>{ const k=dayOf(x.t); const s=pd[k]=pd[k]||{mL:0,n:0,drop:0,t0:Infinity}; s.drop+=x.v; s.t0=Math.min(s.t0,x.t); });
+    Object.entries(pd).forEach(([day,s])=>add(day,{type:"summary",sub:"pump",t:s.t0-2,mL:Math.round(s.mL),n:s.n,drop:Math.round(s.drop)}));
+    twins.forEach((tw,i)=>{ if(!showI(i)) return; const ws=Object.values(W).filter(w=>w.twin===tw).sort((a,b)=>a.date<b.date?-1:1);
+      ws.forEach((w,k)=>{ const p=ws[k-1]; add(w.date,{type:"record",sub:"weight",t:w.t??0,i,v:w.v,approx:w.approx,delta:p&&p.date===addDays(w.date,-1)?w.v-p.v:null}); }); });
+    Object.entries(CK).forEach(([id,c])=>{ if(c.s!=="done"||!/^\d{4}-\d\d-\d\d$/.test(c.d)) return; const m=/^b([01])-/.exec(id), i=m?+m[1]:null; if(!showI(i)) return;
+      const label=checkLabel(id); if(label) add(c.d,{type:"record",sub:"check",t:keyDate(c.d).getTime()+12*36e5,i,label,by:c.by}); });
+    Object.values(PLANS).forEach(p=>{ if(!showI(p.i)) return; add(p.day,{type:"record",sub:"plan",t:keyDate(p.day).getTime()+9*36e5,i:p.i,text:p.text}); });
+    QS.forEach(q=>{ if(q.done && q.doneT) add(dayOf(q.doneT),{type:"record",sub:"q",t:q.doneT,text:q.text,ans:q.ans}); });
+    return Object.keys(days).sort().reverse().map(day=>({day, items:days[day].sort((a,b)=>b.t-a.t)}));
+  }
+  const addDays = (k,n) => { const d=keyDate(k); d.setDate(d.getDate()+n); return dKey(d); };
+  window.__nicu = { buildTimeline, validEvent };   // read-only, for tests
+
+  // Firsts (from your logs) and date milestones: suggestions only (D9). Nothing is saved until a parent taps Add.
+  const jDismissed = () => { try{ return new Set(JSON.parse(localStorage.getItem("jDismiss")||"[]")); }catch{ return new Set(); } };
+  function suggestions(){
+    if(!profile) return [];
+    const out=[], have=new Set(EV.map(e=>e.key+"|"+e.i)), gone=jDismissed(), today=feedDay(Date.now());
+    const push=(key,i,t,detail,ref,date)=>{ if(have.has(key+"|"+i) || gone.has(key+"|"+i)) return; out.push({key,i,t,detail,ref,date}); };
+    shown().forEach(tw=>{ const i=TWINS.indexOf(tw), fs=fSeries(tw);
+      const po=fs.find(f=>f.v>0); if(po) push("first-po",i,po.t,`${po.v} mL · ${mdD(new Date(po.t))}, ${hm(po.t)}`,{col:"feeds",id:po.id});
+      const full=fs.find(f=>f.v>=FULL[tw]); if(full) push("first-full",i,full.t,`${full.v} mL · the full amount you set`,{col:"feeds",id:full.id});
+      const fdays=[...new Set(fs.map(f=>feedDay(f.t)))].sort();
+      for(const day of fdays){ if(day>=today) break;
+        const slots=SLOT_H.map((_,k)=>slotFeed(tw,day,k)); if(slots.every(f=>f&&f.v>0)){ const last=slots.reduce((a,f)=>f.t>a.t?f:a);
+          push("first-full-day",i,last.t,`All ${slots.length} feeds by mouth · ${mdD(keyDate(day))}`,{col:"feeds",id:last.id}); break; } }
+      const bw=wSeries(tw).find(w=>!w.approx && w.v>=BIRTH[tw].g); if(bw) push("birth-weight",i,nightT(bw.date),`${wtMain(bw.v)} · night of ${mdD(keyDate(bw.date))}`,{col:"weights",id:bw.id});
+      // calendar milestones: offered from the day itself for a week, so a busy day doesn't lose them
+      const born=keyDate(profile.born), dates=[["one-week",addDays(profile.born,7)],["one-month",monthLater(born)],["hundred-days",addDays(profile.born,99)]];
+      const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""); if(m){ const ga=(+m[1])*7+(+(m[2]||0)); if(ga<280) dates.push(["due-date",addDays(profile.born,280-ga)]); }
+      dates.forEach(([key,day])=>{ if(today>=day && today<=addDays(day,6)) push(key,i,keyDate(day).getTime()+12*36e5,mdD(keyDate(day)),null,true); });
+    });
+    return out.sort((a,b)=>a.t-b.t);
+  }
+  function monthLater(born){ const y=born.getFullYear(), m=born.getMonth()+1, last=new Date(y,m+1,0).getDate(); return dKey(new Date(y,m,Math.min(born.getDate(),last))); }
+
+  let jDays=14, jSugAll=false;
+  function renderJourney(){
+    if(TWINS[0]==="A" || !$("jRail")) return;
+    const C=COLORS(), W2={}; Object.values(W).forEach(w=>W2[w.twin+"|"+w.date]={...w,t:nightT(w.date)});
+    const ckLabel = id => { const m=/^(b[01]|f)-(.+)$/.exec(id); if(!m) return ""; const list=m[1]==="f"?DIS_FAM:DIS_BABY, it=list.find(([k])=>k===m[2]); return it?it[1]:""; };
+    const tl=buildTimeline({F,W:W2,CK,PLANS,QS,P,D,EV,twins:TWINS,shown:shown(),feedsPerDay:FEEDS_PER_DAY,dayOf:feedDay,checkLabel:ckLabel});
+    const who = i => i==null ? "" : esc(TWINS[i]), col = i => i==null ? "var(--muted)" : C[TWINS[i]];
+    const scopeName = e => e.scope==="baby" ? esc(TWINS[e.i]) : e.scope==="family" ? "Our family" : "Me";
+    const rows=[];
+    tl.slice(0,jDays).forEach(g=>{
+      const dol=dayOfLife(g.day); rows.push(`<li class="jday">${longD(keyDate(g.day))}${dol!=null&&dol>=0?` · Day ${dol}`:""}</li>`);
+      g.items.forEach(it=>{
+        if(it.type==="milestone"||it.type==="journal"){ const e=it.ev, c=e.scope==="baby"?col(e.i):"var(--muted)", isJ=it.type==="journal";
+          const initial=e.scope==="baby"?esc((TWINS[e.i].trim()[0]||"").toUpperCase()):"";
+          const head = isJ ? (e.src==="checkin" ? `${esc(whoName(e.by)||"Someone")} shared a check-in` : e.scope==="parent" ? `${esc(whoName(e.by)||"My")}'s journal` : e.scope==="family" ? "Our family" : `${esc(TWINS[e.i])}`)
+                           : `${scopeName(e)} · ${esc(e.title)}`;
+          const fromLogs = e.ref ? `<span class="jlabel">From your logs</span>` : "";
+          rows.push(`<li class="ji ${isJ?"ji-jr":"ji-ms"}" style="--c:${c}"><span class="jdot" aria-hidden="true">${isJ?"":initial}</span>
+            <button type="button" class="jcard" data-ev="${esc(e.id)}" aria-label="${isJ?"Journal":"Milestone"}: ${esc(e.title)}, ${hm(e.t)}. Tap to edit.">
+            ${isJ?`<span class="jlabel">Journal</span>`:fromLogs}<div class="jt">${head}</div>${isJ&&e.src!=="checkin"&&e.title&&e.title!=="Journal"?`<div class="jt" style="font-weight:600">${esc(e.title)}</div>`:""}
+            ${e.note?`<div class="jn">${esc(e.note)}</div>`:""}<div class="jm">${hm(e.t)} · ${isJ?"Written":"Added"} by ${esc(whoName(e.by)||"—")}</div></button></li>`); }
+        else if(it.type==="summary"){ const txt = it.sub==="feed"
+            ? `<b>${who(it.i)}:</b> ${fmtG(it.mL)} mL by mouth · ${it.n} of ${it.N} feeds${it.tube?` · ${it.tube} by tube`:""}`
+            : `Pumped ${fmtG(it.mL)} mL · ${it.n} session${it.n===1?"":"s"}${it.drop?` · ${fmtG(it.drop)} mL to the NICU`:""}`;
+          rows.push(`<li class="ji ji-sum"><span class="jdot" aria-hidden="true"></span><div class="jline">${txt}</div></li>`); }
+        else { let txt="";
+          if(it.sub==="weight") txt=`<b>${who(it.i)}:</b> ${wtMain(it.v)}${it.approx?" (est.)":""}${it.delta!=null?` · ${sgn(it.delta)} g since the night before`:""}`;
+          else if(it.sub==="check") txt=`${it.i!=null?`<b>${who(it.i)}:</b> `:""}${esc(it.label)} — marked done${it.by?` by ${esc(whoName(it.by))}`:""}`;
+          else if(it.sub==="plan") txt=`<b>${who(it.i)}</b> · Plan from rounds: ${esc(it.text)}`;
+          else if(it.sub==="q") txt=`Asked at rounds: ${esc(it.text)}${it.ans?` · Answer: ${esc(it.ans)}`:""}`;
+          rows.push(`<li class="ji ji-rec"><span class="jdot" aria-hidden="true"></span><div class="jline">${txt}</div></li>`); }
+      });
+    });
+    $("jRail").innerHTML = rows.join("") || "";
+    $("jRail").insertAdjacentHTML("beforebegin","");
+    const empty=!tl.length; let em=$("jEmpty"); if(!em){ em=document.createElement("p"); em.id="jEmpty"; em.className="jempty"; $("jRail").before(em); }
+    em.textContent = empty ? "This is where your story lives. Add a first hold, a first bath, or anything you want to remember about these days." : ""; em.hidden=!empty;
+    $("jMore").style.display = tl.length>jDays ? "" : "none";
+    const all=suggestions(), sg=jSugAll ? all : all.slice(0,1);   // one at a time keeps the journey calm
+    $("jSuggest").innerHTML = sg.map(x=>`<div class="jsug" data-key="${x.key}" data-i="${x.i}"><span class="jlabel">${x.date?"Today":"From your logs"}</span>
+      <div class="jt">${esc(TWINS[x.i])} · ${FIRSTS[x.key]}</div><div class="jm">${esc(x.detail)}</div>
+      <div class="row"><button class="btn" type="button" data-sg="add">Add to journey</button><button class="btn ghost" type="button" data-sg="dismiss">Not now</button></div></div>`).join("")
+      + (all.length>1 && !jSugAll ? `<button class="link" type="button" data-sg="more">${all.length-1} more suggestion${all.length===2?"":"s"}</button>` : "");
+  }
+  $("jMore").addEventListener("click",()=>{ jDays+=14; renderJourney(); });
+  $("jSuggest").addEventListener("click", async e=>{
+    const b=e.target.closest("[data-sg]"); if(!b) return; if(b.dataset.sg==="more"){ jSugAll=true; renderJourney(); return; }
+    const card=b.closest(".jsug"), key=card.dataset.key, i=+card.dataset.i;
+    const x=suggestions().find(s=>s.key===key && s.i===i); if(!x) return;
+    if(b.dataset.sg==="dismiss"){ const g=jDismissed(); g.add(key+"|"+i); try{ localStorage.setItem("jDismiss",JSON.stringify([...g])); }catch{} renderJourney(); return; }
+    const now=Date.now(), id=evId(now), rec={kind:"milestone",scope:"baby",i,key,t:x.t,title:FIRSTS[key],note:"",ref:x.ref||null,src:null,createdT:now,editT:now,editBy:myEmail};
+    try{ await Store.put("events",id,rec); undoBar("Saved to your journey", ()=>Store.remove("events",id)); }catch(err){ failWrite(err); }
+  });
+
+  // ---- Add / edit sheet ----
+  let mState=null;   // {id?, had?, scope, i, kind}
+  function mSetWho(v){ mState.who=v; [...$("mWho").children].forEach(b=>b.classList.toggle("on",b.dataset.v===v)); syncPressed("mWho"); mFillPick(); }
+  function mSetKind(v){ mState.kind=v; [...$("mKind").children].forEach(b=>b.classList.toggle("on",b.dataset.v===v)); syncPressed("mKind"); mFillPick(); }
+  function mFillPick(){
+    const isM=mState.kind==="milestone", w=mState.who, list = w==="0"||w==="1" ? MS_GROUPS : w==="family" && TWINS.length>1 ? [["For the family",MS_FAMILY]] : [];
+    $("mPickL").hidden = !isM;
+    const cur=$("mPick").value;
+    $("mPick").innerHTML = `<option value="">Write your own</option>` + list.map(([g,items])=>`<optgroup label="${esc(g)}">${items.map(([k,t])=>`<option value="${k}">${esc(t)}</option>`).join("")}</optgroup>`).join("");
+    if([...$("mPick").options].some(o=>o.value===cur)) $("mPick").value=cur;
+    mPickChanged();
+  }
+  function mPickChanged(){
+    const k=$("mPick").value, isM=mState.kind==="milestone";
+    $("mTitleL").hidden = isM && !!k;
+    $("mTitleL").firstChild.textContent = mState.kind==="journal" ? "Title (optional)" : "What happened?";
+  }
+  const toLocal = t => toLocalInput(new Date(t));
+  function openMoment(ev){
+    mState={id:ev?ev.id:null, had:ev?`${ev.editT}|${ev.editBy}`:null};
+    $("mWho").innerHTML = TWINS.map((tw,i)=>`<button type="button" data-v="${i}">${esc(tw)}</button>`).join("")+`<button type="button" data-v="parent">Me</button><button type="button" data-v="family">Our family</button>`;
+    $("mHead").textContent = ev ? (ev.kind==="journal"?"Edit journal entry":"Edit moment") : "Add a moment";
+    const who = ev ? (ev.scope==="baby"?String(ev.i):ev.scope) : (state.view!=="both" ? String(TWINS.indexOf(state.view)) : "0");
+    mSetKind(ev ? (ev.kind==="journal"?"journal":"milestone") : "milestone"); mSetWho(who);
+    $("mPick").value = ev && ev.kind==="milestone" && ev.key && !ev.ref ? ev.key : ""; mPickChanged();
+    $("mTitle").value = ev ? (ev.kind==="journal"&&ev.title==="Journal" ? "" : ev.title) : "";
+    $("mWhen").value = toLocal(ev ? ev.t : Date.now()); $("mNote").value = ev ? ev.note : ""; $("mMsg").textContent="";
+    $("mDel").hidden=!ev; $("mSheet").hidden=false; document.body.style.overflow="hidden";
+    setTimeout(()=>($("mTitleL").hidden?$("mWhen"):$("mTitle")).focus(),50);
+  }
+  function closeMoment(){ $("mSheet").hidden=true; document.body.style.overflow=""; mState=null; }
+  $("jAdd").addEventListener("click",()=>openMoment(null));
+  $("jRail").addEventListener("click",e=>{ const b=e.target.closest("[data-ev]"); if(!b) return; const ev=EV.find(x=>x.id===b.dataset.ev); if(ev) openMoment(ev); });
+  $("mWho").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) mSetWho(b.dataset.v); });
+  $("mKind").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) mSetKind(b.dataset.v); });
+  $("mPick").addEventListener("change",mPickChanged);
+  $("mCancel").addEventListener("click",closeMoment); $("mBack").addEventListener("click",closeMoment);
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("mSheet").hidden) closeMoment(); });
+  function mBuild(){
+    const w=mState.who, scope = w==="0"||w==="1" ? "baby" : w, i = scope==="baby" ? +w : null, isJ=mState.kind==="journal";
+    const key = !isJ && $("mPick").value ? $("mPick").value : null;
+    const title0 = key ? ([...MS_GROUPS.flatMap(g=>g[1]),...MS_FAMILY].find(([k])=>k===key)||[])[1] : $("mTitle").value.trim();
+    const note=$("mNote").value.trim().slice(0,2000), t=new Date($("mWhen").value).getTime();
+    const title = isJ ? (title0 || (note.split("\n")[0].slice(0,60)) || "Journal") : title0;
+    return {kind: isJ ? "journal" : key ? "milestone" : "moment", scope, i, key, t, title:(title||"").slice(0,120), note};
+  }
+  $("mForm").addEventListener("submit", async e=>{
+    e.preventDefault(); if(!mState) return;
+    const f=mBuild();
+    if(!f.title){ $("mMsg").textContent="Add a few words about what happened."; $("mTitle").focus(); return; }
+    if(!isFinite(f.t)){ $("mMsg").textContent="Choose when it happened."; $("mWhen").focus(); return; }
+    const now=Date.now();
+    try{
+      if(!mState.id){
+        const id=evId(now), rec={...f,ref:null,src:null,createdT:now,editT:now,editBy:myEmail};
+        if(!validEvent(rec)){ $("mMsg").textContent="That can't be saved — check the details."; return; }
+        await Store.put("events",id,rec); closeMoment(); undoBar("Saved to your journey", ()=>Store.remove("events",id)); return;
+      }
+      const id=mState.id, old=RAW.events&&RAW.events.find(([x])=>x===id), cur=EV.find(x=>x.id===id);
+      if(!cur){   // removed meanwhile (by the other parent or another phone)
+        if(!confirm("This was removed from your journey. Save yours as a new entry?")) return;
+        const nid=evId(now), rec={...f,ref:null,src:null,createdT:now,editT:now,editBy:myEmail};
+        await Store.put("events",nid,rec); closeMoment(); undoBar("Saved to your journey", ()=>Store.remove("events",nid)); return;
+      }
+      if(`${cur.editT}|${cur.editBy}`!==mState.had && cur.editBy && cur.editBy!==myEmail && !confirm(`${whoName(cur.editBy)||"The other parent"} just edited this. Replace their changes with yours?`)) return;
+      const before=evRec(cur), fields={kind:f.kind,scope:f.scope,i:f.i,key:f.key,t:f.t,title:f.title,note:f.note,editT:now,editBy:myEmail};
+      if(cur.ref){ fields.kind=cur.kind; fields.key=cur.key; fields.scope=cur.scope; fields.i=cur.i; if(!$("mTitle").value.trim()) fields.title=cur.title; }   // a saved first keeps its link
+      if(!validEvent({...before,...fields})){ $("mMsg").textContent="That can't be saved — check the details."; return; }
+      await Store.patch("events",id,fields); closeMoment();
+      undoBar("Saved to your journey", ()=>Store.put("events",id,before));
+    }catch(err){ failWrite(err); }
+  });
+  $("mDel").addEventListener("click", async ()=>{
+    if(!mState||!mState.id) return; const cur=EV.find(x=>x.id===mState.id); if(!cur){ closeMoment(); return; }
+    const before=evRec(cur), id=cur.id;
+    try{ await Store.remove("events",id); closeMoment(); undoBar("Removed from your journey", ()=>Store.put("events",id,before)); }catch(err){ failWrite(err); }
+  });
   const twIdx = tw => TWINS.indexOf(tw);
   function ckRow(id,label,c){
     const st=CK[id], s=st&&st.s;
@@ -1756,7 +2024,8 @@
       unsubs.push(Store.watch("checklist",list=>{ RAW.checklist=list; CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); if(document.querySelector("#ckBabies [data-ck]")) patchChecklists(); else { renderFam(); renderBabyChecklists(); renderNext(); } }, ()=>{}));
       unsubs.push(Store.watch("plans",list=>{ RAW.plans=list; PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
       // Collections with no screen yet (events, needs: Phase 2+) are watched only so backups carry them.
-      bkCols().filter(c=>!["weights","feeds","pumps","drops","checklist","plans","questions"].includes(c)).forEach(c=>unsubs.push(Store.watch(c,list=>{ RAW[c]=list; }, ()=>{})));
+      bkCols().filter(c=>!["weights","feeds","pumps","drops","checklist","plans","questions"].includes(c)).forEach(c=>unsubs.push(Store.watch(c,list=>{ RAW[c]=list;
+        if(c==="events"){ EV=list.map(([id,d])=>cleanE(id,d)).filter(Boolean); renderJourney(); } }, ()=>{})));
       if(Store.watchPrivate) bkPriv().forEach(n=>unsubs.push(Store.watchPrivate(n,list=>{ RAWP[n]=list; }, ()=>{})));
       unsubs.push(Store.watch("questions",list=>{ RAW.questions=list; QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ RAWC.milk=c; milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
@@ -1882,7 +2151,7 @@
         Store.family().then(f=>{ if(f) enterFamily(); else showFamily(); })
           .catch(err=>banner(err&&err.code==="cleanup-pending"?err.message:"Couldn't reach your family's data. Check your connection and reopen the app."));
       } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k]));
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k])); EV=[];
         $("setup").style.display="none"; $("family").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
       }
     });

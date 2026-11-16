@@ -71,20 +71,34 @@ const srv = http.createServer((q, r) => {
     (await S(B, () => new Promise(res => { const un = Store.watchPrivate("checkins", l => { if (l.length) { un(); res(l.map(x => x[0]).join()); } }); }))) === "p1");
 
   // ---- patch ----
-  await S(A, () => Store.put("events", "e1", { title: "a", note: "keep" }));
-  await S(B, () => Store.patch("events", "e1", { title: "b", by: "intruder" }));
+  await S(A, () => Store.put("needs", "e1", { title: "a", note: "keep" }));
+  await S(B, () => Store.patch("needs", "e1", { title: "b", by: "intruder" }));
   await new Promise(r => setTimeout(r, 300));
   await t("patch merges one field, keeps the rest and the original author", async () => {
-    const e = await admin(d => getDoc(doc(d, `households/${hid}/events/e1`)).then(s => s.data()));
+    const e = await admin(d => getDoc(doc(d, `households/${hid}/needs/e1`)).then(s => s.data()));
     return e.title === "b" && e.note === "keep" && e.by === "owner@example.net";
   });
   await t("patch on a deleted record fails instead of recreating it", async () => {
     // Online it rejects at once; offline the rejection arrives later as a "store-error" event. Either way: an error, no document.
     const r = await S(B, () => { window.__errs = []; addEventListener("store-error", e => window.__errs.push(String(e.detail && e.detail.code)));
-      return Store.patch("events", "gone", { title: "x" }).then(() => "resolved", e => String(e.code)); });
+      return Store.patch("needs", "gone", { title: "x" }).then(() => "resolved", e => String(e.code)); });
     await new Promise(res => setTimeout(res, 1500));
-    return !(await exists(`households/${hid}/events/gone`)) && (r === "not-found" || (await S(B, () => window.__errs.join())).includes("not-found"));
+    return !(await exists(`households/${hid}/needs/gone`)) && (r === "not-found" || (await S(B, () => window.__errs.join())).includes("not-found"));
   });
+
+  // ---- Phase 2: events through the real Store ----
+  const ev = { kind: "milestone", scope: "baby", i: 0, key: "first-hold", t: 1700000000000, title: "First hold", note: "keep", ref: null, src: null, createdT: 1, editT: 1, editBy: "owner@example.net" };
+  await S(A, e => Store.put("events", "e-ph2", e), ev);
+  await S(B, () => Store.patch("events", "e-ph2", { note: "Forty minutes", editT: 2, editBy: "partner@example.net" })); await new Promise(r => setTimeout(r, 300));
+  await t("events: create and patch through the real Store keep the shape and author", async () => {
+    const d = await admin(x => getDoc(doc(x, `households/${hid}/events/e-ph2`)).then(s => s.data()));
+    return d.title === "First hold" && d.note === "Forty minutes" && d.by === "owner@example.net" && d.editBy === "partner@example.net";
+  });
+  await t("events: the rules reject an invalid event written through the real Store", async () => {
+    const r = await attempt(A, e => Store.put("events", "e-bad", e), { ...ev, i: null });
+    return r !== "ok" && !(await exists(`households/${hid}/events/e-bad`));
+  });
+  await t("events: delete through the real Store", async () => { await S(B, () => Store.remove("events", "e-ph2")); await new Promise(r => setTimeout(r, 300)); return !(await exists(`households/${hid}/events/e-ph2`)); });
 
   // ---- removal by the owner ----
   await S(A, u => Store.removeMember(u), ub);
@@ -110,7 +124,7 @@ const srv = http.createServer((q, r) => {
     await S(C, () => Store.leave());
     return (await count(`households/${hid}/private/${uc}/checkins`)) === 0 && !(await exists(`households/${hid}/members/${uc}`)) && !(await exists(`users/${uc}`));
   });
-  await t("leaving doesn't touch shared data or anyone else's private data", async () => await exists(`households/${hid}/events/e1`) && await exists(`households/${hid}/private/${ua}/checkins/a1`));
+  await t("leaving doesn't touch shared data or anyone else's private data", async () => await exists(`households/${hid}/needs/e1`) && await exists(`households/${hid}/private/${ua}/checkins/a1`));
 
   // ---- account deletion by the last member ----
   await S(A, () => Store.put("needs", "n1", { text: "meals" }));
@@ -181,7 +195,7 @@ const srv = http.createServer((q, r) => {
   // ---- correction 3: account deletion fails closed ----
   const D = await open(); await S(D, () => Store.signUp("del-last@example.net", "pw-del-1")); const ud = await uidOf(D);
   const { hid: hd } = await S(D, () => Store.createFamily());
-  await S(D, () => Promise.all([Store.put("events", "e1", { title: "x" }), Store.put("needs", "n1", { text: "y" }), Store.setProfile({ born: "2026-01-01" }), Store.putPrivate("checkins", "d1", { mood: 3 })]));
+  await S(D, () => Promise.all([Store.put("events", "e1", { kind: "milestone", scope: "family", i: null, key: null, t: 1, title: "x", note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "x" }), Store.put("needs", "n1", { text: "y" }), Store.setProfile({ born: "2026-01-01" }), Store.putPrivate("checkins", "d1", { mood: 3 })]));
   for (const step of ["purge", "shared", "config", "invite", "household", "member"]) {
     await setFail(D, [step]);
     await t(`last member: a failure at "${step}" stops deletion and keeps the sign-in and family pointer`, async () =>
@@ -205,7 +219,7 @@ const srv = http.createServer((q, r) => {
   const ug1 = await uidOf(G1), ug2 = await uidOf(G2), ug3 = await uidOf(G3);
   const { hid: hg } = await S(G1, () => Store.createFamily()); const gc = (await S(G1, () => Store.familyInfo())).code;
   await S(G2, c => Store.joinFamily(c), gc); await S(G3, c => Store.joinFamily(c), gc);
-  await S(G1, () => Store.put("events", "keep", { title: "shared" })); await S(G2, () => Store.putPrivate("checkins", "g2", { mood: 1 }));
+  await S(G1, () => Store.put("events", "keep", { kind: "milestone", scope: "family", i: null, key: null, t: 1, title: "shared", note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "x" })); await S(G2, () => Store.putPrivate("checkins", "g2", { mood: 1 }));
   for (const step of ["purge", "member"]) {
     await setFail(G2, [step]);
     await t(`non-last member: a failure at "${step}" stops deletion, keeps the sign-in, membership and pointer`, async () =>

@@ -109,7 +109,7 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
     await assertFails(deleteDoc(doc(legacyDad, "households/main/private/mom/checkins/m1")));
   });
   await t("the shared-data catch-all still works for members", async () => {
-    await assertSucceeds(getDoc(doc(par, "households/h3/feeds/b0-9"))); await assertSucceeds(setDoc(doc(par, "households/h3/events/e1"), { title: "x" }));
+    await assertSucceeds(getDoc(doc(par, "households/h3/feeds/b0-9"))); await assertSucceeds(setDoc(doc(par, "households/h3/needs/n1"), { text: "meals" }));
   });
   // The owner removes the partner the way Store.removeMember does: delete the membership, then rotate the invite code.
   await assertSucceeds(deleteDoc(doc(own, "households/h3/members/par")));
@@ -200,6 +200,47 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
     await assertFails(setDoc(doc(mom, "households/main/members/mom"), { email: "parent2@example.com" }));
     await assertFails(setDoc(doc(mom, "users/mom"), { hid: "main" }));
     await assertSucceeds(getDoc(doc(dad, "households/main/feeds/b0-1")));
+  });
+
+  // ---- Phase 2: journey events are shape-validated ----
+  const okEv = (o = {}) => ({ kind: "milestone", scope: "baby", i: 0, key: "first-hold", t: 1700000000000, title: "First hold", note: "", ref: null, src: null, by: "own@example.net", createdT: 1, editT: 1, editBy: "own@example.net", ...o });
+  const EVP = "households/h3/events/";
+  await t("a valid baby milestone, moment, journal and family event can be written", async () => {
+    await assertSucceeds(setDoc(doc(own, EVP + "e1"), okEv()));
+    await assertSucceeds(setDoc(doc(own, EVP + "e2"), okEv({ kind: "moment", key: null, i: 1 })));
+    await assertSucceeds(setDoc(doc(own, EVP + "e3"), okEv({ kind: "journal", scope: "parent", i: null, key: null })));
+    await assertSucceeds(setDoc(doc(own, EVP + "e4"), okEv({ scope: "family", i: null, key: "holding-both" })));
+    await assertSucceeds(setDoc(doc(own, EVP + "e5"), okEv({ kind: "journal", scope: "parent", i: null, key: null, src: "checkin" })));
+    await assertSucceeds(setDoc(doc(own, EVP + "e6"), okEv({ ref: { col: "feeds", id: "b0-1" } })));
+  });
+  await t("events with a bad scope/index combination are rejected", async () => {
+    await assertFails(setDoc(doc(own, EVP + "x1"), okEv({ i: null })));
+    await assertFails(setDoc(doc(own, EVP + "x2"), okEv({ i: 2 })));
+    await assertFails(setDoc(doc(own, EVP + "x3"), okEv({ scope: "family", i: 0 })));
+    await assertFails(setDoc(doc(own, EVP + "x4"), okEv({ scope: "everyone" })));
+    await assertFails(setDoc(doc(own, EVP + "x5"), okEv({ kind: "note" })));
+  });
+  await t("src can only be the provenance marker 'checkin' (never an id or other text)", async () => {
+    await assertFails(setDoc(doc(own, EVP + "x6"), okEv({ src: "checkins/c-123" })));
+    await assertFails(setDoc(doc(own, EVP + "x7"), okEv({ src: { id: "c-123" } })));
+  });
+  await t("titles, notes, keys, refs and unknown fields are checked", async () => {
+    await assertFails(setDoc(doc(own, EVP + "x8"), okEv({ title: "" })));
+    await assertFails(setDoc(doc(own, EVP + "x9"), okEv({ title: "x".repeat(121) })));
+    await assertFails(setDoc(doc(own, EVP + "x10"), okEv({ note: "x".repeat(2001) })));
+    await assertFails(setDoc(doc(own, EVP + "x11"), okEv({ ref: { col: "feeds", id: "1", extra: true } })));
+    await assertFails(setDoc(doc(own, EVP + "x12"), okEv({ private: "secret" })));
+    await assertFails(setDoc(doc(own, EVP + "x13"), { kind: "milestone", scope: "baby", i: 0, t: 1 }));
+  });
+  await t("a patch that keeps the shape is allowed; one that breaks it is not", async () => {
+    await assertSucceeds(updateDoc(doc(own, EVP + "e1"), { note: "Forty minutes", editT: 2 }));
+    await assertFails(updateDoc(doc(own, EVP + "e1"), { i: null }));
+    await assertFails(updateDoc(doc(own, EVP + "e1"), { src: "x" }));
+  });
+  await t("members can read and delete events; strangers can't touch them", async () => {
+    await assertSucceeds(getDocs(collection(own, "households/h3/events")));
+    await assertFails(getDoc(doc(zed, EVP + "e1"))); await assertFails(setDoc(doc(zed, EVP + "z"), okEv()));
+    await assertSucceeds(deleteDoc(doc(own, EVP + "e2")));
   });
 
   await env.cleanup();
