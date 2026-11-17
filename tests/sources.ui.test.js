@@ -44,7 +44,8 @@ async function main() {
     const p = await page(browser, base, { ready: false });
     await care(p); await wait(p, 300);
     const gate = await p.textContent("#srcCare");
-    check("Care: before both phones are updated, it says so and lists each phone", gate.includes("Update the app on both phones first") && gate.includes("This phone") && gate.includes("Updated") && gate.includes("Not opened since the update"), gate);
+    check("Care: before everyone has the updated app, it says so and lists each member account", gate.includes("Everyone in the family needs the updated app first") && gate.includes("You") && gate.includes("Has the updated app") && gate.includes("Hasn't opened the updated app"), gate);
+    check("Care: says the check is per member account, not per device", gate.includes("checked for each family member's account") && gate.includes("more than one device"));
     check("Care: no usual-milk controls while the gate is closed", !(await p.$('#srcCare [data-se="edit"]')));
     await shot(p, "01-care-version-gate");
     check("Today shows no milk control until tracking is on", !(await todaySrc(p, ADA)));
@@ -65,6 +66,9 @@ async function main() {
     await shot(p, "03-care-mixed-preview");
     await p.click(`${row} [data-se="save"]`); await wait(p, 300);
     check("saving the first setting turns tracking on (activation record) and saves 60/40", await p.evaluate(() => __db.config.sources && __db.config.sources.on === true && Object.values(__db.milkUsual).some(u => u.i === 0 && u.pct.mom === 60 && u.pct.donor === 40)));
+    check("the activation record names every current member account (from the member list)", await p.evaluate(() => JSON.stringify(__db.config.sources.phones) === JSON.stringify(["u1", "u2"])));
+    check("activation is written before the first-use period (no stray period when activation is refused)", await p.evaluate(() => Object.values(__db.schedPeriods).filter(x => x.src === "first-use").length === 1));
+    check("Care shows when and by whom milk sources were turned on, and who is included", (await p.textContent("#srcCare")).includes("Milk sources turned on") && (await p.textContent("#srcCare")).includes("included: You, Alex"));
     check("the Undo bar offers to undo the usual-milk change", (await p.textContent("#toast")).includes("Usual milk: 60% mother's milk · 40% donor milk"));
     await setUsualUI(p, BEA, "donor");
     const careOn = await p.textContent("#srcCare");
@@ -254,7 +258,7 @@ async function main() {
     check("…but tracking stays off while the other phone isn't updated (legacy estimate, no activation)", await r.evaluate(() => !__nicu.src.on() && !(__db.config.sources)));
     await care(r);
     const rc = await r.textContent("#srcCare");
-    check("Care explains the restored sources are waiting for both phones", rc.includes("Update the app on both phones first") && rc.includes("from a backup are saved here"), rc);
+    check("Care explains the restored sources are waiting until everyone has the updated app", rc.includes("Everyone in the family needs the updated app first") && rc.includes("saved here (for example from a backup)"), rc);
     await shot(r, "17-care-restored-waiting");
     await r.evaluate(() => Store.put("clients", "u2", { v: MilkSources.CLIENT_V, t: 1 })); await wait(r, 300);
     check("once both phones are updated, Care offers to turn them on", (await r.textContent("#srcCare")).includes("Turn on milk sources"));
@@ -265,6 +269,35 @@ async function main() {
     check("…and the estimate matches the original family's exactly", JSON.stringify(await r.evaluate(([a, b]) => __nicu.src.usage(a, b), win)) === JSON.stringify(srcUsage));
     check("no page errors (restore)", r.errors.length === 0, r.errors.join(" | "));
     await r.context().close();
+
+    // ===== 13b. single member, refused activation, a member who joins later =====
+    const one = await page(browser, base, { ready: false });
+    await one.evaluate(() => { __fam.members = __fam.members.filter(m => m.uid === "u1"); });
+    await care(one); await wait(one, 300);
+    check("a one-member family can turn milk sources on (only its own account is required)", !!(await one.$('#srcCare [data-se="edit"]')));
+    await setUsualUI(one, ADA, "donor");
+    check("…and the record names just that account", await one.evaluate(() => JSON.stringify(__db.config.sources && __db.config.sources.phones) === '["u1"]'));
+    check("no page errors (one member)", one.errors.length === 0, one.errors.join(" | "));
+    await one.context().close();
+    const rf = await page(browser, base);
+    await rf.evaluate(() => { window.__TEST_OFFLINE_ACTIVATE = true; });   // the server can't be reached for the member list
+    await care(rf); await rf.click(`${row} [data-se="edit"]`); await rf.click(`${row} [data-se="pick"][data-k="donor"]`); await rf.click(`${row} [data-se="save"]`); await wait(rf, 300);
+    check("turning on without a connection says it needs one, and writes nothing", (await rf.textContent("#srcMsg")).includes("needs a connection") && await rf.evaluate(() => !__db.config.sources && !Object.keys(__db.schedPeriods || {}).length && !Object.keys(__db.milkUsual || {}).length));
+    // The app's own copy says the other account is ready, but the backend's copy is out of date: the backend decides.
+    await rf.evaluate(() => { window.__TEST_OFFLINE_ACTIVATE = false; __db.clients.u2 = { v: 0, t: 1 }; });
+    await rf.click(`${row} [data-se="save"]`).catch(() => {}); await wait(rf, 300);
+    check("if the backend refuses (an account's marker out of date), nothing is turned on and no stray data is left", await rf.evaluate(() => !__db.config.sources && !Object.keys(__db.schedPeriods || {}).length));
+    await rf.evaluate(() => { __db.clients.u2 = { v: 1, t: 1 }; }); await rf.click(`${row} [data-se="save"]`).catch(() => {}); await wait(rf, 300);
+    check("once the marker is current, turning on succeeds", await rf.evaluate(() => !!(__db.config.sources && __db.config.sources.on)));
+    await rf.evaluate(() => { __fam.members.push({ uid: "u3", email: "parent3@example.com" }); __db.config.people = { list: [{ email: "parent1@example.com", name: "Sam" }, { email: "parent2@example.com", name: "Alex" }, { email: "parent3@example.com", name: "Robin" }] }; });
+    await rf.evaluate(() => Store.setConfig("people", __db.config.people)); await records(rf); await care(rf); await wait(rf, 400);
+    const late = await rf.textContent("#srcCare");
+    check("a member who joins after activation is named as not included, never shown as activated", late.includes("Robin joined after milk sources were turned on") && late.includes("included: You, Alex") && !late.includes("included: You, Alex, Robin"), late);
+    check("…and the Care list marks them and their app status", late.includes("Joined after milk sources were turned on") && late.includes("Hasn't opened the updated app"));
+    await shot(rf, "19-care-member-joined-later");
+    check("the activation record itself is unchanged by a new member", await rf.evaluate(() => JSON.stringify(__db.config.sources.phones) === '["u1","u2"]'));
+    check("no page errors (activation cases)", rf.errors.length === 0, rf.errors.join(" | "));
+    await rf.context().close();
 
     // ===== 14. themes and A++ =====
     for (const [name, opts] of [["dark", { ctx: { colorScheme: "dark" } }], ["night", { night: true }], ["aplus", { prefs: { text: "1.3" } }]]) {

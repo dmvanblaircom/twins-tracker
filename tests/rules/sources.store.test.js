@@ -4,7 +4,7 @@
 const http = require("http"), fs = require("fs"), path = require("path");
 const { chromium } = require("playwright");
 const { initializeTestEnvironment } = require("@firebase/rules-unit-testing");
-const { doc, getDoc, getDocs, collection } = require("firebase/firestore");
+const { doc, getDoc, getDocs, collection, setDoc, deleteDoc } = require("firebase/firestore");
 
 const ROOT = path.join(__dirname, "../.."), FB = path.dirname(require.resolve("firebase/package.json"));
 const PROJECT = "demo-twins", EMU = { host: "127.0.0.1", firestore: 8080, auth: 9099 };
@@ -99,6 +99,37 @@ const alloc = (o = {}) => ({ i: 0, t: T0, state: "set", mL10: { mom: 300, donor:
     if (!(await until(async () => (await S(B, () => window.__errs.length)) > 0, 20000))) throw new Error("B's conflict never surfaced");
     const e = await errs(B), s = await get(AL);
     return e.some(x => x.code === "conflict") && s.mL10.formula === 450 && s.editBy === "ann@example.net"; });
+  // ---- activation: Store.activateSources() reads the member list from the server and names every member account ----
+  const tryAct = p => p.evaluate(async () => { try { const r = await Store.activateSources(1); return { ok: true, r }; } catch (e) { return { ok: false, code: e.code }; } });
+  const ACT = `${H}/config/sources`;
+  await admin(d => deleteDoc(doc(d, `${H}/clients/${ub}`)));
+  await t("activateSources: refused (not-ready) while the other member's marker is missing; nothing written", async () => { const r = await tryAct(A); return !r.ok && r.code === "not-ready" && !(await get(ACT)); });
+  await admin(d => setDoc(doc(d, `${H}/clients/${ub}`), { v: 0, t: 1 }));
+  await t("activateSources: refused while the other member's marker is out of date", async () => { const r = await tryAct(A); return !r.ok && r.code === "not-ready" && !(await get(ACT)); });
+  await B.evaluate(() => Store.markClient(1));
+  await t("activateSources: with both members current it writes the record naming both member accounts", async () => {
+    const r = await tryAct(A), s = await get(ACT);
+    return r.ok && s && s.on === true && s.by === "ann@example.net" && JSON.stringify([...s.phones].sort()) === JSON.stringify([ua, ub].sort()); });
+  const first = await get(ACT);
+  await t("activateSources: a second call returns the existing record unchanged (create-only)", async () => { const r = await tryAct(B); return r.ok && JSON.stringify(await get(ACT)) === JSON.stringify(first); });
+  await t("the record can't be overwritten through setConfig (rules refuse; stays as it was)", async () => {
+    const r = await refused(B, () => Store.setConfig("sources", { on: true, t: 9, by: "ben@example.net", phones: ["x"] }));
+    await new Promise(z => setTimeout(z, 600)); return r !== "ok" && JSON.stringify(await get(ACT)) === JSON.stringify(first); });
+  const C = await open(); await S(C, () => Store.signUp("cal@example.net", "pw-cal-1")); const uc = await uidOf(C);
+  await S(C, c => Store.joinFamily(c), (await S(A, () => Store.familyInfo())).code);
+  await t("a member who joins later is not named in the record (never shown as activated) and can't change it", async () => {
+    const r = await tryAct(C), s = await get(ACT);
+    return r.ok && !s.phones.includes(uc) && JSON.stringify(s) === JSON.stringify(first); });
+  await t("…and their account's app reports its own version separately", async () => { await S(C, () => Store.markClient(1)); return (await get(`${H}/clients/${uc}`)).v === 1; });
+  await S(C, () => Store.leave());
+  const D = await open(); await S(D, () => Store.signUp("dee@example.net", "pw-dee-1")); const ud = await uidOf(D);
+  const hd = (await S(D, () => Store.createFamily())).hid; await S(D, () => Store.markClient(1));
+  await t("a one-member family can turn milk sources on (names just that account)", async () => { const r = await tryAct(D), s = await get(`households/${hd}/config/sources`); return r.ok && JSON.stringify(s.phones) === JSON.stringify([ud]); });
+  await D.context().setOffline(true);
+  await t("activateSources offline: refused with code offline (it needs the server's member list)", async () => {
+    await admin(d => deleteDoc(doc(d, `households/${hd}/config/sources`)));
+    const r = await tryAct(D); return !r.ok && r.code === "offline"; });
+  await D.context().setOffline(false);
   // ---- lifecycle: the last member out deletes everything, including phone markers ----
   await refused(A, () => Store.create("schedPeriods", "s-0-ab12", { from: 0, everyH: 3, startH: 8, dayH: 7, slotMin: [0, 30], full10: [490, 530], src: "first-use" }));
   await t("leaving removes your own phone marker", async () => { await S(B, () => Store.leave()); return !(await get(`${H}/clients/${ub}`)); });
@@ -109,8 +140,8 @@ const alloc = (o = {}) => ({ i: 0, t: T0, state: "set", mL10: { mom: 300, donor:
     return r === "injected" && (await count(`${H}/slotMilk`)) === 1 && (await count(`${H}/milkUsual`)) === 1 && (await count(`${H}/schedPeriods`)) === 1; });
   await t("the last member's account deletion removes allocations, history and phone markers", async () => {
     await S(A, () => Store.deleteAccount("pw-ann-1"));
-    return (await count(`${H}/slotMilk`)) + (await count(`${H}/milkUsual`)) + (await count(`${H}/schedPeriods`)) + (await count(`${H}/clients`)) === 0; });
-  await t("no page errors", () => A.errs.length === 0 && B.errs.length === 0);
+    return (await count(`${H}/slotMilk`)) + (await count(`${H}/milkUsual`)) + (await count(`${H}/schedPeriods`)) + (await count(`${H}/clients`)) === 0 && !(await get(ACT)); });
+  await t("no page errors", () => A.errs.length === 0 && B.errs.length === 0 && C.errs.length === 0 && D.errs.length === 0);
 
   console.log(`\n${pass} passed, ${fail} failed`);
   await browser.close(); srv.close(); await env.cleanup(); process.exit(fail ? 1 : 0);

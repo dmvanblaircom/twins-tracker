@@ -65,6 +65,7 @@ const until = async (fn, ms = 20000) => { const end = Date.now() + ms; while (Da
   await A.click('#srcCare .srow:has(b:text("Bea")) [data-se="edit"]'); await A.click('#srcCare .srow:has(b:text("Bea")) [data-se="pick"][data-k="donor"]');
   await A.click('#srcCare .srow:has(b:text("Bea")) [data-se="save"]');
   await t("phone A's first setting turns tracking on for the family", async () => until(async () => ((await get(`${H}/config/sources`)) || {}).on === true));
+  await t("the activation record (written via Store.activateSources) names both member accounts", async () => { const a = await get(`${H}/config/sources`); return JSON.stringify([...a.phones].sort()) === JSON.stringify([ua, ub].sort()); });
   await t("phone B shows Bea's usual milk set on phone A", async () => { await care(B); await until(async () => (await B.textContent("#srcCare")).includes("Donor milk")); return true; });
   await shot(B, "02-phoneB-sees-usual");
   await t("phone B's Today shows the milk line once tracking is on", async () => { await tab(B, "feed"); await until(() => B.$('.nx[data-tw="Ada"] [data-act="src"]')); return true; });

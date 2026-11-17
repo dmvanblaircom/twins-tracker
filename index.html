@@ -1061,6 +1061,8 @@
     if(!["records","care","settings"].includes(sec)) sec="records";
     state.moreSec=sec; try{ localStorage.setItem("moreSec",sec); }catch{}
     document.querySelectorAll(".msec").forEach(m=>m.classList.toggle("on",m.dataset.sec===sec));
+    // Pick up members who joined since the app opened. (Also runs once at startup, before the data state below exists.)
+    if(sec==="care"||sec==="settings"){ try{ if(dataStarted) renderFamily(); }catch{} }
     [...$("moreNav").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v===sec); b.setAttribute("aria-pressed",b.dataset.v===sec?"true":"false"); });
   }
   $("moreNav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ showMoreSec(b.dataset.v); scrollTo(0,0); } });
@@ -2572,7 +2574,7 @@
   async function renderFamily(){
     if(!Store.familyInfo) { $("famCard").style.display="none"; return; }
     try{ famInfo=await Store.familyInfo(); }catch{ return; }
-    drawFamily();
+    drawFamily(); renderSrcCare();
   }
   function drawFamily(){ if(!famInfo) return;
     const f=famInfo, mine=f.owner===f.me, nm=e=>{ const p=people.find(x=>x.email===e); return p&&p.name?`${p.name} · ${e}`:e; };

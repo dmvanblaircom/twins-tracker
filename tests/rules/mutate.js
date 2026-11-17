@@ -20,7 +20,21 @@ const M = [
   ["period offsets are 0 or 30", "&& d.slotMin[0] in [0, 30] && d.slotMin[1] in [0, 30]", ""],
   ["clients: only your own marker", "allow create, update: if inFamily(hid) && request.auth.uid == cuid", "allow create, update: if inFamily(hid)"],
   ["catch-all excludes slotMilk", "'events', 'slotMilk',", "'events',"],
-  ["allocations: members only", "match /slotMilk/{aid} {\n        allow read, delete: if inFamily(hid);", "match /slotMilk/{aid} {\n        allow read, delete: if true;"]
+  ["allocations: members only", "match /slotMilk/{aid} {\n        allow read, delete: if inFamily(hid);", "match /slotMilk/{aid} {\n        allow read, delete: if true;"],
+  // Activation (config/sources). Not listed: requiring member(hid) rather than inFamily(hid) on create is an
+  // equivalent mutant (phoneReady already forces the signer to be a member); it's kept as defence in depth.
+  ["activation: each named account must be a member", "return exists(/databases/$(database)/documents/households/$(hid)/members/$(u))\n        && ", "return "],
+  ["activation: each named account's marker must be current", ".data.v >= 1;\n    }", ".data.v >= 0;\n    }"],
+  ["activation: the signer must be named", " && request.auth.uid in d.phones", ""],
+  ["activation: the second named account is checked", "&& (d.phones.size() < 2 || phoneReady(hid, d.phones[1]))", ""],
+  ["activation: by = the signer", "&& d.on == true && d.t is number && d.by == request.auth.token.email.lower()", "&& d.on == true && d.t is number"],
+  ["activation: exact fields", "&& d.keys().hasOnly(['on', 't', 'by', 'phones'])", ""],
+  ["activation: at most 4 accounts", "&& d.phones.size() <= 4", ""],
+  ["activation: create-only", "allow create: if member(hid) && validActivation", "allow create, update: if member(hid) && validActivation"],
+  ["activation: only members delete it", "allow delete: if inFamily(hid);\n      }\n      match /clients", "allow delete: if true;\n      }\n      match /clients"],
+  ["config writes exclude the activation", "allow write: if inFamily(hid) && cfg != 'sources';", "allow write: if inFamily(hid);"],
+  ["catch-all excludes config", "'clients', 'config']) && inFamily(hid);", "'clients']) && inFamily(hid);"],
+  ["other config stays members-only", "match /config/{cfg} {\n        allow read: if inFamily(hid);", "match /config/{cfg} {\n        allow read: if true;"]
 ];
 const run = file => { const r = spawnSync(process.execPath, [path.join(__dirname, "sources.rules.test.js")], { env: { ...process.env, ...(file ? { RULES_FILE: file } : {}), QUIET: "1" }, encoding: "utf8" });
   return { status: r.status, failed: new Set((r.stdout.match(/^✗ .*$/gm) || []).map(l => l.split(" — ")[0])) }; };
