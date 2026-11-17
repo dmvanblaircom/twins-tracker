@@ -51,7 +51,7 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 ## Data model (under `households/{hid}/`)
 - `weights/b{i}-{YYYY-MM-DD}` → `{twin, i (0|1), date, v (g), approx, by}` — one per baby per night (weighed at 8 PM).
 - `feeds/b{i}-{epochMs}` → `{twin, i, t, v (mL PO), note, diet, by}` — one per baby per fixed feed slot. `v:0` with note `All by tube` / `Skipped` marks a non-PO feed; notes matching `MARK` (`est.`, those two) are replaced when a value is re-entered. Feed saves, note edits and Undo keep fields this version doesn't know (`extraF`).
-- `config/profile` → `{born, ga, schedule:{everyH (2|3|4), startH (0–12)}, twins:[{name, birthTime, birthG, fullMl, slotMin, color}]}` — `color` is a PALETTE key (pink, purple, blue, orange, green, teal) with light/dark/night variants.
+- `config/profile` → `{born, ga, schedule:{everyH (2|3|4), startH (0–12)}, twins:[{name, birthTime, birthG, fullMl, slotMin, color, home?}]}` — `color` is a PALETTE key (pink, purple, blue, orange, green, teal) with light/dark/night variants. `home` (epoch ms, optional) = when that baby went home; see Discharge.
 - `config/diet` → `{text}`; stamped onto each new feed.
 - `config/people` → `{list:[{email, name}]}` — display names shown as "by" on entries (fallback: email initial; in sentences, "The other parent" via `whoSays`). The Store stamps `by` = signer's email unless the record already carries one (restores/edits keep the author).
 - `config/milk` → `{count, t}` — NICU's actual stock count at time t (overrides drop-off math from then on).
@@ -65,6 +65,12 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 - **Full backup** (Settings → Data): one JSON file `{app:"twins-tracker", format:2, data:{<every Store.lists.shared collection>, config:{profile, diet, people, milk}, private:{checkins:{…}}}}` (raw docs by id; `private` holds only the signed-in person's own data, from `RAWP`). Restore is merge-only (adds missing ids/config, never changes or deletes), accepts `app` `twins-tracker` or `niculog` and `format` 1 or 2 (other formats refused in plain language), and writes private items only through `Store.putPrivate` (the signer's own subtree). Older app versions ignore the new keys. `clients` and `config/sources` are never backed up.
 - **CSV export/import:** existing columns unchanged, plus three trailing milk-source columns (see below).
 - **Dates:** one short style `mdD` "Feb 10" and one long style `longD` "Tue, Feb 10"; Records groups rows under day headers with times in the When column.
+
+### Discharge (one baby went home)
+- Set in Settings → babies ("Went home", datetime; must be between birth and now); clearing it means she's back in the NICU. Stored as `profile.twins[i].home` (no new collection, no rules change; backed up with the profile).
+- Helpers: `homeAt(tw)`, `inNicu(tw, t)`, `wentHome(tw)`. From that time on she leaves daily tracking: Today shows "went home on …" in place of her card; the day sheet shows her only for feed days that began before she left; Growth shows "Home" (no entry box) for later nights without a weight; Progress shows the went-home line instead of her markers; Journey offers the "Came home" milestone (key `came-home`, dated when she went home).
+- Milk estimate: her scheduled feeds stop counting from that time (original path: `usedSince` / `feedsSince` / `nextUse` / `legacyNeed` check `inNicu`; engine path: `srcState().until` → `MilkSources` `usage` / `nextDraw` / `needPerDay10`). Everything before she went home is unchanged.
+- Her history (Records, Growth, Journey, backups, CSV) is kept; nothing is deleted.
 
 ### Milk sources (design: `docs/phase2b-design.md`, approved Stage A rev 3, D-1–D-8)
 - **Amounts** are integer tenths of a mL. *Actual* (what was recorded: `feeds.v`, an allocation's parts) is never changed by the calculation; *scheduled* (a baby's scheduled feed amount at a scheduled occurrence) is the stock basis. At each occurrence the stock is charged scheduled × the mother's-milk share (largest-remainder split, ties mother's → donor → formula; parts always total exactly).
@@ -153,6 +159,7 @@ Never put real names or data in tests. Run the browser suite after every change.
   - `sources.unit.js` (Node): the milk-source engine, rounding properties, equivalence with the original estimate across 108 schedules × 4 windows incl. DST, schedule history, validators via `sources.fixtures.js`.
   - `sources.test.js`: milk-source logic end to end in the browser.
   - `sources.ui.test.js`: every milk-source screen workflow, activation cases, themes and A++; screenshots in `tests/shots/b2/`.
+  - `discharge.test.js`: one baby goes home — validation, Today, day sheet, Growth, Progress, Journey milestone, milk estimate on both paths, history kept, undo.
 - **Emulators** — `cd tests/rules && npm install && npm test`:
   - `rules.test.js`: security rules, incl. private subtree, removed-member cleanup and legacy revocation / re-invite / second removal.
   - `store.test.js`: the real `firebase-store.js` in Chromium against the Auth + Firestore emulators: private data, `patch`, removal cleanup incl. offline, legacy revocation across reload and re-sign-in, re-invite and second removal, invite rotation failures, account deletion with forced failures at every step.

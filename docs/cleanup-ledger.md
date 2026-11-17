@@ -42,6 +42,10 @@ Baseline: `main` = `3ce60b5`. Sizes: `index.html` 2,647 lines (442 CSS, 1,893 JS
 | P1-15 | Unused Store method | `Store.removePrivate` isn't called by the app (it's Phase 3 check-in groundwork; covered by tests). **Removal candidate.** | Low | **Defer** to Phase 3: keep while Phase 3 is planned. | Defer → Phase 3 | Deferred |
 | P1-16 | Process | The plan asks for a separate before/after report each pass **and** this ledger, which largely duplicate each other. **Removal candidate (process).** | Low | **Remove the separate report**: the ledger's pass section (findings, decisions, verification) plus a short chat summary is the report. The plan text would change accordingly (docs only). | Remove | Done — plan's per-pass report is now the ledger section plus a chat summary |
 
+### Exceptions approved during Phase 2.5
+- **Discharge (one baby went home)** — a new feature, approved by the product owner on Nov 17, 2026 as an exception to Phase 2.5's "no new features" rule because the milk estimate was still charging the discharged baby's feeds. Built as one small change with its own tests (`tests/discharge.test.js`, 5 new engine checks); see `CLAUDE.md` → Discharge.
+- **Note for pass 4:** pass 1 changed `index.html` without bumping the `sw.js` cache name; the discharge change bumps it (v43 → v44), which covers both.
+
 ## 3. Verification record (one block per pass)
 **Pass 1 (Nov 17, 2026):**
 - **Suites (before → after, all passing):** smoke 221 → 221 · engine unit 106 → 106 · milk-source logic 61 → 61 · milk-source screens 83 → 83 · rules 56 → 56 · real Store 53 → 53 · milk-source rules 91 → 91 · milk-source Store 24 → 24 · two phones, real app 14 → 14. No test added or removed.

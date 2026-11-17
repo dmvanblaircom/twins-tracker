@@ -136,12 +136,15 @@
     return { parts: [occ.S10, 0, 0], how: "none" };
   }
 
+  // A baby who went home (src.until[i] = that time, ms) has no scheduled occurrences from then on. No until = unchanged.
+  const untilOf = (src, i) => { const u = src.until && src.until[i]; return Number.isFinite(u) && u > 0 ? u : Infinity; };
+  const occFor = (src, i, start, end) => occurrences(src.periods, i, start, Math.min(end, untilOf(src, i) - 1));
   // The estimate over (start, end]: mother's milk charged, with the working by how each occurrence resolved.
   // src = {periods, usual, alloc (map id → doc)}. All sums are integers (tenths).
   function usage(src, start, end) {
     const sum = { n: 0, mom10: 0, donor10: 0, formula10: 0, by: { alloc: { n: 0, mom10: 0 }, usual: { n: 0, mom10: 0 }, none: { n: 0, mom10: 0 } }, sched10: 0,
       mixed: { n: 0, mom10: 0 }, other: { n: 0 } };   // mixed = more than one source; other = any donor milk or formula
-    for (const i of [0, 1]) for (const o of occurrences(src.periods, i, start, end)) {
+    for (const i of [0, 1]) for (const o of occFor(src, i, start, end)) {
       const r = resolve(o, src.alloc[`b${i}-${o.t}`], src.usual);
       sum.n++; sum.sched10 += o.S10;
       sum.mom10 += r.parts[0]; sum.donor10 += r.parts[1]; sum.formula10 += r.parts[2];
@@ -153,7 +156,7 @@
   }
   // The next occurrence after `now` (within two feed days) that draws on mother's stock, and how much.
   function nextDraw(src, now) {
-    const occ = [0, 1].flatMap(i => occurrences(src.periods, i, now, now + 2 * 864e5)).sort((a, b) => a.t - b.t || a.i - b.i);
+    const occ = [0, 1].flatMap(i => occFor(src, i, now, now + 2 * 864e5)).sort((a, b) => a.t - b.t || a.i - b.i);
     for (const o of occ) { const r = resolve(o, src.alloc[`b${o.i}-${o.t}`], src.usual); if (r.parts[0] > 0) return { t: o.t, i: o.i, mom10: r.parts[0] }; }
     return null;
   }
@@ -161,7 +164,7 @@
   function needPerDay10(src, now) {
     const p = periodAt(sortPeriods(src.periods), now); if (!p) return 0;
     const perDay = 24 / p.everyH;
-    return [0, 1].reduce((a, i) => { const u = usualAt(src.usual, i, now);
+    return [0, 1].reduce((a, i) => { if (untilOf(src, i) <= now) return a; const u = usualAt(src.usual, i, now);
       return a + perDay * (u && u.pct ? split(p.full10[i], partsOf(u.pct))[0] : p.full10[i]); }, 0);
   }
 

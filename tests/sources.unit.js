@@ -171,6 +171,19 @@ const periodOf = (cfg, from = 0, id = "s-0-aaaa") => ({ id, from, everyH: cfg.ev
   check("oneSource: different single sources → none", MS.oneSource([R([0, 600, 0]), R([0, 0, 600])]) === null);
   check("oneSource: no feeds → none", MS.oneSource([]) === null);
 
+  // ---------- 8c. discharge: a baby's scheduled feeds stop at the time she went home ----------
+  const SD = { periods: [periodOf({ everyH: 3, startH: 8, dayH: 7, slotMin: [0, 30], full: [49, 53] })], usual: [], alloc: {} };
+  const d0 = at("2026-11-10T07:00:00-05:00"), d1 = at("2026-11-12T07:00:00-05:00"), home = at("2026-11-11T12:00:00-05:00");
+  const noUntil = MS.usage(SD, d0, d1), withNull = MS.usage({ ...SD, until: [null, null] }, d0, d1);
+  check("discharge: no 'until' (or null) gives exactly the same usage", JSON.stringify(noUntil) === JSON.stringify(withNull));
+  const dis = MS.usage({ ...SD, until: [home, null] }, d0, d1);
+  const aBefore = MS.occurrences(SD.periods, 0, d0, home - 1).length;
+  check("discharge: baby A's feeds count only before she went home; baby B unchanged",
+    dis.n === aBefore + MS.occurrences(SD.periods, 1, d0, d1).length && dis.mom10 === aBefore * 490 + MS.occurrences(SD.periods, 1, d0, d1).length * 530);
+  check("discharge: a feed exactly at the went-home time doesn't count", MS.usage({ ...SD, until: [at("2026-11-11T11:00:00-05:00"), null] }, at("2026-11-11T10:59:00-05:00"), at("2026-11-11T11:01:00-05:00")).n === 0);
+  check("discharge: need / day counts only babies still in the NICU", MS.needPerDay10({ ...SD, until: [home, null] }, home + 1) === 530 * 8 && MS.needPerDay10({ ...SD, until: [home, null] }, home - 1) === (490 + 530) * 8);
+  check("discharge: the next draw skips a baby who went home", MS.nextDraw({ ...SD, until: [home, null] }, home).i === 1);
+
   // ---------- 9. validation (same fixtures as the rules tests) ----------
   for (const [name, id, d] of FX.allocOk) check(`app accepts allocation: ${name}`, MS.validAlloc(id, d));
   for (const [name, id, d] of FX.allocBad) check(`app refuses allocation: ${name}`, !MS.validAlloc(id, d));

@@ -498,6 +498,7 @@
       <label class="f">Birth time<input id="suT0" type="time"></label>
       <label class="f">Birth weight (g)<input id="suW0" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF0" type="number" inputmode="decimal" placeholder="auto"></label>
+      <label class="f full">Went home (leave blank while in the NICU)<input id="suH0" type="datetime-local"></label>
       <label class="f full">Feed times<select id="suM0"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
       <div class="f full">Color<div class="swatches" id="suC0" role="radiogroup" aria-label="Color"></div></div>
 <div class="full" style="margin-top:6px;font-weight:650"><span class="dot" style="background:var(--t1)"></span>Baby B</div>
@@ -505,6 +506,7 @@
       <label class="f">Birth time<input id="suT1" type="time"></label>
       <label class="f">Birth weight (g)<input id="suW1" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF1" type="number" inputmode="decimal" placeholder="auto"></label>
+      <label class="f full">Went home (leave blank while in the NICU)<input id="suH1" type="datetime-local"></label>
       <label class="f full">Feed times<select id="suM1"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
       <div class="f full">Color<div class="swatches" id="suC1" role="radiogroup" aria-label="Color"></div></div>
       <div class="full row"><button class="btn" id="suSave">Save</button><button class="btn ghost" id="suCancel" style="display:none">Cancel</button><span class="msg" id="suMsg"></span></div>
@@ -806,6 +808,11 @@
   // ---------- state ----------
   // The babies' profile has loaded (TWINS starts as the placeholders "A"/"B" until applyProfile runs).
   function profileReady(){ return TWINS[0]!=="A"; }
+  // Discharge: profile.twins[i].home = when that baby went home (epoch ms); absent = still in the NICU. From then on she
+  // leaves daily tracking (Today, the day sheet, new weights, Progress, the milk estimate); her history stays everywhere.
+  const homeAt = tw => { const t=profile&&Array.isArray(profile.twins)&&profile.twins[TWINS.indexOf(tw)]; return t&&Number.isFinite(+t.home)&&+t.home>0?+t.home:null; };
+  const inNicu = (tw,t=Date.now()) => { const h=homeAt(tw); return h==null || t<h; };
+  const wentHome = tw => { const h=homeAt(tw); return `<b>${esc(tw)}</b> went home on ${longD(new Date(h))} at ${hm(h)}. Her history stays in Records, Growth and Journey.`; };
   let W = {};        // weights: key "Twin|YYYY-MM-DD" -> {twin,date,v,approx,note}
   let F = [];        // feeds: {id,twin,t,v,note}
   let canWrite=true;
@@ -979,6 +986,7 @@
     const tonight=feedDay(Date.now());
     $("wBody").innerHTML = ns.map(k=>`<tr class="${k===tonight?"tonight":""}"><td><b>${md(k)}</b>${WK[keyDate(k).getDay()]}${k===tonight?'<br><span class="tn">Tonight</span>':""}</td>${shown().map(tw=>{
       const w=W[tw+"|"+k];
+      if(!w && !inNicu(tw,nightT(k))) return `<td class="num muted">Home</td>`;
       const pd=keyDate(k); pd.setDate(pd.getDate()-1); const prevK=dKey(pd);
       const p=W[tw+"|"+prevK]; const base = k===dKey(FIRST_NIGHT) ? BIRTH[tw].g : (p?p.v:null);
       const d = (w && base!=null ? `${sgn(w.v-base)} g${k===dKey(FIRST_NIGHT)?" vs birth":""}` : "") + (w&&w.approx?` <span class="est">est.</span>`:"");
@@ -1103,7 +1111,7 @@
     const dd=keyDate(state.day);
     $("dLabel").textContent = (state.day===today?(new Date().getHours()<DAY_START_H?"Overnight · ":"Today · "):"") + longD(dd);
     $("dNext").disabled = state.day>=today;
-    $("sheet").innerHTML = shown().map(tw=>{
+    $("sheet").innerHTML = shown().filter(tw=>inNicu(tw, keyDate(state.day).getTime()+DAY_START_H*36e5)).map(tw=>{
       const ti=TWINS.indexOf(tw); let tot=0, n=0, due=-1;
       if(state.day===today){ for(let i=0;i<SLOT_H.length;i++){ if(slotT(tw,state.day,i)<=now+20*60e3 && !slotFeed(tw,state.day,i)) due=i; } }
       const cells = SLOT_H.map((_,i)=>{
@@ -1206,6 +1214,7 @@
     const C=COLORS(), now=new Date();
     $("nextClock").textContent = hm(now.getTime()); renderCtx(); renderTodayMilk();
     $("next").innerHTML = shown().map(tw=>{
+      if(!inNicu(tw)) return `<section class="nx gone" style="--c:${C[tw]}" aria-label="${esc(tw)}"><p class="slead">${wentHome(tw)}</p></section>`;
       let n=nextSlot(tw); if(!n) return "";
       const missed=n.missed, chosen=nextPick[tw] && missed.find(x=>x.day===nextPick[tw].day && x.i===nextPick[tw].i);
       if(chosen) n={...chosen, due:true, missed, chosen:true}; else delete nextPick[tw];
@@ -1596,6 +1605,7 @@
     const mk=(on)=>on?'<span class="mk on">Marker reached</span>':'<span class="mk">Not yet</span>';
     const row=(k,v,sub,on)=>`<div class="ind"><div class="k">${k}</div>${mk(on)}<div class="v">${v}</div><div class="s">${sub}</div></div>`;
     $("home").innerHTML = shown().map(tw=>{
+      if(!inNicu(tw)) return `<div class="bcard gone" style="--c:${C[tw]}"><p class="slead">${wentHome(tw)}</p></div>`;
       const f=fSeries(tw).filter(x=>x.t<=now), full=FULL[tw], letter=TWINS.indexOf(tw)?"B":"A";
       let streak=0; for(let k=f.length-1;k>=0 && f[k].v>=full;k--) streak++;
       const po=h=>{ const s=f.filter(x=>x.t>now-h*3600e3).reduce((a,x)=>a+x.v,0); return Math.round(s/(full*FEEDS_PER_DAY*h/24)*100); };
@@ -1636,7 +1646,7 @@
     ["Family and visitors",[["meets-sibling","First meeting with big brother or sister"],["meets-grandparents","Met grandparents"]]],
     ["Along the way",[["breathing-own","Breathing without help"],["room-move","Moved to a new room"],["came-home","Came home"]]]];
   const MS_FAMILY=[["holding-both","First time holding both babies at once"]];   // offered only when more than one baby is in the record
-  const FIRSTS={"first-po":"First feed by mouth","first-full":"First full feed by mouth","first-full-day":"First day with every feed by mouth","birth-weight":"Back to birth weight",
+  const FIRSTS={"came-home":"Came home","first-po":"First feed by mouth","first-full":"First full feed by mouth","first-full-day":"First day with every feed by mouth","birth-weight":"Back to birth weight",
     "one-week":"One week old","one-month":"One month old","hundred-days":"100 days old","due-date":"Due date"};
   const EV_KINDS=["milestone","journal","moment"], EV_SCOPES=["baby","parent","family"];
   let EV=[];   // validated events (from RAW.events)
@@ -1690,6 +1700,7 @@
     const out=[], have=new Set(EV.map(e=>e.key+"|"+e.i)), gone=jDismissed(), today=feedDay(Date.now());
     const push=(key,i,t,detail,ref,date)=>{ if(have.has(key+"|"+i) || gone.has(key+"|"+i)) return; out.push({key,i,t,detail,ref,date}); };
     shown().forEach(tw=>{ const i=TWINS.indexOf(tw), fs=fSeries(tw);
+      const home=homeAt(tw); if(home) push("came-home",i,home,`${longD(new Date(home))}, ${hm(home)}`,null);
       const po=fs.find(f=>f.v>0); if(po) push("first-po",i,po.t,`${po.v} mL · ${mdD(new Date(po.t))}, ${hm(po.t)}`,{col:"feeds",id:po.id});
       const full=fs.find(f=>f.v>=FULL[tw]); if(full) push("first-full",i,full.t,`${full.v} mL · the full amount you set`,{col:"feeds",id:full.id});
       const fdays=[...new Set(fs.map(f=>feedDay(f.t)))].sort();
@@ -1960,7 +1971,7 @@
     if(srcOn()) return MS.usage(srcState(),start,end).n;
     let n=0, day=feedDay(start); const last=feedDay(end);
     for(let guard=0; day<=last && guard<400; guard++){
-      TWINS.forEach(tw=>SLOT_H.forEach((_,i)=>{ const t=slotT(tw,day,i); if(t>start && t<=end) n++; }));
+      TWINS.forEach(tw=>SLOT_H.forEach((_,i)=>{ const t=slotT(tw,day,i); if(t>start && t<=end && inNicu(tw,t)) n++; }));
       const d=keyDate(day); d.setDate(d.getDate()+1); day=dKey(d);
     }
     return n;
@@ -1970,7 +1981,7 @@
     if(srcOn()) return MS.usage(srcState(),start,end).mom10/10;   // mother's milk only (tenths, exact)
     let used=0, day=feedDay(start); const last=feedDay(end);
     for(let guard=0; day<=last && guard<400; guard++){
-      TWINS.forEach(tw=>SLOT_H.forEach((_,i)=>{ const t=slotT(tw,day,i); if(t>start && t<=end) used+=FULL[tw]; }));
+      TWINS.forEach(tw=>SLOT_H.forEach((_,i)=>{ const t=slotT(tw,day,i); if(t>start && t<=end && inNicu(tw,t)) used+=FULL[tw]; }));
       const d=keyDate(day); d.setDate(d.getDate()+1); day=dKey(d);
     }
     return used;
@@ -1978,7 +1989,7 @@
   function nextUse(){ // next feed time that draws on the stock, and how much
     if(srcOn()){ const n=MS.nextDraw(srcState(),Date.now()); return n ? {t:n.t, tw:TWINS[n.i], ml:n.mom10/10} : null; }
     const now=Date.now(), day=feedDay(now), d=keyDate(day); d.setDate(d.getDate()+1);
-    const slots=[day,dKey(d)].flatMap(k=>TWINS.flatMap(tw=>SLOT_H.map((_,i)=>({tw,t:slotT(tw,k,i)})))).filter(x=>x.t>now).sort((a,b)=>a.t-b.t);
+    const slots=[day,dKey(d)].flatMap(k=>TWINS.flatMap(tw=>SLOT_H.map((_,i)=>({tw,t:slotT(tw,k,i)})))).filter(x=>x.t>now && inNicu(x.tw,x.t)).sort((a,b)=>a.t-b.t);
     return slots.length ? {t:slots[0].t, tw:slots[0].tw, ml:FULL[slots[0].tw]} : null;
   }
   const agoShort = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`; };
@@ -2073,8 +2084,8 @@
   const srcOn = () => !!(SRC_CFG && SRC_CFG.on===true && Array.isArray(SRC_CFG.phones));   // the record the rules validate
   const srcData = () => PERIODS.length>0 || USUAL.length>0 || Object.keys(ALLOC).length>0;
   const livePeriod = () => ({id:"s-0-live", from:0, ...MS.periodFromProfile(profile)});   // before the first saved period
-  const srcState = () => ({periods: PERIODS.length?PERIODS:[livePeriod()], usual:USUAL, alloc:ALLOC});
-  const legacyNeed = () => TWINS.reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for both babies
+  const srcState = () => ({periods: PERIODS.length?PERIODS:[livePeriod()], usual:USUAL, alloc:ALLOC, until:TWINS.map(tw=>homeAt(tw))});
+  const legacyNeed = () => TWINS.filter(tw=>inNicu(tw)).reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for the babies still in the NICU
   const need = () => srcOn() ? MS.needPerDay10(srcState(),Date.now())/10 : legacyNeed();
   // ---- milk-source writes and checks (called by the screens below and by the tests via window.__nicu.src) ----
   const rand4 = () => (Math.random().toString(36).slice(2,6)+"0000").slice(0,4);
@@ -2537,6 +2548,7 @@
     $("suEvery").value=String(p&&p.schedule&&p.schedule.everyH||3); $("suStart").value=String(p&&p.schedule&&p.schedule.startH!=null?p.schedule.startH:8); $("suDay").value=String(p&&p.schedule&&p.schedule.dayH!=null?p.schedule.dayH:7);
     [0,1].forEach(i=>{ const t=p?p.twins[i]:null;
       $("suN"+i).value=t?t.name:""; $("suT"+i).value=t?t.birthTime||"":""; $("suW"+i).value=t?t.birthG:"";
+      $("suH"+i).value=t&&Number.isFinite(+t.home)&&+t.home>0?toLocalInput(new Date(+t.home)):"";
       $("suF"+i).value=t&&t.fullMl?t.fullMl:""; $("suM"+i).value=t?String(t.slotMin||0):(i?"30":"0"); swatches(i, t&&t.color || (i?"orange":"blue")); });
   }
   function hideSetup(){ $("setup").style.display="none"; $("main").style.display=""; }
@@ -2549,6 +2561,10 @@
       name:$("suN"+i).value.trim().slice(0,30), birthTime:$("suT"+i).value||"00:00",
       birthG:Math.round(+$("suW"+i).value), fullMl:+$("suF"+i).value||null, slotMin:+$("suM"+i).value, color:$("suC"+i).querySelector('[aria-checked="true"]')?.dataset.k||(i?"orange":"blue")}))};
     if(!validProfile(p)){ $("suMsg").textContent="Need a birth date, two different names and both birth weights."; return; }
+    // Went home: optional per baby; clearing it means she's back in the NICU (daily tracking resumes).
+    for(const i of [0,1]){ const v=$("suH"+i).value; if(!v) continue; const t=new Date(v).getTime();
+      if(!Number.isFinite(t) || t>Date.now()+60*60e3 || t<keyDate(p.born).getTime()){ $("suMsg").textContent=`Check ${p.twins[i].name}'s went-home date: it has to be between birth and now.`; return; }
+      p.twins[i].home=Math.floor(t/60e3)*60e3; }
     if(profile){ const o=profile.schedule||{}, n=p.schedule, om=(profile.twins||[]).map(t=>+t.slotMin||0).join(), nm=p.twins.map(t=>t.slotMin).join();
       if(((o.everyH||3)!==n.everyH || (o.startH??8)!==n.startH || (o.dayH??7)!==n.dayH || om!==nm) && !confirm("Change feed times?\n\nThe feed sheet and Today cards use the new times from now on. Feeds already logged keep their times and still count toward their day."+strandMsg(p))) return; }
     if(profile) p.twins.forEach((t,i)=>{ const o=profile.twins[i]||{}, aka=new Set(Array.isArray(o.aka)?o.aka:[]);
