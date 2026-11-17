@@ -6,7 +6,7 @@ NICUlog is more than a NICU log: it's a family record that parents will want to 
 
 This is the **single source of truth** for NICUlog direction, scope and sequencing. It records the product owner's decisions on the Phase 0 audit (`docs/niculog-phase0-audit.md`) and the phase plan. Where the audit or any other document says otherwise, this file wins. Project context and current architecture are in `CLAUDE.md`.
 
-Last updated: Nov 16, 2026 (Phase 2 complete: merged at `9be9957`, events rules published; real-device validation still outstanding; Phase 2b started).
+Last updated: Nov 17, 2026 (Phase 2b complete: merged at `3ce60b5`, milk-source rules published; real-device validation still outstanding; Phase 2.5 started).
 
 ---
 
@@ -24,8 +24,8 @@ Last updated: Nov 16, 2026 (Phase 2 complete: merged at `9be9957`, events rules 
 |---|---|
 | 1 — Foundations | **Functionally complete and merged** (`6f70a1e`); production rules published and verified. **Real-device validation outstanding**; other release-readiness checks are tracked in Open items and Phase 6. |
 | 2 — Moments and Journey | **Complete and merged** to `main` at `9be9957` (Nov 16, 2026); events rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
-| 2b — Feeding sources | **In progress.** Architecture audit and design proposal awaiting product-owner approval; no implementation yet. |
-| 2.5 — Repository stabilization | Approved as its own phase (D18); starts only after Phase 2b is approved. |
+| 2b — Feeding sources | **Complete and merged** to `main` at `3ce60b5` (Nov 17, 2026): Stage A design approved (`docs/phase2b-design.md`), B1 data/rules/calculation, B2 screens, and the backend-enforced activation gate. Milk-source rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
+| 2.5 — Repository stabilization | **In progress.** Pass 1 (architecture): audit started Nov 17, 2026. Ledger: `docs/cleanup-ledger.md`. |
 | 3 — Parent Support | Scope approved below; starts only after Phase 2.5 is approved. |
 | 4–6 | Planned. Not started. |
 
@@ -165,7 +165,7 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 6. Firsts suggestions.
 7. Tests, `CLAUDE.md`, cache bump, report. **Stop for approval.**
 
-### Phase 2b — Feeding sources (D17)
+### Phase 2b — Feeding sources (D17) — **complete and merged at `3ce60b5`; real-device validation outstanding**
 **Scope**
 - **Milk type on each feed:** mom's milk, donor milk, formula, or a mix.
   - Set from a family default, like the diet line; changeable with one tap per feed.
