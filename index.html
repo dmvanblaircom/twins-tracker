@@ -14,7 +14,7 @@
 <title>Twins Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  /* ===== Design system (Phase 0) =====
+  /* ===== Design system =====
      Clinical structure + calm consumer polish. Every colour, size and radius below is a token;
      components reference tokens only. Three themes: light (default), dark (phone setting), night (manual/auto). */
   @font-face{font-family:"Inter";src:url(fonts/inter-latin-var.woff2) format("woff2");font-weight:100 900;font-style:normal;font-display:swap}
@@ -90,7 +90,7 @@
   #login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
   #login .card{width:100%;max-width:380px;padding:var(--sp-5)}
   [hidden]{display:none !important}   /* the hidden attribute always wins over component display rules */
-  /* ===== Journey timeline (Phase 2): vertical dot rail; type shown by dot shape + size, never colour alone ===== */
+  /* ===== Journey timeline: vertical dot rail; type shown by dot shape + size, never colour alone ===== */
   .jhead{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap}
   .jhead h2{margin:0}
   .jrail{list-style:none;margin:var(--sp-3) 0 0;padding:0 0 0 22px;position:relative}
@@ -121,7 +121,7 @@
   .msheet-back{position:absolute;inset:0;background:rgba(0,0,0,.35)}
   .msheet-card{position:relative;width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--surface);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:var(--sp-4) var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom));box-shadow:var(--shadow-2)}
   .msheet-card h2{margin:0 0 var(--sp-2)}
-  /* ===== milk sources (Phase 2b) ===== */
+  /* ===== Milk sources ===== */
   .srcline{margin-top:var(--sp-1);font-size:var(--fs-sm);color:var(--text2);text-decoration:none;gap:4px}
   .srcline.warn,.srcbtn.warn{color:var(--warning-ink)}
   .srcbtn{background:none;border:0;color:var(--text2);font:inherit;font-size:var(--fs-xs);text-align:left;cursor:pointer;padding:4px 0;min-height:44px;text-decoration:underline dotted;text-underline-offset:3px}
@@ -137,7 +137,7 @@
   .sed .mseg{display:flex;flex-wrap:wrap;width:100%} .sed .mseg button{flex:1 1 auto;min-height:44px}
   .calc li.sub{padding:6px 0;font-size:var(--fs-xs)} .calc li.sub .amt{font-weight:600;color:var(--text2)} .calc li.excl{color:var(--muted)}
   .srcn{text-align:left} .srcn.warn{border-color:var(--warning);background:var(--warning-tint);color:var(--warning-ink)}
-  .phones li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0}
+  .memberlist li{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0}
   .sdesc{white-space:normal !important;text-align:right;font-weight:600}
   .mlbl{font-size:var(--fs-sm);font-weight:650;color:var(--text2);margin:var(--sp-3) 0 var(--sp-1)}
   .msheet .mseg{display:flex;flex-wrap:wrap;width:100%} .msheet .mseg button{flex:1 1 auto;min-height:44px}
@@ -192,7 +192,7 @@
   .home .y{color:var(--success);font-weight:700} .home .n{color:var(--muted);font-weight:700}
   :root[data-theme="night"] .home .y{color:var(--text)}
   .notebtn{background:none;border:0;color:var(--text2);font:inherit;font-size:var(--fs-sm);text-align:left;cursor:pointer;padding:6px 0;min-height:44px;text-decoration:underline dotted;text-underline-offset:3px}
-  /* ===== Today (Phase 1) =====
+  /* ===== Today =====
      Hierarchy: context strip → per-baby card (identity → feed entry → intake → weight → care → trends) → questions → milk.
      Feed entry and intake carry the visual weight; care, trends and milk are deliberately quieter. */
   .today{margin-bottom:var(--sp-3)}
@@ -289,7 +289,7 @@
     .metrics{grid-template-columns:1fr 1fr}
     .bh{flex-wrap:wrap} .nx .when{order:3}
   }
-  /* ===== Growth + Milk (Phase 2) ===== */
+  /* ===== Growth + Milk ===== */
   .bh .badge{flex:none}
   .gm{margin-bottom:var(--sp-3)}
   .gm .k,.inv .k{font-size:var(--fs-xs);font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--text2)}
@@ -309,7 +309,7 @@
   .calc li .amt{font-weight:700;color:var(--title);white-space:nowrap}
   .calc li.total{color:var(--title);font-weight:650}
   .calc li .badge{margin-left:4px}
-  /* ===== Progress + Records (Phase 3) ===== */
+  /* ===== Progress (Journey tab) + Records ===== */
   .glance .lead{margin:0 0 var(--sp-3);font-size:var(--fs-md);color:var(--text)}
   .keys{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:var(--fs-xs);color:var(--text2)}
   .keys li{display:flex;align-items:center;gap:6px}
@@ -611,7 +611,7 @@
     <div class="chartbox"><canvas id="cDaily" aria-label="Daily total by mouth as a percent of the full-feed target" role="img"></canvas></div>
     <div class="note">Target = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
   </div>
-  <!-- JOURNEY TIMELINE (Phase 2) -->
+  <!-- JOURNEY TIMELINE -->
   <div class="card" id="jCard">
     <div class="jhead"><h2>Your journey</h2><button class="btn" id="jAdd" type="button">Add a moment</button></div>
     <div id="jSuggest"></div>
@@ -800,11 +800,12 @@
   const hmH = h => PREF.clock==="24" ? clock(h%24,0,false) : clock(h%24,0,false).replace(":00","");
   const fmtWhen = t => { const d=new Date(t); return `${mdD(d)} ${clock(d.getHours(),d.getMinutes(),true)}`; };
   const wtMain = g => PREF.units==="lb" ? lbOz(g) : `${fmtG(g)} g`;       // entry stays in grams (matches the NICU)
-  const wtSub  = g => PREF.units==="lb" ? `${fmtG(g)} g` : lbOz(g);
   const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const sgn = n => (n>0?"+":n<0?"−":"±") + Math.abs(Math.round(n));
 
   // ---------- state ----------
+  // The babies' profile has loaded (TWINS starts as the placeholders "A"/"B" until applyProfile runs).
+  function profileReady(){ return TWINS[0]!=="A"; }
   let W = {};        // weights: key "Twin|YYYY-MM-DD" -> {twin,date,v,approx,note}
   let F = [];        // feeds: {id,twin,t,v,note}
   let canWrite=true;
@@ -891,7 +892,7 @@
   }
 
   function renderGrowth(){   // per-baby summary: latest weight dominates; changes stay neutral (no good/bad colouring)
-    if(TWINS[0]==="A") return;
+    if(!profileReady()) return;
     const C=COLORS();
     $("grSum").innerHTML = shown().map(tw=>{
       const ws=wSeries(tw), cur=ws[ws.length-1], prev=ws[ws.length-2], b=BIRTH[tw], letter=TWINS.indexOf(tw)?"B":"A";
@@ -1010,7 +1011,7 @@
 
   // ---------- records: one chronological list over the existing collections (no new storage) ----------
   function renderLog(){
-    if(TWINS[0]==="A") return;
+    if(!profileReady()) return;
     const C=COLORS(), f=state.recF||"all", sh=shown(), rows=[];
     if(f==="all"||f==="feed") F.filter(x=>sh.includes(x.twin)).forEach(x=>rows.push({kind:"feed",t:x.t,tw:x.twin,id:x.id,v:x.v,note:x.note,by:x.by,i:x.i}));
     // Milk sources set for a feed nobody logged, and ones whose feed time a schedule change removed (kept, not counted).
@@ -1042,7 +1043,7 @@
     $("moreBtn").style.display = rows.length>state.logN ? "" : "none";
   }
   function renderCare(){
-    if(TWINS[0]==="A") return;
+    if(!profileReady()) return;
     const C=COLORS(), sh=shown(), today=feedDay(Date.now());
     const plans=Object.values(PLANS).filter(p=>sh.includes(TWINS[p.i])).sort((a,b)=>a.day<b.day?1:a.day>b.day?-1:a.i-b.i).slice(0,14);
     $("careP").innerHTML = `<ul class="carelist">${plans.map(p=>{ const tw=TWINS[p.i];
@@ -1083,13 +1084,15 @@
   function setSchedule(everyH,startH,dayH){
     everyH=[2,3,4].includes(+everyH)?+everyH:3; startH=hrOk(startH,0,23,8); DAY_START_H=hrOk(dayH,0,12,7);
     FEEDS_PER_DAY=24/everyH;
-    SLOT_H=[...Array(24)].map((_,k)=>DAY_START_H+k).filter(h=>((h-startH)%everyH+everyH)%everyH===0);
+    SLOT_H=window.MilkSources.slotHours(everyH,startH,DAY_START_H);   // the one copy of the feed-slot formula
   }
   const feedDay = t => { const d=new Date(t); if(d.getHours()<DAY_START_H) d.setDate(d.getDate()-1); return dKey(d); };
   const slotT = (tw,day,i) => { const d=keyDate(day); d.setHours(SLOT_H[i], SLOT_M[tw], 0, 0); return d.getTime(); };
   const hm = t => { const d=new Date(t); return clock(d.getHours(),d.getMinutes(),true); };
+  // A logged feed counts for a slot if it's within half an interval of it (at most 90 min): the one copy of this window.
+  const strayWin = () => Math.min(90, (24/FEEDS_PER_DAY)*30)*60e3;
   function slotFeed(tw,day,i){ // exact slot, else a stray feed within half an interval (≤90 min), e.g. imported
-    const t=slotT(tw,day,i), win=Math.min(90, (24/FEEDS_PER_DAY)*30)*60e3;
+    const t=slotT(tw,day,i), win=strayWin();
     return F.find(f=>f.twin===tw && f.t===t) || F.find(f=>f.twin===tw && Math.abs(f.t-t)<win);
   }
   state.day = feedDay(Date.now());
@@ -1199,7 +1202,7 @@
   let nextBusy=0;                // saves in flight: hold re-renders so each card's ✓ stays visible
   const notesOpen=new Set();     // babies whose note chips are showing
   function renderNext(){
-    if(TWINS[0]==="A" || nextBusy>0 || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
+    if(!profileReady() || nextBusy>0 || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
     const C=COLORS(), now=new Date();
     $("nextClock").textContent = hm(now.getTime()); renderCtx(); renderTodayMilk();
     $("next").innerHTML = shown().map(tw=>{
@@ -1305,7 +1308,7 @@
     const pma=(+m[1])*7+(+(m[2]||0))+dol; return `Day ${dol+1} · ${Math.floor(pma/7)}w${pma%7}d PMA`;
   }
   function renderTodayMilk(){
-    const el=$("todayMilk"); if(TWINS[0]==="A" || !P.length && !D.length && !milkCfg){ el.textContent=""; return; }
+    const el=$("todayMilk"); if(!profileReady() || !P.length && !D.length && !milkCfg){ el.textContent=""; return; }
     const now=Date.now(), n=need(), tot=P.filter(x=>x.t>now-DAY).reduce((a,x)=>a+x.v,0), st=stock(), last=[...P].sort((a,b)=>b.t-a.t)[0];
     el.innerHTML = n>0
       ? `<span><b>Milk</b> · pumped ${Math.round(tot)} / ${Math.round(n)} mL (24 h)${st!=null?` · NICU ≈ ${(st/n).toFixed(1)} days`:""}${last?` · last pump ${ago(last.t)} ago`:""}</span><span class="chev" aria-hidden="true">›</span>`
@@ -1354,7 +1357,7 @@
   // Leaving the box keeps a typed-but-unsaved number in place; only re-render empty boxes.
   $("next").addEventListener("focusout",()=>setTimeout(()=>{ if(!$("next").contains(document.activeElement) && ![...$("next").querySelectorAll("input")].some(x=>x.value.trim())) renderNext(); },0));
   let lastToday=null;   // if the sheet was on "today", roll it over at 8 AM instead of going stale
-  setInterval(()=>{ if(document.hidden || TWINS[0]==="A") return;
+  setInterval(()=>{ if(document.hidden || !profileReady()) return;
     const t=feedDay(Date.now()); if(lastToday && t!==lastToday && state.day===lastToday){ state.day=t; renderSheet(); }
     if(PREF.night==="auto" && (document.documentElement.dataset.theme==="night")!==nightDue()){ setNight(nightDue()); renderAll(); }
     lastToday=t; renderNext(); if($("mkStats").closest(".tab.on")) renderMilk(); },60e3);
@@ -1588,7 +1591,7 @@
 
   // ---------- progress at a glance (family indicators; thresholds unchanged, shown as "family markers") ----------
   function renderHome(){
-    if(TWINS[0]==="A") return;
+    if(!profileReady()) return;
     const now=Date.now(), C=COLORS();
     const mk=(on)=>on?'<span class="mk on">Marker reached</span>':'<span class="mk">Not yet</span>';
     const row=(k,v,sub,on)=>`<div class="ind"><div class="k">${k}</div>${mk(on)}<div class="v">${v}</div><div class="s">${sub}</div></div>`;
@@ -1624,7 +1627,7 @@
     ["appt","First pediatrician visit booked"],["recipe","Home feeding recipe written down"]];
   let CK={}, PLANS={}, QS=[];
 
-  // ===================== Journey (Phase 2): moments, firsts and the timeline =====================
+  // ===================== Journey: moments, firsts and the timeline =====================
   // Content is exactly the approved catalog in docs/phase2-catalog.md (D16). Baby records use index i, never names.
   const MS_GROUPS=[
     ["Meeting and bonding",[["first-touch","First touch"],["first-hold","First hold"],["skin-to-skin","First skin-to-skin"],["eye-contact","First eye contact"],["finger-grasp","First time holding a finger"]]],
@@ -1677,7 +1680,8 @@
     return Object.keys(days).sort().reverse().map(day=>({day, items:days[day].sort((a,b)=>b.t-a.t)}));
   }
   const addDays = (k,n) => { const d=keyDate(k); d.setDate(d.getDate()+n); return dKey(d); };
-  window.__nicu = { buildTimeline, validEvent };   // for tests (milk sources add .src below)
+  // TEST HOOK: read by the browser tests. Grants nothing the screens and security rules don't already allow.
+  window.__nicu = { buildTimeline, validEvent };   // (milk sources add .src below)
 
   // Firsts (from your logs) and date milestones: suggestions only (D9). Nothing is saved until a parent taps Add.
   const jDismissed = () => { try{ return new Set(JSON.parse(localStorage.getItem("jDismiss")||"[]")); }catch{ return new Set(); } };
@@ -1704,7 +1708,7 @@
 
   let jDays=14, jSugAll=false;
   function renderJourney(){
-    if(TWINS[0]==="A" || !$("jRail")) return;
+    if(!profileReady() || !$("jRail")) return;
     const C=COLORS(), W2={}; Object.values(W).forEach(w=>W2[w.twin+"|"+w.date]={...w,t:nightT(w.date)});
     const ckLabel = id => { const m=/^(b[01]|f)-(.+)$/.exec(id); if(!m) return ""; const list=m[1]==="f"?DIS_FAM:DIS_BABY, it=list.find(([k])=>k===m[2]); return it?it[1]:""; };
     const tl=buildTimeline({F,W:W2,CK,PLANS,QS,P,D,EV,twins:TWINS,shown:shown(),feedsPerDay:FEEDS_PER_DAY,dayOf:feedDay,checkLabel:ckLabel,milkOf:srcOn()?daySrc:null});
@@ -1869,12 +1873,12 @@
         <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter} · checklist</div></div></header>${checklistHTML(tw)}
         <div class="note">Items are marked by your family. The NICU team confirms each step.</div></section>`; }).join("");
   }
-  function renderFam(){ if(TWINS[0]==="A") return; const ids=DIS_FAM.map(([k])=>"f-"+k), n=ckCounts(ids);
+  function renderFam(){ if(!profileReady()) return; const ids=DIS_FAM.map(([k])=>"f-"+k), n=ckCounts(ids);
     $("famList").innerHTML=`<section class="card" data-ids="${ids.join(" ")}"><h2>Family checklist <span class="muted ckn" style="font-size:var(--fs-xs);font-weight:600">${n.done}/${n.need}</span></h2>${ckMeta(n)}
       <div class="cl" style="margin-top:0">${DIS_FAM.map(([k,l])=>ckRow("f-"+k,l)).join("")}</div></section>`; }
   // Update checklist rows where they are, so the tapped button (and the page) stays put.
   function patchChecklists(){
-    if(TWINS[0]==="A") return;
+    if(!profileReady()) return;
     document.querySelectorAll("[data-ck]").forEach(btn=>{
       const id=btn.dataset.ck, row=btn.closest(".ckrow"), label=btn.querySelector(".lb").textContent;
       const tmp=document.createElement("div"); tmp.innerHTML=ckRow(id,label,btn.style.getPropertyValue("--c")||undefined);
@@ -1913,7 +1917,7 @@
   }
   // Questions for rounds
   function renderQs(){
-    if(TWINS[0]==="A") return; const now=Date.now();
+    if(!profileReady()) return; const now=Date.now();
     const open=QS.filter(q=>!q.done).sort((a,b)=>a.t-b.t), recent=QS.filter(q=>q.done && now-(q.doneT||q.t)<2*DAY).sort((a,b)=>(b.doneT||0)-(a.doneT||0));
     $("qCount").textContent = open.length ? `${open.length} open` : "";
     $("qList").innerHTML = [...open,...recent].map(q=>`<li class="${q.done?"done":""}">
@@ -1940,20 +1944,6 @@
 
   // ---------- milk log ----------
   let P=[], D=[], milkCfg=null, mkN=20;     // pumps, NICU drop-offs, {count,t} correction
-  // ---------- milk sources (Phase 2b, milk-sources.js) ----------
-  // A family that has never configured sources (no allocations, usual-milk entries or schedule periods) uses the
-  // original code paths below, untouched. Once configured, the estimate walks the schedule history (each occurrence keeps
-  // the schedule and scheduled amount it had) and charges only the mother's-milk share of each scheduled amount.
-  const MS = window.MilkSources;
-  let ALLOC={}, USUAL=[], PERIODS=[], CLIENTS={}, SRC_CFG=null;
-  // Tracking is ON only once config/sources says so. That record is written only when every member's phone runs this
-  // version, and is never restored from a backup: restored source data stays intact but dormant until a parent turns it on.
-  const srcOn = () => !!(SRC_CFG && SRC_CFG.on===true && Array.isArray(SRC_CFG.phones));   // the record the rules validate
-  const srcData = () => PERIODS.length>0 || USUAL.length>0 || Object.keys(ALLOC).length>0;
-  const livePeriod = () => ({id:"s-0-live", from:0, ...MS.periodFromProfile(profile)});   // before the first saved period
-  const srcState = () => ({periods: PERIODS.length?PERIODS:[livePeriod()], usual:USUAL, alloc:ALLOC});
-  const legacyNeed = () => TWINS.reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for both babies
-  const need = () => srcOn() ? MS.needPerDay10(srcState(),Date.now())/10 : legacyNeed();
   // Same estimate as before, returned with its parts so the screen can show the working.
   function stockParts(){
     const now=Date.now(), base=milkCfg&&isFinite(milkCfg.t)?milkCfg:null;
@@ -1991,9 +1981,103 @@
     const slots=[day,dKey(d)].flatMap(k=>TWINS.flatMap(tw=>SLOT_H.map((_,i)=>({tw,t:slotT(tw,k,i)})))).filter(x=>x.t>now).sort((a,b)=>a.t-b.t);
     return slots.length ? {t:slots[0].t, tw:slots[0].tw, ml:FULL[slots[0].tw]} : null;
   }
-  // ---- milk-source writes (logic only; the screens that call these arrive in Phase 2b B2) ----
+  const agoShort = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`; };
+  const ago = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`; };
+  function renderMilk(){
+    if(!profileReady()) return;
+    renderTodayMilk();   // the Today summary follows milk data even while a feed card is mid-entry
+    const now=Date.now(), n=need(), p24=P.filter(x=>x.t>now-DAY), tot24=p24.reduce((a,x)=>a+x.v,0);
+    const last=[...P].sort((a,b)=>b.t-a.t)[0], st=stock();
+    const days7=[...Array(7)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-k-1); return dKey(d); });
+    const byDay={}; P.forEach(x=>{ const k=dKey(new Date(x.t)); byDay[k]=(byDay[k]||0)+x.v; });
+    const firstDay=P.length?dKey(new Date(Math.min(...P.map(x=>x.t)))):null;   // first logged day is usually partial
+    const have7=days7.filter(k=>byDay[k]!=null && k>firstDay), avg7=have7.length?have7.reduce((a,k)=>a+byDay[k],0)/have7.length:null;
+    const pct=n>0?Math.round(tot24/n*100):0, on=srcOn();   // n can be 0 only with milk sources (no mother's milk planned)
+    renderDrift(); renderSrcNotes();
+    $("mkLeg").textContent = !on ? "- - babies' estimated daily need" : n>0 ? "- - daily need for mother's milk" : "No mother's-milk need line (none planned)";
+    $("mkNote").textContent = on
+      ? "The estimate is not a count. It starts from the NICU's last count (or your first drop-off), adds drop-offs since, and subtracts the mother's-milk share of each baby's scheduled feed at every scheduled feed time since. Donor milk and formula aren't taken from mother's stock. Feeds with no recorded source count as mother's milk, as before. Update it whenever the nurses give you a real number."
+      : "The estimate is not a count. It starts from the NICU's last count (or your first drop-off), adds drop-offs since, and subtracts each baby's full feed at every scheduled feed time since. Update it whenever the nurses give you a real number.";
+    $("mkAs").textContent="";
+    const sp=stockParts(), whenFull=t=>`${longD(new Date(t))} ${hm(t)}`;
+    $("mkInvBadge").textContent = "Estimate";
+    $("mkInv").innerHTML = !sp ? `<div class="k">Estimated stock</div><div class="hero">—</div><div class="s">Log a drop-off, or enter the NICU's count, to start the estimate.</div>`
+      : `<div class="k">Estimated stock now</div>
+        <div class="hero-row"><div class="hero">${fmtG(Math.round(sp.est))}<small> mL</small></div><div class="s">${n>0?`≈ ${(sp.est/n).toFixed(1)} days of feeds`:"No mother's milk is planned at the current usual milk, so there's no days estimate"}${(u=>u?` · next −${u.ml} mL at ${hm(u.t)}`:"")(nextUse())}</div></div>
+        <ul class="calc" aria-label="How the estimate is worked out">
+          <li><span class="op"></span> <span>${sp.base?`NICU's count <span class="badge ok">Counted</span> <br>${whenFull(sp.base.t)}`:`Start · before your first drop-off <br>${whenFull(sp.first.t)}`}</span> <span class="amt">${fmtG(sp.base?sp.base.count:0)} mL</span></li>
+          <li><span class="op">+</span> <span>Dropped off since${sp.nDrops?` (${sp.nDrops})`:""}</span> <span class="amt">${fmtG(Math.round(sp.added))} mL</span></li>
+          ${on&&sp.src?srcCalc(sp.src):`<li><span class="op">−</span> <span>Used by scheduled feeds since (${sp.nFeeds})</span> <span class="amt">${fmtG(Math.round(sp.used))} mL</span></li>`}
+          <li class="total"><span class="op">=</span> <span>Estimated now</span> <span class="amt">${fmtG(Math.round(sp.est))} mL</span></li>
+        </ul>${on?strandNote():""}`;
+    $("mkStats").innerHTML=`
+      <div class="m"><div class="k">${on?"Need / day (mother's milk)":"Est. daily need"}</div><div class="v">${fmtG(Math.round(n))}<small> mL</small></div><div class="s">${on?(n>0?"at the current usual milk":"no mother's milk planned"):`both full feeds × ${FEEDS_PER_DAY}`}</div></div>
+      <div class="m"><div class="k">Pumped 24 h</div><div class="v">${fmtG(Math.round(tot24))}<small> mL</small></div><div class="s">${n>0?`${pct}% of need · `:""}${p24.length} session${p24.length===1?"":"s"}</div></div>
+      <div class="m"><div class="k">Last pump</div><div class="v">${last?agoShort(last.t):"—"}</div><div class="s">${last?`${last.v} mL at ${hm(last.t)}`:"none logged yet"}</div></div>
+      <div class="m" style="grid-column:1/-1">${n>0?`<div class="bar" role="img" aria-label="Pumped ${pct}% of daily need in the last 24 hours"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div>`:`<div class="s">No mother's-milk need to compare pumping with.</div>`}
+        <div class="s" style="margin-top:6px">7-day average: ${avg7==null?"needs a full day logged":`${fmtG(Math.round(avg7))} mL/day${n>0?` (${Math.round(avg7/n*100)}% of need)`:""}`}</div></div>`;
+    // log
+    const rows=[...P.map(x=>({...x,kind:"pump"})), ...D.map(x=>({...x,kind:"drop"})), ...(milkCfg?[{t:milkCfg.t,v:milkCfg.count,kind:"count"}]:[])].sort((a,b)=>b.t-a.t);
+    const kindLbl={pump:"Pumped",drop:"To NICU",count:'NICU count <span class="badge ok">Counted</span>'};
+    $("mkBody").innerHTML = rows.slice(0,mkN).map(r=>`<tr><td>${fmtWhen(r.t)}</td><td>${kindLbl[r.kind]}</td><td class="num">${fmtG(r.v)}</td><td class="muted">${r.kind==="count"?"":esc(whoName(r.by))}</td>
+      <td>${canWrite&&r.kind!=="count"?`<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${r.kind==="pump"?"pump":"drop-off"} at ${fmtWhen(r.t)}">×</button>`:""}</td></tr>`).join("")
+      || `<tr><td colspan="5" class="muted">Nothing logged yet.</td></tr>`;
+    $("mkMore").style.display = rows.length>mkN ? "" : "none";
+    // chart: last 14 days
+    const days=[...Array(14)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-13+k); return dKey(d); });
+    const o=baseOpts("Pumped (mL per day)"); o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted"),maxRotation:0,autoSkip:true,maxTicksLimit:7}}; o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=n>0?n*1.15:undefined;
+    o.scales.y.ticks.callback=v=>fmtG(v);
+    o.interaction={mode:"index",intersect:false};
+    o.plugins.tooltip={callbacks:{title:it=>days[it[0].dataIndex]?longD(keyDate(days[it[0].dataIndex])):"",
+      label:it=>`Pumped ${fmtG(it.raw)} mL${n>0?` (${Math.round(it.raw/n*100)}% of the ${fmtG(Math.round(n))} mL daily need)`:""}${it.dataIndex===13?" · today so far":""}`}};
+    draw("cMilk",{type:"bar",data:{labels:days.map(md),datasets:[{label:"pumped",data:days.map(k=>Math.round(byDay[k]||0)),backgroundColor:css("--accent"),borderRadius:4,maxBarThickness:22}]},
+      options:o,plugins:[hLine(n>0?[{y:n,color:css("--danger"),label:`need ${Math.round(n)} mL`}]:[])]});
+  }
+  const localNow = () => toLocalInput(new Date());
+  const whenOf = id => { const v=$(id).value; const t=v?new Date(v).getTime():Date.now(); return isFinite(t)?t:Date.now(); };
+  function milkSave(kind){
+    const vId=kind==="pump"?"pmV":"dpV", tId=kind==="pump"?"pmT":"dpT", col=kind==="pump"?"pumps":"drops";
+    const v=parseFloat($(vId).value); if(!isFinite(v)||v<=0||v>3000){ $(vId).focus(); flash("Enter the mL (e.g. 120)."); return; }
+    const t=whenOf(tId); if(t>Date.now()+10*60e3){ flash("That time is in the future."); return; }
+    const id=`${kind[0]}-${t}-${Math.random().toString(36).slice(2,6)}`, rec={t,v:Math.round(v*10)/10};
+    Store.put(col,id,rec).then(()=>{ $(vId).value=""; $(vId).blur(); $(tId).value=localNow();
+      undoBar(`${kind==="pump"?"Pumped":"To NICU"} ${rec.v} mL · ${hm(t)}`, ()=>Store.remove(col,id)); }).catch(failWrite);
+  }
+  $("pmGo").addEventListener("click",()=>milkSave("pump"));
+  $("dpGo").addEventListener("click",()=>milkSave("drop"));
+  ["pmV","dpV"].forEach(id=>$(id).addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); milkSave(id==="pmV"?"pump":"drop"); } }));
+  $("stkGo").addEventListener("click", async ()=>{
+    const r=prompt("How many mL of milk does the NICU have right now?"); if(r==null) return;
+    const v=parseFloat(r); if(!isFinite(v)||v<0){ flash("Enter a number of mL."); return; }
+    const prev=milkCfg; try{ await Store.setConfig("milk",{count:Math.round(v),t:Date.now()});
+      undoBar(`NICU stock set to ${Math.round(v)} mL`, ()=>Store.setConfig("milk",prev||{})); }catch(err){ failWrite(err); }
+  });
+  $("mkBody").addEventListener("click", async e=>{
+    const b=e.target.closest("button.x"); if(!b) return;
+    if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Delete?"; setTimeout(()=>{ if(b.isConnected){b.classList.remove("armed"); b.textContent="×";} },3000); return; }
+    const col=b.dataset.kind==="pump"?"pumps":"drops", list=b.dataset.kind==="pump"?P:D, old=list.find(x=>x.id===b.dataset.id);
+    try{ await Store.remove(col,b.dataset.id); if(old){ const {id,...r}=old; undoBar(`Deleted · ${fmtWhen(old.t)}`, ()=>Store.put(col,id,r)); } }catch(err){ failWrite(err); }
+  });
+  $("mkMore").addEventListener("click",()=>{ mkN+=40; renderMilk(); });
+  const cleanM = (id,d) => { const t=Number(d.t), v=Number(d.v); return isFinite(t)&&isFinite(v)&&v>0 ? {id,t,v,by:typeof d.by==="string"?d.by:""} : null; };
+
+  // ========== milk sources (engine in milk-sources.js; design in docs/phase2b-design.md) ==========
+  // ---- engine wiring: state, activation, and which estimate path runs ----
+  // A family that has never configured sources (no allocations, usual-milk entries or schedule periods) uses the
+  // original code paths below, untouched. Once configured, the estimate walks the schedule history (each occurrence keeps
+  // the schedule and scheduled amount it had) and charges only the mother's-milk share of each scheduled amount.
+  const MS = window.MilkSources;
+  let ALLOC={}, USUAL=[], PERIODS=[], CLIENTS={}, SRC_CFG=null;
+  // Tracking is ON only once config/sources says so. That record is written only when every member's phone runs this
+  // version, and is never restored from a backup: restored source data stays intact but dormant until a parent turns it on.
+  const srcOn = () => !!(SRC_CFG && SRC_CFG.on===true && Array.isArray(SRC_CFG.phones));   // the record the rules validate
+  const srcData = () => PERIODS.length>0 || USUAL.length>0 || Object.keys(ALLOC).length>0;
+  const livePeriod = () => ({id:"s-0-live", from:0, ...MS.periodFromProfile(profile)});   // before the first saved period
+  const srcState = () => ({periods: PERIODS.length?PERIODS:[livePeriod()], usual:USUAL, alloc:ALLOC});
+  const legacyNeed = () => TWINS.reduce((a,tw)=>a+FULL[tw]*FEEDS_PER_DAY,0);   // mL/day for both babies
+  const need = () => srcOn() ? MS.needPerDay10(srcState(),Date.now())/10 : legacyNeed();
+  // ---- milk-source writes and checks (called by the screens below and by the tests via window.__nicu.src) ----
   const rand4 = () => (Math.random().toString(36).slice(2,6)+"0000").slice(0,4);
-  const strayWin = () => Math.min(90, (24/FEEDS_PER_DAY)*30)*60e3;             // the same window slotFeed() uses
   // The logged feed for baby i at occurrence t (exact slot, else the nearest within the stray window), as slotFeed() matches.
   const feedAt = (i,t) => F.find(f=>f.i===i && f.t===t) || F.filter(f=>f.i===i && Math.abs(f.t-t)<strayWin()).sort((a,b)=>Math.abs(a.t-t)-Math.abs(b.t-t))[0] || null;
   // The occurrence a feed belongs to: its own time if scheduled, else the nearest scheduled time within the window.
@@ -2090,11 +2174,12 @@
   const scheduleDrift = () => PERIODS.length ? MS.drift(srcState(),profile,Date.now()) : null;
   // Milk-source tracking may start only when every current member's phone runs this version (or later).
   const sourcesReady = () => !!(famInfo && MS.allReady(famInfo.members.map(m=>m.uid),CLIENTS,MS.CLIENT_V));
+  // TEST HOOK: the milk-source logic API for the browser tests (same functions the screens use; same rules apply).
   window.__nicu.src = Object.freeze({ setUsual, undoUsual, setAlloc, singleAlloc, recordPeriod, scheduleDrift, sourcesReady,
     stranded:()=>MS.stranded(srcState()), on:srcOn, state:()=>JSON.parse(JSON.stringify(srcState())),
     usage:(a,b)=>MS.usage(srcState(),a,b), parts:()=>{ const p=stockParts(); return p&&JSON.parse(JSON.stringify(p)); },
     need, nextUse:()=>nextUse(), legacyNeed, allocForFeed:id=>{ const f=F.find(x=>x.id===id); return f?allocForFeed(f):null; } });
-  // ---------- milk sources: screens (Phase 2b B2) ----------
+  // ---- milk-source screens: Care settings, source sheet, conflict review, drift card ----
   const SRC_NAME={mom:"Mother's milk",donor:"Donor milk",formula:"Formula"}, SRC_LOW={mom:"mother's milk",donor:"donor milk",formula:"formula"};
   const ml10 = x => { const v=Math.round(x)/10; return Number.isInteger(v)?fmtG(v):v.toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1}); };
   const oneOf = m => { const nz=MS.SRC.filter(k=>m&&m[k]>0); return nz.length===1?nz[0]:null; };
@@ -2247,21 +2332,21 @@
   // Each family member account and whether its app has reported this version. A member account, not a device: the
   // version is reported by that account's app, so a second device on an old version wouldn't show here.
   const memberName = m => m.uid===famInfo.me ? "You" : whoSays(m.email,"The other parent");
-  function phoneList(){
+  function memberList(){
     if(!famInfo) return `<p class="muted">Checking the family's members…</p>`;
     const inc=srcOn()?new Set(SRC_CFG.phones):null;
-    return `<ul class="carelist phones">${famInfo.members.map(m=>{ const c=CLIENTS[m.uid], ok=!!c&&c.v>=MS.CLIENT_V;
+    return `<ul class="carelist memberlist">${famInfo.members.map(m=>{ const c=CLIENTS[m.uid], ok=!!c&&c.v>=MS.CLIENT_V;
       return `<li><b>${esc(memberName(m))}</b> <span class="mk ${ok?"on":"open"}">${ok?"Has the updated app":c?"Needs the app update":"Hasn't opened the updated app"}</span>${inc&&!inc.has(m.uid)?`<span class="meta">Joined after milk sources were turned on</span>`:""}</li>`; }).join("")}</ul>`;
   }
   function renderSrcCare(){
-    const el=$("srcCare"); if(!el || TWINS[0]==="A") return;
+    const el=$("srcCare"); if(!el || !profileReady()) return;
     if(!famInfo && Store.familyInfo && !srcFamBusy){ srcFamBusy=true; Store.familyInfo().then(f=>{ famInfo=f; srcFamBusy=false; renderSrcCare(); renderSrcNotes(); }).catch(()=>{ srcFamBusy=false; }); }
     if(el.contains(document.activeElement) && document.activeElement.matches("input")) return;   // don't interrupt typing
     const on=srcOn(), ready=sourcesReady(), dis=canWrite?"":"disabled";
     const intro=`<p class="slead">Record whether each baby usually gets mother's milk, donor milk or formula, or a mix. The milk estimate then counts only mother's milk. You can change a single feed on Today or in Records.</p>`;
     const perDevice=`<p class="note">This is checked for each family member's account. If you use the app on more than one device, open the updated app on each.</p>`;
-    if(!on && !ready){ el.innerHTML=intro+`<p class="slead"><b>Everyone in the family needs the updated app first.</b> Milk sources start only when every member has opened this version, so everyone sees the same estimate.</p>${phoneList()}${perDevice}${srcData()?`<p class="note">Milk-source settings are saved here (for example from a backup). They'll be ready to turn on once everyone has the updated app.</p>`:""}`; return; }
-    if(!on && srcData()){ el.innerHTML=intro+`<p class="slead">Milk-source settings are saved here (for example from a backup) but not in use yet. Turning them on uses them for the milk estimate, with the dates they were originally set.</p>${phoneList()}<div class="row"><button class="btn" type="button" data-se="turnon" ${dis}>Turn on milk sources</button></div><div class="msg" id="srcMsg" role="status"></div>`; return; }
+    if(!on && !ready){ el.innerHTML=intro+`<p class="slead"><b>Everyone in the family needs the updated app first.</b> Milk sources start only when every member has opened this version, so everyone sees the same estimate.</p>${memberList()}${perDevice}${srcData()?`<p class="note">Milk-source settings are saved here (for example from a backup). They'll be ready to turn on once everyone has the updated app.</p>`:""}`; return; }
+    if(!on && srcData()){ el.innerHTML=intro+`<p class="slead">Milk-source settings are saved here (for example from a backup) but not in use yet. Turning them on uses them for the milk estimate, with the dates they were originally set.</p>${memberList()}<div class="row"><button class="btn" type="button" data-se="turnon" ${dis}>Turn on milk sources</button></div><div class="msg" id="srcMsg" role="status"></div>`; return; }
     const lagM = on && famInfo ? famInfo.members.filter(m=>!(CLIENTS[m.uid]&&CLIENTS[m.uid].v>=MS.CLIENT_V)) : [];
     const late = on && famInfo ? famInfo.members.filter(m=>!SRC_CFG.phones.includes(m.uid)) : [];
     const names = l => l.map(m=>esc(memberName(m))).join(", ");
@@ -2269,7 +2354,7 @@
     el.innerHTML=(on?`<p class="meta">Milk sources turned on ${fmtWhen(SRC_CFG.t)}${SRC_CFG.by?` by ${esc(whoSays(SRC_CFG.by,"a parent"))}`:""}${incNames.length?` · included: ${names(incNames)}`:""}.</p>`:intro+`<p class="note">Saving the first setting starts milk-source tracking. Estimates for the past stay as they are.</p>`)
       + (late.length?`<div class="srcwarn">${names(late)} joined after milk sources were turned on.${late.some(m=>lagM.includes(m))?" Until the updated app is opened on that account, it shows the milk estimate without milk sources.":" Their app shows milk sources."}</div>`:"")
       + (lagM.length&&!late.every(m=>lagM.includes(m))||lagM.some(m=>!late.includes(m))?`<div class="srcwarn">${names(lagM.filter(m=>!late.includes(m)))} hasn't opened the updated app. Until then, that account shows the milk estimate without milk sources.</div>`:"")
-      + (lagM.length||late.length?phoneList():"")
+      + (lagM.length||late.length?memberList():"")
       + shown().map(tw=>{ const i=TWINS.indexOf(tw), u=MS.usualAt(USUAL,i,Date.now()), ed=srcEdit&&srcEdit.i===i, C=COLORS();
         return `<div class="srow" data-i="${i}">
           <div class="srow-h"><b><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</b><span class="sval">${esc(pctLabel(u&&u.pct))}</span></div>
@@ -2332,86 +2417,6 @@
     e.target.disabled=true;
     try{ const id=await recordPeriod(from,"observed",profile); flash(`New feed times recorded from ${fmtWhen(from)}.`); undoBar("Feed times recorded", ()=>Store.remove("schedPeriods",id)); }
     catch{ msg.textContent="Couldn't save — try again."; e.target.disabled=false; } });
-  const agoShort = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`; };
-  const ago = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`; };
-  function renderMilk(){
-    if(TWINS[0]==="A") return;
-    renderTodayMilk();   // the Today summary follows milk data even while a feed card is mid-entry
-    const now=Date.now(), n=need(), p24=P.filter(x=>x.t>now-DAY), tot24=p24.reduce((a,x)=>a+x.v,0);
-    const last=[...P].sort((a,b)=>b.t-a.t)[0], st=stock();
-    const days7=[...Array(7)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-k-1); return dKey(d); });
-    const byDay={}; P.forEach(x=>{ const k=dKey(new Date(x.t)); byDay[k]=(byDay[k]||0)+x.v; });
-    const firstDay=P.length?dKey(new Date(Math.min(...P.map(x=>x.t)))):null;   // first logged day is usually partial
-    const have7=days7.filter(k=>byDay[k]!=null && k>firstDay), avg7=have7.length?have7.reduce((a,k)=>a+byDay[k],0)/have7.length:null;
-    const pct=n>0?Math.round(tot24/n*100):0, on=srcOn();   // n can be 0 only with milk sources (no mother's milk planned)
-    renderDrift(); renderSrcNotes();
-    $("mkLeg").textContent = !on ? "- - babies' estimated daily need" : n>0 ? "- - daily need for mother's milk" : "No mother's-milk need line (none planned)";
-    $("mkNote").textContent = on
-      ? "The estimate is not a count. It starts from the NICU's last count (or your first drop-off), adds drop-offs since, and subtracts the mother's-milk share of each baby's scheduled feed at every scheduled feed time since. Donor milk and formula aren't taken from mother's stock. Feeds with no recorded source count as mother's milk, as before. Update it whenever the nurses give you a real number."
-      : "The estimate is not a count. It starts from the NICU's last count (or your first drop-off), adds drop-offs since, and subtracts each baby's full feed at every scheduled feed time since. Update it whenever the nurses give you a real number.";
-    $("mkAs").textContent="";
-    const sp=stockParts(), whenFull=t=>`${longD(new Date(t))} ${hm(t)}`;
-    $("mkInvBadge").textContent = "Estimate";
-    $("mkInv").innerHTML = !sp ? `<div class="k">Estimated stock</div><div class="hero">—</div><div class="s">Log a drop-off, or enter the NICU's count, to start the estimate.</div>`
-      : `<div class="k">Estimated stock now</div>
-        <div class="hero-row"><div class="hero">${fmtG(Math.round(sp.est))}<small> mL</small></div><div class="s">${n>0?`≈ ${(sp.est/n).toFixed(1)} days of feeds`:"No mother's milk is planned at the current usual milk, so there's no days estimate"}${(u=>u?` · next −${u.ml} mL at ${hm(u.t)}`:"")(nextUse())}</div></div>
-        <ul class="calc" aria-label="How the estimate is worked out">
-          <li><span class="op"></span> <span>${sp.base?`NICU's count <span class="badge ok">Counted</span> <br>${whenFull(sp.base.t)}`:`Start · before your first drop-off <br>${whenFull(sp.first.t)}`}</span> <span class="amt">${fmtG(sp.base?sp.base.count:0)} mL</span></li>
-          <li><span class="op">+</span> <span>Dropped off since${sp.nDrops?` (${sp.nDrops})`:""}</span> <span class="amt">${fmtG(Math.round(sp.added))} mL</span></li>
-          ${on&&sp.src?srcCalc(sp.src):`<li><span class="op">−</span> <span>Used by scheduled feeds since (${sp.nFeeds})</span> <span class="amt">${fmtG(Math.round(sp.used))} mL</span></li>`}
-          <li class="total"><span class="op">=</span> <span>Estimated now</span> <span class="amt">${fmtG(Math.round(sp.est))} mL</span></li>
-        </ul>${on?strandNote():""}`;
-    $("mkStats").innerHTML=`
-      <div class="m"><div class="k">${on?"Need / day (mother's milk)":"Est. daily need"}</div><div class="v">${fmtG(Math.round(n))}<small> mL</small></div><div class="s">${on?(n>0?"at the current usual milk":"no mother's milk planned"):`both full feeds × ${FEEDS_PER_DAY}`}</div></div>
-      <div class="m"><div class="k">Pumped 24 h</div><div class="v">${fmtG(Math.round(tot24))}<small> mL</small></div><div class="s">${n>0?`${pct}% of need · `:""}${p24.length} session${p24.length===1?"":"s"}</div></div>
-      <div class="m"><div class="k">Last pump</div><div class="v">${last?agoShort(last.t):"—"}</div><div class="s">${last?`${last.v} mL at ${hm(last.t)}`:"none logged yet"}</div></div>
-      <div class="m" style="grid-column:1/-1">${n>0?`<div class="bar" role="img" aria-label="Pumped ${pct}% of daily need in the last 24 hours"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div>`:`<div class="s">No mother's-milk need to compare pumping with.</div>`}
-        <div class="s" style="margin-top:6px">7-day average: ${avg7==null?"needs a full day logged":`${fmtG(Math.round(avg7))} mL/day${n>0?` (${Math.round(avg7/n*100)}% of need)`:""}`}</div></div>`;
-    // log
-    const rows=[...P.map(x=>({...x,kind:"pump"})), ...D.map(x=>({...x,kind:"drop"})), ...(milkCfg?[{t:milkCfg.t,v:milkCfg.count,kind:"count"}]:[])].sort((a,b)=>b.t-a.t);
-    const kindLbl={pump:"Pumped",drop:"To NICU",count:'NICU count <span class="badge ok">Counted</span>'};
-    $("mkBody").innerHTML = rows.slice(0,mkN).map(r=>`<tr><td>${fmtWhen(r.t)}</td><td>${kindLbl[r.kind]}</td><td class="num">${fmtG(r.v)}</td><td class="muted">${r.kind==="count"?"":esc(whoName(r.by))}</td>
-      <td>${canWrite&&r.kind!=="count"?`<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${r.kind==="pump"?"pump":"drop-off"} at ${fmtWhen(r.t)}">×</button>`:""}</td></tr>`).join("")
-      || `<tr><td colspan="5" class="muted">Nothing logged yet.</td></tr>`;
-    $("mkMore").style.display = rows.length>mkN ? "" : "none";
-    // chart: last 14 days
-    const days=[...Array(14)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-13+k); return dKey(d); });
-    const o=baseOpts("Pumped (mL per day)"); o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted"),maxRotation:0,autoSkip:true,maxTicksLimit:7}}; o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=n>0?n*1.15:undefined;
-    o.scales.y.ticks.callback=v=>fmtG(v);
-    o.interaction={mode:"index",intersect:false};
-    o.plugins.tooltip={callbacks:{title:it=>days[it[0].dataIndex]?longD(keyDate(days[it[0].dataIndex])):"",
-      label:it=>`Pumped ${fmtG(it.raw)} mL${n>0?` (${Math.round(it.raw/n*100)}% of the ${fmtG(Math.round(n))} mL daily need)`:""}${it.dataIndex===13?" · today so far":""}`}};
-    draw("cMilk",{type:"bar",data:{labels:days.map(md),datasets:[{label:"pumped",data:days.map(k=>Math.round(byDay[k]||0)),backgroundColor:css("--accent"),borderRadius:4,maxBarThickness:22}]},
-      options:o,plugins:[hLine(n>0?[{y:n,color:css("--danger"),label:`need ${Math.round(n)} mL`}]:[])]});
-  }
-  const localNow = () => toLocalInput(new Date());
-  const whenOf = id => { const v=$(id).value; const t=v?new Date(v).getTime():Date.now(); return isFinite(t)?t:Date.now(); };
-  function milkSave(kind){
-    const vId=kind==="pump"?"pmV":"dpV", tId=kind==="pump"?"pmT":"dpT", col=kind==="pump"?"pumps":"drops";
-    const v=parseFloat($(vId).value); if(!isFinite(v)||v<=0||v>3000){ $(vId).focus(); flash("Enter the mL (e.g. 120)."); return; }
-    const t=whenOf(tId); if(t>Date.now()+10*60e3){ flash("That time is in the future."); return; }
-    const id=`${kind[0]}-${t}-${Math.random().toString(36).slice(2,6)}`, rec={t,v:Math.round(v*10)/10};
-    Store.put(col,id,rec).then(()=>{ $(vId).value=""; $(vId).blur(); $(tId).value=localNow();
-      undoBar(`${kind==="pump"?"Pumped":"To NICU"} ${rec.v} mL · ${hm(t)}`, ()=>Store.remove(col,id)); }).catch(failWrite);
-  }
-  $("pmGo").addEventListener("click",()=>milkSave("pump"));
-  $("dpGo").addEventListener("click",()=>milkSave("drop"));
-  ["pmV","dpV"].forEach(id=>$(id).addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); milkSave(id==="pmV"?"pump":"drop"); } }));
-  $("stkGo").addEventListener("click", async ()=>{
-    const r=prompt("How many mL of milk does the NICU have right now?"); if(r==null) return;
-    const v=parseFloat(r); if(!isFinite(v)||v<0){ flash("Enter a number of mL."); return; }
-    const prev=milkCfg; try{ await Store.setConfig("milk",{count:Math.round(v),t:Date.now()});
-      undoBar(`NICU stock set to ${Math.round(v)} mL`, ()=>Store.setConfig("milk",prev||{})); }catch(err){ failWrite(err); }
-  });
-  $("mkBody").addEventListener("click", async e=>{
-    const b=e.target.closest("button.x"); if(!b) return;
-    if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Delete?"; setTimeout(()=>{ if(b.isConnected){b.classList.remove("armed"); b.textContent="×";} },3000); return; }
-    const col=b.dataset.kind==="pump"?"pumps":"drops", list=b.dataset.kind==="pump"?P:D, old=list.find(x=>x.id===b.dataset.id);
-    try{ await Store.remove(col,b.dataset.id); if(old){ const {id,...r}=old; undoBar(`Deleted · ${fmtWhen(old.t)}`, ()=>Store.put(col,id,r)); } }catch(err){ failWrite(err); }
-  });
-  $("mkMore").addEventListener("click",()=>{ mkN+=40; renderMilk(); });
-  const cleanM = (id,d) => { const t=Number(d.t), v=Number(d.v); return isFinite(t)&&isFinite(v)&&v>0 ? {id,t,v,by:typeof d.by==="string"?d.by:""} : null; };
-
   // ---------- data / auth ----------
 
   let Store=null, unsubs=[];
@@ -2450,7 +2455,7 @@
   }
   const upgraded={};
   function upgradeIndex(kind,m){
-    if(!canWrite || m.fromCache || TWINS[0]==="A") return;
+    if(!canWrite || m.fromCache || !profileReady()) return;
     const raw=kind==="w"?rawW:rawF;
     raw.forEach(([id,d])=>{ if(d.i===0||d.i===1 || upgraded[kind+id]) return; const tw=twinOf(d); if(!tw) return; upgraded[kind+id]=1;
       (kind==="w"?Store.setWeight:Store.setFeed)(id,{...d,twin:tw,i:TWINS.indexOf(tw)}).catch(()=>{}); });
@@ -2474,7 +2479,7 @@
       unsubs.push(Store.watch("drops",list=>{ RAW.drops=list; D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
       unsubs.push(Store.watch("checklist",list=>{ RAW.checklist=list; CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); if(document.querySelector("#ckBabies [data-ck]")) patchChecklists(); else { renderFam(); renderBabyChecklists(); renderNext(); } }, ()=>{}));
       unsubs.push(Store.watch("plans",list=>{ RAW.plans=list; PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
-      // Collections with no screen yet (events, needs: Phase 2+) are watched only so backups carry them.
+      // The other shared collections: events (Journey), milk sources, and needs (no screen yet: watched only so backups carry it).
       bkCols().filter(c=>!["weights","feeds","pumps","drops","checklist","plans","questions"].includes(c)).forEach(c=>unsubs.push(Store.watch(c,list=>{ RAW[c]=list;
         if(c==="events"){ EV=list.map(([id,d])=>cleanE(id,d)).filter(Boolean); renderJourney(); }
         // Milk sources: only documents that pass the same validation as the rules are used.

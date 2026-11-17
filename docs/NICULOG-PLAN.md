@@ -200,7 +200,7 @@ A stabilization effort, **not a redesign or feature-development phase**. Its goa
 2. **Findings review and approval:** the product owner decides which findings to fix, remove, defer or reject.
 3. **Approved fixes and removals only.**
 4. **Full verification:** all three suites, mutation checks for any rule change, and screenshots for any UI change.
-5. **Before/after report.**
+5. **Report:** the pass's section of the Cleanup Ledger (findings, decisions, changes, verification) plus a short summary in chat. No separate report document (ledger P1-16).
 6. **Approval before the next pass begins.**
 
 **Cleanup Ledger** (`docs/cleanup-ledger.md`, created when the phase starts). For every finding it records: pass, finding, decision (fix / remove / defer / reject, with reason), the change made, the tests that prove it, and any outstanding issue. For a removal it also records what is lost, why it isn't needed, and what replaces it, if anything. It's the record of what was cleaned up, what we chose to stop doing, and why.
@@ -218,7 +218,7 @@ A stabilization effort, **not a redesign or feature-development phase**. Its goa
 - No merges or deployments without separate approval. Firebase rule changes, if any, are approved and published separately.
 
 **Acceptance criteria** (in addition to the every-phase list)
-1. All five passes complete, each with an approved findings list, a verification record and a before/after report.
+1. All five passes complete, each with an approved findings list and a verification record in the Cleanup Ledger.
 2. The Cleanup Ledger is complete: every finding has a decision, every fix has the tests that cover it, and every removal records what was lost and why.
 3. Test counts never drop without a recorded redundancy proof or a link to an approved removal; all three suites are green at the end of every pass.
 4. Screenshots before and after any UI-affecting pass show no unapproved change to the experience.
