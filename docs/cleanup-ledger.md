@@ -12,7 +12,7 @@ Governed by `docs/NICULOG-PLAN.md` (D18, Phase 2.5). The goal is to clean up eve
 ## 1. Pass log
 | Pass | Scope | Audit date | Findings | Fix / Remove / Defer / Reject | Verified | Approved to continue |
 |---|---|---|---|---|---|---|
-| 1 | Architecture | Nov 17, 2026 (baseline `3ce60b5`) | 16 | 6 fix · 3 remove · 3 defer · 4 reject (all per recommendation, approved Nov 17) | Yes (see 3) | awaiting approval |
+| 1 | Architecture | Nov 17, 2026 (baseline `3ce60b5`) | 16 | 6 fix · 3 remove · 3 defer · 4 reject (all per recommendation, approved Nov 17) | Yes (see 3) | Approved Nov 17, 2026; merged to `main` |
 | 2 | Rules and logic | | | | | |
 | 3 | UI and CSS | | | | | |
 | 4 | Tests and tooling | | | | | |

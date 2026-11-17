@@ -25,7 +25,7 @@ Last updated: Nov 17, 2026 (Phase 2b complete: merged at `3ce60b5`, milk-source 
 | 1 — Foundations | **Functionally complete and merged** (`6f70a1e`); production rules published and verified. **Real-device validation outstanding**; other release-readiness checks are tracked in Open items and Phase 6. |
 | 2 — Moments and Journey | **Complete and merged** to `main` at `9be9957` (Nov 16, 2026); events rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
 | 2b — Feeding sources | **Complete and merged** to `main` at `3ce60b5` (Nov 17, 2026): Stage A design approved (`docs/phase2b-design.md`), B1 data/rules/calculation, B2 screens, and the backend-enforced activation gate. Milk-source rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
-| 2.5 — Repository stabilization | **In progress.** Pass 1 (architecture): audit started Nov 17, 2026. Ledger: `docs/cleanup-ledger.md`. |
+| 2.5 — Repository stabilization | **In progress.** Pass 1 (architecture) complete and approved (Nov 17, 2026); pass 2 (rules and logic) next. Approved exception: discharge (one baby went home). Ledger: `docs/cleanup-ledger.md`. |
 | 3 — Parent Support | Scope approved below; starts only after Phase 2.5 is approved. |
 | 4–6 | Planned. Not started. |
 
