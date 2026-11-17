@@ -141,7 +141,17 @@ const alloc = (o = {}) => ({ i: 0, t: T0, state: "set", mL10: { mom: 300, donor:
   await t("the last member's account deletion removes allocations, history and phone markers", async () => {
     await S(A, () => Store.deleteAccount("pw-ann-1"));
     return (await count(`${H}/slotMilk`)) + (await count(`${H}/milkUsual`)) + (await count(`${H}/schedPeriods`)) + (await count(`${H}/clients`)) === 0 && !(await get(ACT)); });
-  await t("no page errors", () => A.errs.length === 0 && B.errs.length === 0 && C.errs.length === 0 && D.errs.length === 0);
+  // ---- Phase 2.5 P2-10: a refusal on users/ is reported, never treated as "old rules" (which used to open `main`) ----
+  const E = await open(); await S(E, () => Store.signUp("eli@example.net", "pw-eli-1")); await S(E, () => Store.createFamily());
+  const RULES = fs.readFileSync(path.join(ROOT, "firestore.rules"), "utf8"), USERS_READ = "allow read, delete: if signedIn() && request.auth.uid == uid;";
+  if (!RULES.includes(USERS_READ)) throw new Error("users/ rule pattern not found");
+  const envDeny = await initializeTestEnvironment({ projectId: PROJECT, firestore: { rules: RULES.replace(USERS_READ, "allow read, delete: if false;"), host: EMU.host, port: EMU.firestore } });
+  await t("family(): a permission refusal on users/ throws code 'denied' and doesn't open the original family", async () => {
+    const r = await S(E, async () => { try { const f = await Store.family(); return { ok: true, f }; } catch (e) { return { ok: false, code: e.code }; } });
+    return !r.ok && r.code === "denied"; });
+  await initializeTestEnvironment({ projectId: PROJECT, firestore: { rules: RULES, host: EMU.host, port: EMU.firestore } });   // restore the real rules
+  await envDeny.cleanup();
+  await t("no page errors", () => A.errs.length === 0 && B.errs.length === 0 && C.errs.length === 0 && D.errs.length === 0 && E.errs.length === 0);
 
   console.log(`\n${pass} passed, ${fail} failed`);
   await browser.close(); srv.close(); await env.cleanup(); process.exit(fail ? 1 : 0);

@@ -40,8 +40,8 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
   await t("families can't see each other", async () => { await assertFails(getDoc(doc(dad, "households/h1/config/profile"))); await assertFails(getDoc(doc(eve, "households/main/feeds/b0-1"))); });
   await t("invites can't be listed", () => assertFails(getDocs(collection(sam, "invites"))));
   await t("an invite can't be forged for someone else's family", () => assertFails(setDoc(doc(sam, "invites/CODEBBBB"), { hid: "h1", exp })));
-  await t("joining needs the right code", () => assertFails(setDoc(doc(sam, "households/h1/members/sam"), { email: "s", code: "WRONGCOD" })));
-  await t("can't join on someone else's behalf", () => assertFails(setDoc(doc(sam, "households/h1/members/zed"), { email: "z", code: "CODEAAAA" })));
+  await t("joining needs the right code", () => assertFails(setDoc(doc(sam, "households/h1/members/sam"), { email: "sam@example.net", code: "WRONGCOD" })));
+  await t("can't join on someone else's behalf", () => assertFails(setDoc(doc(sam, "households/h1/members/zed"), { email: "sam@example.net", code: "CODEAAAA" })));
   await t("the partner joins with the code and sees the data", async () => {
     await assertSucceeds(getDoc(doc(sam, "invites/CODEAAAA")));
     await assertSucceeds(setDoc(doc(sam, "households/h1/members/sam"), { email: "sam@example.net", code: "CODEAAAA" }));
@@ -51,7 +51,7 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
   });
   await t("members can't be edited (only added or removed)", () => assertFails(updateDoc(doc(sam, "households/h1/members/sam"), { email: "x" })));
   await t("a member can renew the invite code", async () => { await assertSucceeds(updateDoc(doc(sam, "households/h1"), { code: "CODECCCC", codeExp: exp })); await assertSucceeds(setDoc(doc(sam, "invites/CODECCCC"), { hid: "h1", exp })); });
-  await t("old code stops working after renewal", () => assertFails(setDoc(doc(dad, "households/h1/members/dad"), { email: "d", code: "CODEAAAA" })));
+  await t("old code stops working after renewal", () => assertFails(setDoc(doc(dad, "households/h1/members/dad"), { email: "parent1@example.com", code: "CODEAAAA" })));
   await t("a non-owner can't take ownership", () => assertFails(updateDoc(doc(sam, "households/h1"), { owner: "sam" })));
   await t("a non-owner can't delete the family record", () => assertFails(deleteDoc(doc(sam, "households/h1"))));
   await t("ownership can only pass to a member", async () => { await assertFails(updateDoc(doc(eve, "households/h1"), { owner: "dad" })); await assertSucceeds(updateDoc(doc(eve, "households/h1"), { owner: "sam" })); await assertSucceeds(updateDoc(doc(sam, "households/h1"), { owner: "eve" })); });
@@ -62,7 +62,7 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
   });
   await t("an expired code can't be used", async () => {
     await assertSucceeds(updateDoc(doc(eve, "households/h1"), { code: "CODEDDDD", codeExp: Date.now() - 1000 }));
-    await assertFails(setDoc(doc(sam, "households/h1/members/sam"), { email: "s", code: "CODEDDDD" }));
+    await assertFails(setDoc(doc(sam, "households/h1/members/sam"), { email: "sam@example.net", code: "CODEDDDD" }));
   });
   await t("users docs only hold the family id", () => assertFails(setDoc(doc(eve, "users/eve"), { hid: "h1", admin: true })));
   await t("leaving: you can remove yourself", async () => { await assertSucceeds(deleteDoc(doc(dad, "households/main/members/dad"))); });

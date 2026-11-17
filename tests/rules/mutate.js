@@ -22,18 +22,23 @@ const M = [
   ["catch-all excludes slotMilk", "'events', 'slotMilk',", "'events',"],
   ["allocations: members only", "match /slotMilk/{aid} {\n        allow read, delete: if inFamily(hid);", "match /slotMilk/{aid} {\n        allow read, delete: if true;"],
   // Activation (config/sources). Not listed: requiring member(hid) rather than inFamily(hid) on create is an
-  // equivalent mutant (phoneReady already forces the signer to be a member); it's kept as defence in depth.
+  // equivalent mutant (accountReady already forces the signer to be a member); it's kept as defence in depth.
   ["activation: each named account must be a member", "return exists(/databases/$(database)/documents/households/$(hid)/members/$(u))\n        && ", "return "],
   ["activation: each named account's marker must be current", ".data.v >= 1;\n    }", ".data.v >= 0;\n    }"],
   ["activation: the signer must be named", " && request.auth.uid in d.phones", ""],
-  ["activation: the second named account is checked", "&& (d.phones.size() < 2 || phoneReady(hid, d.phones[1]))", ""],
+  ["activation: the second named account is checked", "&& (d.phones.size() < 2 || accountReady(hid, d.phones[1]))", ""],
   ["activation: by = the signer", "&& d.on == true && d.t is number && d.by == request.auth.token.email.lower()", "&& d.on == true && d.t is number"],
   ["activation: exact fields", "&& d.keys().hasOnly(['on', 't', 'by', 'phones'])", ""],
   ["activation: at most 4 accounts", "&& d.phones.size() <= 4", ""],
   ["activation: create-only", "allow create: if member(hid) && validActivation", "allow create, update: if member(hid) && validActivation"],
-  ["activation: only members delete it", "allow delete: if inFamily(hid);\n      }\n      match /clients", "allow delete: if true;\n      }\n      match /clients"],
+  ["activation: only members delete it", "allow delete: if inFamily(hid);\n      }\n      // Which app version", "allow delete: if true;\n      }\n      // Which app version"],
   ["config writes exclude the activation", "allow write: if inFamily(hid) && cfg != 'sources';", "allow write: if inFamily(hid);"],
   ["catch-all excludes config", "'clients', 'config']) && inFamily(hid);", "'clients']) && inFamily(hid);"],
+  ["membership: the email is the signer's own", "&& d.email == request.auth.token.email.lower() && ", "&& "],
+  ["membership: exact fields", "&& d.keys().hasOnly(['email', 't', 'code'])", ""],
+  // Not listed: dropping hasAll(['email']) is an equivalent mutant (the email comparison reads the missing field and denies).
+  ["membership: the time is a number", " && (!('t' in d) || d.t is number);", ";"],
+  ["membership: the check applies to every join path", "request.auth.uid == uid && validMember(request.resource.data) && (", "request.auth.uid == uid && ("],
   ["other config stays members-only", "match /config/{cfg} {\n        allow read: if inFamily(hid);", "match /config/{cfg} {\n        allow read: if true;"]
 ];
 const run = file => { const r = spawnSync(process.execPath, [path.join(__dirname, "sources.rules.test.js")], { env: { ...process.env, ...(file ? { RULES_FILE: file } : {}), QUIET: "1" }, encoding: "utf8" });
@@ -44,7 +49,7 @@ if (baseline.status !== 0 || baseline.failed.size) { console.log("✗ baseline: 
 console.log("✓ baseline: the real rules pass every milk-source rules test");
 let caught = 0, missed = [];
 for (const [name, from, to] of M) {
-  if (!RULES.includes(from)) { missed.push(`${name} (pattern not found — update mutate.js)`); continue; }
+  if (!RULES.includes(from)) { missed.push(`${name} (pattern not found — update mutate.js)`); console.log(`✗ mutation pattern NOT FOUND: ${name} — update mutate.js`); continue; }
   const f = path.join(os.tmpdir(), `rules-mut-${caught + missed.length}.rules`); fs.writeFileSync(f, RULES.replace(from, to));
   const r = run(f), failed = [...r.failed];
   if (r.status !== 0 && failed.length) { caught++; console.log(`✓ mutation caught: ${name} — ${failed.length} test(s) now fail, e.g. "${failed[0].slice(2, 90)}"`); }

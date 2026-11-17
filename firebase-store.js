@@ -89,7 +89,8 @@ if (!window.Store) {
     let snap;
     try { snap = await getDoc(doc(db, "users", u.uid)); }
     catch (e) {
-      if (denied(e)) { setHid("main"); return { hid: "main" }; }          // rules not updated yet: original single-family setup
+      // A refusal here is a real permission problem: say so, never quietly open another family (ledger P2-10).
+      if (denied(e)) throw Object.assign(new Error("This account can't open the tracker."), { code: "denied", cause: e });
       const cached = (() => { try { return localStorage.getItem("hid:" + u.uid); } catch { return null; } })();
       setHid(cached || "main"); return { hid: HID };                    // offline: reopen the last family (the original one if never resolved)
     }

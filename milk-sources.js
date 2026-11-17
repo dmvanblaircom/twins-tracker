@@ -183,7 +183,8 @@
   }
   // Allocations whose (i, t) is no longer a scheduled occurrence (a schedule change removed that feed time):
   // kept, never counted, listed for the parent. A later change that restores the time counts them again.
-  const stranded = src => Object.entries(src.alloc).filter(([, a]) => a && a.state === "set" && !occurrenceAt(src.periods, a.i, a.t)).map(([id]) => id);
+  // Also any allocation at or after the time that baby went home (src.until): never counted, so listed with these.
+  const stranded = src => Object.entries(src.alloc).filter(([, a]) => a && a.state === "set" && (!occurrenceAt(src.periods, a.i, a.t) || a.t >= untilOf(src, a.i))).map(([id]) => id);
   // Undo of a usual-milk entry may delete it only when no occurrence for that baby fell in [from, now];
   // otherwise it must append an entry restoring the previous setting, so no estimate already shown changes.
   const undoCanDelete = (src, entry, now) => occurrences(src.periods, entry.i, entry.from - 1, now).length === 0;

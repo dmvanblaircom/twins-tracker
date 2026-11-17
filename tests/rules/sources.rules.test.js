@@ -124,6 +124,25 @@ const t = async (name, fn) => { try { await fn(); pass++; QUIET || console.log("
     for (const k of ["profile", "diet", "people", "milk"]) await assertSucceeds(setDoc(doc(ben, `${H}/config/${k}`), { x: 1 }));
     await assertFails(setDoc(doc(zed, `${H}/config/profile`), { x: 1 })); await assertFails(getDoc(doc(zed, `${H}/config/profile`))); });
 
+  // ---- membership records (Phase 2.5 P2-01): exactly {email, t?, code?}, and the email is the signer's own ----
+  await admin(async x => { await setDoc(doc(x, "households/hm"), { owner: "ann", code: "CODEMEMB", codeExp: Date.now() + 1e9, created: 1 }); await setDoc(doc(x, "households/hm/members/ann"), { email: FX.E, t: 1 }); });
+  const kim = as("kim", "kim@example.net"), KIM = "households/hm/members/kim";
+  await t("joining with the right code and your own email is allowed (what the app writes)", async () => { await clear(KIM); await assertSucceeds(setDoc(doc(kim, KIM), { email: "kim@example.net", t: 1, code: "CODEMEMB" })); });
+  await t("joining under someone else's email is refused", async () => { await clear(KIM); await assertFails(setDoc(doc(kim, KIM), { email: "parent2@example.com", t: 1, code: "CODEMEMB" })); });
+  await t("a membership record with extra fields is refused", async () => { await clear(KIM); await assertFails(setDoc(doc(kim, KIM), { email: "kim@example.net", t: 1, code: "CODEMEMB", name: "Somebody" })); });
+  await t("a membership record without an email is refused", async () => { await clear(KIM); await assertFails(setDoc(doc(kim, KIM), { t: 1, code: "CODEMEMB" })); });
+  await t("a membership record whose time isn't a number is refused", async () => { await clear(KIM); await assertFails(setDoc(doc(kim, KIM), { email: "kim@example.net", t: "now", code: "CODEMEMB" })); });
+  await t("the email check ignores letter case in the sign-in (stored lowercase)", async () => { await clear(KIM); const kim2 = as("kim", "Kim@Example.net"); await assertSucceeds(setDoc(doc(kim2, KIM), { email: "kim@example.net", t: 1, code: "CODEMEMB" })); });
+  await t("the owner creating their own family record can't use someone else's email", async () => {
+    const hal = as("hal", "hal@example.net");
+    await assertSucceeds(setDoc(doc(hal, "households/hh"), { owner: "hal", code: "CODEHALL", codeExp: Date.now() + 1e9, created: 1 }));
+    await assertFails(setDoc(doc(hal, "households/hh/members/hal"), { email: "parent1@example.com", t: 1 }));
+    await assertSucceeds(setDoc(doc(hal, "households/hh/members/hal"), { email: "hal@example.net", t: 1 })); });
+  await t("an allowlisted email claiming main must use its own email", async () => {
+    await admin(x => deleteDoc(doc(x, "households/main/members/dad")));
+    await assertFails(setDoc(doc(dad, "households/main/members/dad"), { email: "parent2@example.com", t: 1 }));
+    await assertSucceeds(setDoc(doc(dad, "households/main/members/dad"), { email: "parent1@example.com", t: 1 })); });
+
   // ---- the catch-all no longer reaches these collections ----
   await t("an arbitrary document in slotMilk / milkUsual / schedPeriods / clients is refused", async () => {
     for (const c of ["slotMilk", "milkUsual", "schedPeriods"]) await assertFails(setDoc(doc(ann, `${H}/${c}/junk`), { anything: 1 }));

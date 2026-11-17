@@ -806,8 +806,9 @@
   const sgn = n => (n>0?"+":n<0?"−":"±") + Math.abs(Math.round(n));
 
   // ---------- state ----------
-  // The babies' profile has loaded (TWINS starts as the placeholders "A"/"B" until applyProfile runs).
-  function profileReady(){ return TWINS[0]!=="A"; }
+  // The babies' profile has loaded.
+  let profileApplied=false;   // set when applyProfile has run; cleared on sign-out (never inferred from the names)
+  function profileReady(){ return profileApplied; }
   // Discharge: profile.twins[i].home = when that baby went home (epoch ms); absent = still in the NICU. From then on she
   // leaves daily tracking (Today, the day sheet, new weights, Progress, the milk estimate); her history stays everywhere.
   const homeAt = tw => { const t=profile&&Array.isArray(profile.twins)&&profile.twins[TWINS.indexOf(tw)]; return t&&Number.isFinite(+t.home)&&+t.home>0?+t.home:null; };
@@ -1040,7 +1041,7 @@
         : r.kind==="weight" ? `${fmtG(r.v)} g${r.approx?' <span class="badge warn">est.</span>':""}` : r.kind==="src" ? `${ml10(r.a.total10)} mL` : `${fmtG(r.v)} mL`;
       const note = r.kind==="feed" ? (canWrite?`<button class="notebtn" data-note="${esc(r.id)}" aria-label="Edit note for ${esc(r.tw)} at ${fmtWhen(r.t)}">${esc(r.note)||"+ note"}</button>`:esc(r.note))
         : r.kind==="count" ? '<span class="badge ok">Counted</span>'
-        : r.kind==="src" ? (r.stranded ? `<span class="muted">${esc(allocLabel(r.a,true))} · not on the feed schedule, not counted</span>`
+        : r.kind==="src" ? (r.stranded ? `<span class="muted">${esc(allocLabel(r.a,true))} · ${homeAt(r.tw)!=null&&r.t>=homeAt(r.tw)?"after going home":"not on the feed schedule"}, not counted</span>`
             : `<button class="srcbtn" data-src="${r.i}|${r.t}" aria-label="Milk for ${esc(r.tw)} at ${fmtWhen(r.t)}: ${esc(allocLabel(r.a,true))}, feed not logged. Change">${esc(allocLabel(r.a,true))} · feed not logged</button>`) : "";
       const sv = r.kind==="feed" && srcOn() ? (o=>{ if(!o) return ""; const v=occView(r.i,o.t,true);
           return `<button class="srcbtn${v.mismatch?" warn":""}" data-src="${r.i}|${o.t}" aria-label="Milk for ${esc(r.tw)} at ${fmtWhen(r.t)}: ${esc(v.txt)}${v.mismatch?", doesn't match the feed amount":""}. Change">${esc(v.txt)}${v.mismatch?" · check":""}</button>`; })(occForFeed(r.i,r.t)) : "";
@@ -1099,10 +1100,15 @@
   const hm = t => { const d=new Date(t); return clock(d.getHours(),d.getMinutes(),true); };
   // A logged feed counts for a slot if it's within half an interval of it (at most 90 min): the one copy of this window.
   const strayWin = () => Math.min(90, (24/FEEDS_PER_DAY)*30)*60e3;
-  function slotFeed(tw,day,i){ // exact slot, else a stray feed within half an interval (≤90 min), e.g. imported
-    const t=slotT(tw,day,i), win=strayWin();
-    return F.find(f=>f.twin===tw && f.t===t) || F.find(f=>f.twin===tw && Math.abs(f.t-t)<win);
+  // The logged feed that belongs to feed time t: the exact one, else the nearest within the stray window (ties: the
+  // earlier). The one matcher for the day sheet, Today, missed feeds, Journey firsts and milk sources.
+  function feedNear(pred,t){
+    const ex=F.find(f=>pred(f) && f.t===t); if(ex) return ex;
+    const win=strayWin(); let best=null, bd=Infinity;
+    for(const f of F){ if(!pred(f)) continue; const d=Math.abs(f.t-t); if(d<win && (d<bd || (d===bd && f.t<best.t))){ best=f; bd=d; } }
+    return best;
   }
+  function slotFeed(tw,day,i){ return feedNear(f=>f.twin===tw, slotT(tw,day,i)); }   // e.g. imported feeds a little off the slot
   state.day = feedDay(Date.now());
   function renderSheet(){
     if($("sheet").contains(document.activeElement)){ sheetDirty=true; return; }
@@ -1321,7 +1327,7 @@
     const now=Date.now(), n=need(), tot=P.filter(x=>x.t>now-DAY).reduce((a,x)=>a+x.v,0), st=stock(), last=[...P].sort((a,b)=>b.t-a.t)[0];
     el.innerHTML = n>0
       ? `<span><b>Milk</b> · pumped ${Math.round(tot)} / ${Math.round(n)} mL (24 h)${st!=null?` · NICU ≈ ${(st/n).toFixed(1)} days`:""}${last?` · last pump ${ago(last.t)} ago`:""}</span><span class="chev" aria-hidden="true">›</span>`
-      : `<span><b>Milk</b> · pumped ${Math.round(tot)} mL (24 h) · no mother's milk planned${st!=null?` · NICU ≈ ${fmtG(st)} mL`:""}${last?` · last pump ${ago(last.t)} ago`:""}</span><span class="chev" aria-hidden="true">›</span>`;
+      : `<span><b>Milk</b> · pumped ${Math.round(tot)} mL (24 h) · ${TWINS.some(tw=>inNicu(tw))?"no mother's milk planned":"both babies are home"}${st!=null?` · NICU ≈ ${fmtG(st)} mL`:""}${last?` · last pump ${ago(last.t)} ago`:""}</span><span class="chev" aria-hidden="true">›</span>`;
   }
   $("todayMilk").addEventListener("click",()=>showTab("milk"));
   async function saveTodayWeight(row){
@@ -2014,7 +2020,7 @@
     $("mkInvBadge").textContent = "Estimate";
     $("mkInv").innerHTML = !sp ? `<div class="k">Estimated stock</div><div class="hero">—</div><div class="s">Log a drop-off, or enter the NICU's count, to start the estimate.</div>`
       : `<div class="k">Estimated stock now</div>
-        <div class="hero-row"><div class="hero">${fmtG(Math.round(sp.est))}<small> mL</small></div><div class="s">${n>0?`≈ ${(sp.est/n).toFixed(1)} days of feeds`:"No mother's milk is planned at the current usual milk, so there's no days estimate"}${(u=>u?` · next −${u.ml} mL at ${hm(u.t)}`:"")(nextUse())}</div></div>
+        <div class="hero-row"><div class="hero">${fmtG(Math.round(sp.est))}<small> mL</small></div><div class="s">${n>0?`≈ ${(sp.est/n).toFixed(1)} days of feeds`:TWINS.some(tw=>inNicu(tw))?"No mother's milk is planned at the current usual milk, so there's no days estimate":"Both babies are home, so no feeds draw on this milk"}${(u=>u?` · next −${u.ml} mL at ${hm(u.t)}`:"")(nextUse())}</div></div>
         <ul class="calc" aria-label="How the estimate is worked out">
           <li><span class="op"></span> <span>${sp.base?`NICU's count <span class="badge ok">Counted</span> <br>${whenFull(sp.base.t)}`:`Start · before your first drop-off <br>${whenFull(sp.first.t)}`}</span> <span class="amt">${fmtG(sp.base?sp.base.count:0)} mL</span></li>
           <li><span class="op">+</span> <span>Dropped off since${sp.nDrops?` (${sp.nDrops})`:""}</span> <span class="amt">${fmtG(Math.round(sp.added))} mL</span></li>
@@ -2022,7 +2028,7 @@
           <li class="total"><span class="op">=</span> <span>Estimated now</span> <span class="amt">${fmtG(Math.round(sp.est))} mL</span></li>
         </ul>${on?strandNote():""}`;
     $("mkStats").innerHTML=`
-      <div class="m"><div class="k">${on?"Need / day (mother's milk)":"Est. daily need"}</div><div class="v">${fmtG(Math.round(n))}<small> mL</small></div><div class="s">${on?(n>0?"at the current usual milk":"no mother's milk planned"):`both full feeds × ${FEEDS_PER_DAY}`}</div></div>
+      <div class="m"><div class="k">${on?"Need / day (mother's milk)":"Est. daily need"}</div><div class="v">${fmtG(Math.round(n))}<small> mL</small></div><div class="s">${(inN=>!inN.length?"both babies are home":on?(n>0?"at the current usual milk":"no mother's milk planned"):inN.length===2?`both full feeds × ${FEEDS_PER_DAY}`:`${esc(inN[0])}'s full feed × ${FEEDS_PER_DAY}`)(TWINS.filter(tw=>inNicu(tw)))}</div></div>
       <div class="m"><div class="k">Pumped 24 h</div><div class="v">${fmtG(Math.round(tot24))}<small> mL</small></div><div class="s">${n>0?`${pct}% of need · `:""}${p24.length} session${p24.length===1?"":"s"}</div></div>
       <div class="m"><div class="k">Last pump</div><div class="v">${last?agoShort(last.t):"—"}</div><div class="s">${last?`${last.v} mL at ${hm(last.t)}`:"none logged yet"}</div></div>
       <div class="m" style="grid-column:1/-1">${n>0?`<div class="bar" role="img" aria-label="Pumped ${pct}% of daily need in the last 24 hours"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div>`:`<div class="s">No mother's-milk need to compare pumping with.</div>`}
@@ -2090,7 +2096,7 @@
   // ---- milk-source writes and checks (called by the screens below and by the tests via window.__nicu.src) ----
   const rand4 = () => (Math.random().toString(36).slice(2,6)+"0000").slice(0,4);
   // The logged feed for baby i at occurrence t (exact slot, else the nearest within the stray window), as slotFeed() matches.
-  const feedAt = (i,t) => F.find(f=>f.i===i && f.t===t) || F.filter(f=>f.i===i && Math.abs(f.t-t)<strayWin()).sort((a,b)=>Math.abs(a.t-t)-Math.abs(b.t-t))[0] || null;
+  const feedAt = (i,t) => feedNear(f=>f.i===i, t);
   // The occurrence a feed belongs to: its own time if scheduled, else the nearest scheduled time within the window.
   function occForFeed(i,t){ const st=srcState(), o=MS.occurrenceAt(st.periods,i,t); if(o) return o;
     return MS.occurrences(st.periods,i,t-strayWin(),t+strayWin()).sort((a,b)=>Math.abs(a.t-t)-Math.abs(b.t-t))[0] || null; }
@@ -2225,7 +2231,7 @@
       + (u.other.n?li(`Not counted: donor milk ${ml10(u.donor10)} mL · formula ${ml10(u.formula10)} mL (${u.other.n} feed${u.other.n===1?"":"s"})`,"—","sub excl"):"");
   }
   function strandNote(){ const n=MS.stranded(srcState()).length;
-    return n?`<p class="note">${n} milk source${n===1?" was":"s were"} set for feed times that are no longer scheduled, so ${n===1?"it isn't":"they aren't"} counted. ${n===1?"It's":"They're"} listed in Records.</p>`:""; }
+    return n?`<p class="note">${n} milk source${n===1?" was":"s were"} set for feed times that aren't counted (no longer scheduled, or after a baby went home). ${n===1?"It's":"They're"} listed in Records.</p>`:""; }
   function strandMsg(p){ if(!srcOn()) return ""; const now=Date.now(), st=srcState(), before=new Set(MS.stranded(st));
     const n=MS.stranded({...st, periods:[...st.periods,{id:`s-${now}-zzzz`,from:now,...MS.periodFromProfile(p)}]}).filter(id=>!before.has(id)&&ALLOC[id].t>now).length;
     return n?`\n\n${n} milk source${n===1?"":"s"} set for upcoming feeds won't match the new times. ${n===1?"It":"They"}'ll be kept in Records but not counted.`:""; }
@@ -2370,7 +2376,7 @@
         return `<div class="srow" data-i="${i}">
           <div class="srow-h"><b><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</b><span class="sval">${esc(pctLabel(u&&u.pct))}</span></div>
           <div class="meta">${u?`Since ${fmtWhen(u.from)}${u.by?` · ${esc(whoName(u.by))}`:""}`:"No usual milk set, so feeds count as mother's milk."}</div>
-          ${ed?srcEditor(i):`<button class="btn ghost" type="button" data-se="edit" data-i="${i}" ${dis}>Change usual milk</button>`}</div>`; }).join("");
+          ${!inNicu(tw)?`<p class="meta">${wentHome(tw)}</p>`:ed?srcEditor(i):`<button class="btn ghost" type="button" data-se="edit" data-i="${i}" ${dis}>Change usual milk</button>`}</div>`; }).join("");
     if(srcEdit) srcPreview();
   }
   function srcEditor(i){ const e=srcEdit;
@@ -2513,7 +2519,7 @@
   let profile=null, dataStarted=false;
   function applyProfile(p){
     profile=p; const tw=p.twins;
-    TWINS=[tw[0].name, tw[1].name];
+    TWINS=[tw[0].name, tw[1].name]; profileApplied=true;
     setSchedule(p.schedule&&p.schedule.everyH, p.schedule&&p.schedule.startH, p.schedule&&p.schedule.dayH);
     COLOR_KEY=[tw[0].color||"blue", tw[1].color||"orange"]; applyColors();
     const [y,m,d]=p.born.split("-").map(Number);
@@ -2636,9 +2642,9 @@
         $("login").style.display="none"; $("who").textContent=user.email||""; myEmail=(user.email||"").toLowerCase();
         if(!Store.family){ enterFamily(); return; }
         Store.family().then(f=>{ if(f) enterFamily(); else showFamily(); })
-          .catch(err=>banner(err&&err.code==="cleanup-pending"?err.message:"Couldn't reach your family's data. Check your connection and reopen the app."));
+          .catch(err=>banner(err&&err.code==="cleanup-pending"?err.message:err&&err.code==="denied"?"This account can't open the tracker. Sign out and sign in with the account set up for you.":"Couldn't reach your family's data. Check your connection and reopen the app."));
       } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; ALLOC={}; USUAL=[]; PERIODS=[]; CLIENTS={}; SRC_CFG=null; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k])); EV=[];
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; profileApplied=false; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; ALLOC={}; USUAL=[]; PERIODS=[]; CLIENTS={}; SRC_CFG=null; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k])); EV=[];
         $("setup").style.display="none"; $("family").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
       }
     });
