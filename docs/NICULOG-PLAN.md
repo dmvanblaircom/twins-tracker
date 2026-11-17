@@ -62,7 +62,7 @@ Last updated: Nov 16, 2026 (Phase 2 complete: merged at `9be9957`, events rules 
 | D14 | Shape of a shared check-in | `kind: "journal"`, `scope: "parent"`, `i: null`. Optional provenance field `src: "checkin"`: a fixed marker that carries no private information (no id, no link, nothing the parent didn't choose to share). The security rules validate `src` (absent, `null` or exactly `"checkin"`). The Phase 2 `events` schema must accept it. |
 | D16 | Phase 2 content | The milestone and firsts catalog in **`docs/phase2-catalog.md`** is approved (Nov 16, 2026) and is the content source of truth for Phase 2. It includes the vertical dot timeline, the "First donor milk feed" milestone, the checklist label fix "Open crib, maintaining temperature" (text only; id `crib` unchanged), and no per-milestone prompts or interval weight milestones. |
 | D17 | Donor milk and feeding sources | Donor milk becomes a feeding option across the app, not just a milestone, delivered as **its own phase, Phase 2b — Feeding sources**, after Phase 2 and before Phase 3. |
-| D18 | Repository stabilization | **Phase 2.5 — Repository stabilization**, after Phase 2b and before Phase 3: five cleanup passes, each audited, approved, fixed, verified and reported before the next, recorded in a Cleanup Ledger. Stabilization only: no redesign and no new features. |
+| D18 | Repository stabilization | **Phase 2.5 — Repository stabilization**, after Phase 2b and before Phase 3: five cleanup passes, each audited, approved, fixed, verified and reported before the next, recorded in a Cleanup Ledger. Stabilization only: no redesign and no new features. The goal is to clean up everything accumulated over several iterations of changes; as part of that, each pass also identifies what can be removed (features, code, tests or process steps that aren't needed), and anything is removed only with the product owner's explicit approval. |
 | D15 | Privacy policy timing | The check-ins and support-resources sections of `privacy.html` ship **with Phase 3**, not Phase 6, so the policy is never behind the app. Phase 6 keeps photos, the support email and the App Store labels. |
 
 ### Consequences of these decisions
@@ -186,7 +186,7 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 **Implementation sequence:** to be detailed in the Phase 2b prompt, from this section.
 
 ### Phase 2.5 — Repository stabilization (D18)
-A stabilization effort, **not a redesign or feature-development phase**. It cleans up what Phases 0–2b built so Phase 3 starts from a well-understood codebase.
+A stabilization effort, **not a redesign or feature-development phase**. Its goal is to **clean up everything accumulated over several iterations of changes** in Phases 0–2b, so Phase 3 starts from a well-understood codebase. Part of that cleanup is **cutting what isn't needed**: alongside fixes, every pass looks for features, code paths, tests and process steps that aren't earning their keep, and proposes removing them.
 
 **Five passes, in this order**
 1. **Architecture:** structure of `index.html`, `firebase-store.js` and the `window.Store` contract; duplicated or dead code; module boundaries within the no-build-step design; naming and comments.
@@ -196,26 +196,34 @@ A stabilization effort, **not a redesign or feature-development phase**. It clea
 5. **Independent final audit:** a fresh review of the whole repository against this plan and the binding rules, done independently of passes 1–4.
 
 **Each pass follows the same gates**
-1. **Audit:** findings only, with no changes.
-2. **Findings review and approval:** the product owner decides which findings to fix, defer or reject.
-3. **Approved fixes only.**
+1. **Audit:** findings only, with no changes. Every audit includes a **removal candidates** section (it may be empty).
+2. **Findings review and approval:** the product owner decides which findings to fix, remove, defer or reject.
+3. **Approved fixes and removals only.**
 4. **Full verification:** all three suites, mutation checks for any rule change, and screenshots for any UI change.
 5. **Before/after report.**
 6. **Approval before the next pass begins.**
 
-**Cleanup Ledger** (`docs/cleanup-ledger.md`, created when the phase starts). For every finding it records: pass, finding, decision (fix / defer / reject, with reason), the change made, the tests that prove it, and any outstanding issue. It's the record of what was cleaned up and why.
+**Cleanup Ledger** (`docs/cleanup-ledger.md`, created when the phase starts). For every finding it records: pass, finding, decision (fix / remove / defer / reject, with reason), the change made, the tests that prove it, and any outstanding issue. For a removal it also records what is lost, why it isn't needed, and what replaces it, if anything. It's the record of what was cleaned up, what we chose to stop doing, and why.
+
+**Removals**
+- **What can be proposed:** a feature or screen element, a code path, a test, documentation, or a process step (for example a review artifact or gate in a later phase) that isn't needed.
+- **Approval:** each removal is approved individually in that pass's findings review, with what is lost stated in plain words. Nothing is removed as a side effect of another change.
+- **Security protections are never removed silently.** A removal that touches `firestore.rules` is its own finding, comes with mutation checks proving the remaining protections still hold, and is published separately like any rule change.
+- **Stored data is never deleted by a removal.** Removing a feature stops the app reading or writing that data; existing documents stay in place unless a separately approved migration says otherwise. Backups made before a removal still restore.
+- **Tests:** the tests that cover a removed behaviour are removed with it, and the ledger links them to the approved removal. Any other test removal still needs a redundancy proof.
 
 **Constraints**
-- Preserve all approved functionality, UX, data behavior and security protections. No change to feeding, weight, pumping, milk or day-boundary results, to stored data, or to the `window.Store` contract (additions only).
-- **No test is removed** unless its coverage is proven redundant; the proof is recorded in the ledger.
+- Preserve all approved functionality, UX, data behavior and security protections, **except approved removals**. No change to feeding, weight, pumping, milk or day-boundary results, to stored data, or to the `window.Store` contract (additions only, or the removal of a method whose only callers were approved for removal).
+- **No test is removed** unless its coverage is proven redundant, or it covered a behaviour approved for removal; either is recorded in the ledger.
 - No merges or deployments without separate approval. Firebase rule changes, if any, are approved and published separately.
 
 **Acceptance criteria** (in addition to the every-phase list)
 1. All five passes complete, each with an approved findings list, a verification record and a before/after report.
-2. The Cleanup Ledger is complete: every finding has a decision, and every fix has the tests that cover it.
-3. Test counts never drop without a recorded redundancy proof; all three suites are green at the end of every pass.
+2. The Cleanup Ledger is complete: every finding has a decision, every fix has the tests that cover it, and every removal records what was lost and why.
+3. Test counts never drop without a recorded redundancy proof or a link to an approved removal; all three suites are green at the end of every pass.
 4. Screenshots before and after any UI-affecting pass show no unapproved change to the experience.
-5. No product behaviour changes except fixes the product owner approved as defects.
+5. No product behaviour changes except fixes the product owner approved as defects and removals the product owner approved.
+6. The independent final audit (pass 5) confirms nothing was removed without approval, and that every removal left stored data and existing backups intact.
 
 ### Phase 3 — Parent Support
 **Scope**
