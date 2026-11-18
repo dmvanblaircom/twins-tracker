@@ -154,7 +154,17 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 - Phase status lives in `docs/NICULOG-PLAN.md`.
 
 ## Testing
-Never put real names or data in tests. Run the browser suite after every change. Needs Playwright + Chromium (preinstalled here); the emulator suite also needs Java 11+.
+Never put real names or data in tests. Needs Playwright + Chromium (preinstalled here); the emulator suite also needs Java 11+.
+
+**What to run (product owner's decision, Nov 18, 2026 — run by what changed, not everything every time):**
+| What changed | Run | About |
+|---|---|---|
+| Screens or app logic (`index.html`, `milk-sources.js`) | `smoke.js` + the suite for that area (e.g. `sources.unit.js` for the engine, `discharge.test.js` for discharge) | 2–4 min |
+| `firestore.rules` | `rules.test.js`, `sources.rules.test.js`, `mutate.js` | ~8 min |
+| `firebase-store.js` | `store.test.js`, `sources.store.test.js` (+ `smoke.js` if the contract changed; keep the stub in step) | ~5 min |
+| Docs only | nothing | — |
+| **Before any merge to `main`** | everything once: `cd tests && npm test` and `cd tests/rules && npm test` (incl. the two-phone app test and mutations) | 15–20 min |
+Say in the report which suites ran and why; if a change touches more than one row, run each row's suites.
 - **Browser + Node** — `cd tests && npm install && npm test`:
   - `smoke.js` (221 checks): serves the repo, swaps `firebase-store.js` for `tests/stub-store.js` (in-memory Store, same contract), loads fictional babies (synthetic CSV), and walks every screen in headless Chromium (America/New_York, phone viewport, touch, fixed clock). Exits non-zero on any failure or page error. Screenshots land in `tests/shots/` (git-ignored).
   - `sources.unit.js` (Node): the milk-source engine, rounding properties, equivalence with the original estimate across 108 schedules × 4 windows incl. DST, schedule history, validators via `sources.fixtures.js`.
