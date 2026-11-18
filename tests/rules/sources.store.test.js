@@ -28,7 +28,7 @@ const alloc = (o = {}) => ({ i: 0, t: T0, state: "set", mL10: { mom: 300, donor:
   await new Promise(res => srv.listen(0, "127.0.0.1", res));
   const base = `http://127.0.0.1:${srv.address().port}/`;
   const env = await initializeTestEnvironment({ projectId: PROJECT, firestore: { rules: fs.readFileSync(path.join(ROOT, "firestore.rules"), "utf8"), host: EMU.host, port: EMU.firestore } });
-  await env.clearFirestore();
+  await env.clearFirestore(); await require("./allowlist.js").seedAllowlist(env);
   const admin = async fn => { let out; await env.withSecurityRulesDisabled(async c => { out = await fn(c.firestore()); }); return out; };
   const get = p => admin(d => getDoc(doc(d, p)).then(s => s.exists() ? s.data() : null));
   const count = p => admin(d => getDocs(collection(d, p)).then(s => s.size));

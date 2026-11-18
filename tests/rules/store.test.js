@@ -27,6 +27,7 @@ const srv = http.createServer((q, r) => {
   const base = `http://127.0.0.1:${srv.address().port}/`;
   const env = await initializeTestEnvironment({ projectId: PROJECT, firestore: { rules: fs.readFileSync(path.join(ROOT, "firestore.rules"), "utf8"), host: EMU.host, port: EMU.firestore } });
   await env.clearFirestore();   // rules.test.js runs first against the same emulator; start from empty data
+  await require("./allowlist.js").seedAllowlist(env);
   const admin = async fn => { let out; await env.withSecurityRulesDisabled(async c => { out = await fn(c.firestore()); }); return out; };
   const exists = p => admin(d => getDoc(doc(d, p)).then(s => s.exists()));
   const count = p => admin(d => getDocs(collection(d, p)).then(s => s.size));

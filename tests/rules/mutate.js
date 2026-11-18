@@ -39,6 +39,10 @@ const M = [
   // Not listed: dropping hasAll(['email']) is an equivalent mutant (the email comparison reads the missing field and denies).
   ["membership: the time is a number", " && (!('t' in d) || d.t is number);", ";"],
   ["membership: the check applies to every join path", "request.auth.uid == uid && validMember(request.resource.data) && (", "request.auth.uid == uid && ("],
+  ["allowlist: membership of the list is checked", "return exists(list) && request.auth.token.email.lower() in get(list).data.emails;", "return exists(list);"],
+  ["allowlist: no client reads it", "match /admin/{doc} {\n      allow read, write: if false;", "match /admin/{doc} {\n      allow read: if true;\n      allow write: if false;"],
+  ["allowlist: no client writes it", "match /admin/{doc} {\n      allow read, write: if false;", "match /admin/{doc} {\n      allow read: if false;\n      allow write: if true;"],
+  // Not listed: dropping exists(list) is an equivalent mutant (get() of a missing document fails, which denies).
   ["other config stays members-only", "match /config/{cfg} {\n        allow read: if inFamily(hid);", "match /config/{cfg} {\n        allow read: if true;"]
 ];
 const run = file => { const r = spawnSync(process.execPath, [path.join(__dirname, "sources.rules.test.js")], { env: { ...process.env, ...(file ? { RULES_FILE: file } : {}), QUIET: "1" }, encoding: "utf8" });

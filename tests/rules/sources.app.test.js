@@ -27,7 +27,7 @@ const until = async (fn, ms = 20000) => { const end = Date.now() + ms; while (Da
   await new Promise(res => srv.listen(0, "127.0.0.1", res));
   const base = `http://127.0.0.1:${srv.address().port}/`;
   const env = await initializeTestEnvironment({ projectId: PROJECT, firestore: { rules: fs.readFileSync(path.join(ROOT, "firestore.rules"), "utf8"), host: EMU.host, port: EMU.firestore } });
-  await env.clearFirestore();
+  await env.clearFirestore(); await require("./allowlist.js").seedAllowlist(env);
   const get = async p => { let out; await env.withSecurityRulesDisabled(async c => { const s = await getDoc(doc(c.firestore(), p)); out = s.exists() ? s.data() : null; }); return out; };
   const browser = await chromium.launch();
   const phone = async () => {

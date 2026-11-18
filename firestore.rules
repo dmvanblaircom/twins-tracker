@@ -4,13 +4,19 @@ service cloud.firestore {
     // Each family's data lives under households/{hid}. Members are households/{hid}/members/{uid}.
     // users/{uid} → {hid} says which family a sign-in belongs to.
     //
-    // The original family (households/main) can still be claimed by the two emails below.
-    // Put your real emails here in the Firebase console only (lowercase) — never in this public repo.
+    // The original family (households/main) can still be claimed by the emails in one Firestore document,
+    // admin/allowlist → {emails: ["…", "…"]} (lowercase), created and edited only in the Firebase console. No client can
+    // read or write it (see match /admin below), and no email is written in this public file, so these rules are
+    // published exactly as they are in the repo.
     function signedIn() { return request.auth != null; }
+    function allowlisted() {
+      let list = /databases/$(database)/documents/admin/allowlist;
+      return exists(list) && request.auth.token.email.lower() in get(list).data.emails;
+    }
     // An allowlisted email the owner has removed is revoked for good: households/main/revoked/{email} blocks the
     // allowlist path (membership claim, data access, creating the family record). Re-inviting them with a code still works.
     function legacy() {
-      return signedIn() && request.auth.token.email in ['parent1@example.com', 'parent2@example.com']
+      return signedIn() && allowlisted()
         && !exists(/databases/$(database)/documents/households/main/revoked/$(request.auth.token.email.lower()));
     }
     function house(hid) { return /databases/$(database)/documents/households/$(hid); }
@@ -213,6 +219,11 @@ service cloud.firestore {
         // Creating or changing private data still requires being an active member of the family.
         allow create, update: if signedIn() && request.auth.uid == uid && member(hid);
       }
+    }
+
+    // The allowlist document: console only. Clients can neither read it nor change it.
+    match /admin/{doc} {
+      allow read, write: if false;
     }
 
     // Everything else is closed.

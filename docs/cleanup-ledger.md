@@ -61,6 +61,7 @@ Baseline: `main` = `dd1ec15`. Scope: `firestore.rules`, lifecycle and cleanup pa
 
 ### Exceptions approved during Phase 2.5
 - **Discharge (one baby went home)** — a new feature, approved by the product owner on Nov 17, 2026 as an exception to Phase 2.5's "no new features" rule because the milk estimate was still charging the discharged baby's feeds. Built as one small change with its own tests (`tests/discharge.test.js`, 5 new engine checks); see `CLAUDE.md` → Discharge.
+- **Allowlist out of the rules file** — approved Nov 18, 2026 so rules can be published exactly as committed: `legacy()` reads `admin/allowlist` (console only; clients can't read or write it) instead of two emails in `firestore.rules`. No behaviour change; the check now ignores letter case. Tests: allowlist cases in `sources.rules.test.js` (+5), 3 new mutations (37/37); every emulator suite seeds the fictional placeholder list (`tests/rules/allowlist.js`).
 - **Note for pass 4:** pass 1 changed `index.html` without bumping the `sw.js` cache name; the discharge change bumps it (v43 → v44), which covers both.
 
 ## 3. Verification record (one block per pass)

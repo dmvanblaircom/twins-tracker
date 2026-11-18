@@ -12,6 +12,7 @@ const t = async (name, fn) => { try { await fn(); pass++; console.log("✓", nam
   const env = await initializeTestEnvironment({
     projectId: "demo-twins", firestore: { rules: fs.readFileSync(path.join(__dirname, "../../firestore.rules"), "utf8"), host: "127.0.0.1", port: 8080 }
   });
+  await require("./allowlist.js").seedAllowlist(env);
   const as = (uid, email) => env.authenticatedContext(uid, { email }).firestore();
   const dad = as("dad", "parent1@example.com"), mom = as("mom", "parent2@example.com");
   const eve = as("eve", "eve@example.net"), sam = as("sam", "sam@example.net"), anon = env.unauthenticatedContext().firestore();

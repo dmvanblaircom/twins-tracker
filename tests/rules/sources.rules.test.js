@@ -13,7 +13,7 @@ const t = async (name, fn) => { try { await fn(); pass++; QUIET || console.log("
 (async () => {
   const rules = fs.readFileSync(process.env.RULES_FILE || path.join(__dirname, "../../firestore.rules"), "utf8");
   const env = await initializeTestEnvironment({ projectId: "demo-twins", firestore: { rules, host: "127.0.0.1", port: 8080 } });
-  await env.clearFirestore();
+  await env.clearFirestore(); await require("./allowlist.js").seedAllowlist(env);
   const as = (uid, email) => env.authenticatedContext(uid, { email }).firestore();
   const H = "households/hs";
   const ann = as("ann", FX.E), ben = as("ben", "parent2@example.com"), zed = as("zed", "zed@example.net");
@@ -142,6 +142,22 @@ const t = async (name, fn) => { try { await fn(); pass++; QUIET || console.log("
     await admin(x => deleteDoc(doc(x, "households/main/members/dad")));
     await assertFails(setDoc(doc(dad, "households/main/members/dad"), { email: "parent2@example.com", t: 1 }));
     await assertSucceeds(setDoc(doc(dad, "households/main/members/dad"), { email: "parent1@example.com", t: 1 })); });
+
+  // ---- the allowlist lives in admin/allowlist (console only), not in the rules file ----
+  await t("no client can read the allowlist document — not a member, not an allowlisted email, not a stranger", async () => {
+    await assertFails(getDoc(doc(dad, "admin/allowlist"))); await assertFails(getDoc(doc(ann, "admin/allowlist"))); await assertFails(getDoc(doc(zed, "admin/allowlist"))); });
+  await t("no client can change or delete it (e.g. add themselves)", async () => {
+    await assertFails(setDoc(doc(zed, "admin/allowlist"), { emails: ["zed@example.net"] })); await assertFails(setDoc(doc(dad, "admin/allowlist"), { emails: ["parent1@example.com", "zed@example.net"] }));
+    await assertFails(deleteDoc(doc(dad, "admin/allowlist"))); });
+  await t("an email on the allowlist can use the original family; the check ignores letter case", async () => {
+    await assertSucceeds(getDoc(doc(as("pa1", "Parent1@Example.com"), "households/main/config/profile"))); });   // not a member: access comes from the list
+  await t("an email not on the allowlist can't", () => assertFails(getDoc(doc(zed, "households/main/config/profile"))));
+  await t("with no allowlist document, the allowlist grants nothing (members still have access)", async () => {
+    await admin(x => setDoc(doc(x, "households/main/members/mem"), { email: "mem@example.net", t: 1 }));
+    await admin(x => deleteDoc(doc(x, "admin/allowlist")));
+    await assertFails(getDoc(doc(as("pa1", "parent1@example.com"), "households/main/config/profile")));   // allowlisted email, not a member
+    await assertSucceeds(getDoc(doc(as("mem", "mem@example.net"), "households/main/config/profile")));
+    await require("./allowlist.js").seedAllowlist(env); await admin(x => deleteDoc(doc(x, "households/main/members/mem"))); });
 
   // ---- the catch-all no longer reaches these collections ----
   await t("an arbitrary document in slotMilk / milkUsual / schedPeriods / clients is refused", async () => {

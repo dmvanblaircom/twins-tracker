@@ -14,7 +14,7 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 - `milk-sources.js` — milk-source engine (pure functions, `window.MilkSources`; also `require()`d by the Node tests): schedule periods → scheduled occurrences, deterministic split, resolution, usage / next draw / need, validators that mirror `firestore.rules`, reconciliation, feed-follow, stranded allocations, drift, member readiness. Also the one copy of the feed-slot formula (`slotHours`, used by `setSchedule`). Loaded before the main script; in the shell cache and `native/build.mjs`.
 - `firebase-store.js` — implements `window.Store` on Firebase (see below). Fires `store-ready`.
 - `firebase-config.js` — Firebase web config (not secret).
-- `firestore.rules` — family membership and data rules (see Families, Data model). The original family `households/main` can also be claimed by the allowlisted emails (placeholders in the repo; real ones only in the console). Tested in `tests/rules/` against the emulator.
+- `firestore.rules` — family membership and data rules (see Families, Data model). The original family `households/main` can also be claimed by the emails in the Firestore document `admin/allowlist` → `{emails: [...]}` (lowercase; created and edited only in the Firebase console; no client can read or write it). The rules file holds no emails, so it is published exactly as committed. The emulator tests seed fictional placeholder emails (`tests/rules/allowlist.js`). Tested in `tests/rules/` against the emulator.
 - `sw.js` — app-shell cache, network-first. Bump `CACHE` name when shell files change.
 - `fonts/inter-latin-var.woff2` — Inter variable font (latin, self-hosted, OFL; licence in `fonts/LICENSE-Inter.txt`). Cached with the shell for offline.
 - `manifest.webmanifest`, `icons/`.
@@ -147,7 +147,7 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 - Only PO volume is tracked. Full feed default = 150 mL/kg/day × birth weight ÷ feeds per day, overridable per baby.
 
 ## Status
-- [x] Firebase project created (twins-tracker-53f1d), Email/Password on, both users added, sign-up disabled, github.io authorized. Rules: real emails pasted in console only (repo copy keeps placeholders).
+- [x] Firebase project created (twins-tracker-53f1d), Email/Password on, both users added, sign-up disabled, github.io authorized. Rules: published from the repo as-is; the allowlisted emails live only in the console-managed `admin/allowlist` document.
 - [x] `firebase-config.js` filled.
 - [x] GitHub Pages live from main / root; sign-in verified on iPhone.
 - [x] Setup screen done; prior data imported from NICU chart photos (estimates flagged `approx` / note `est.`).
