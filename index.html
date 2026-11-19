@@ -501,6 +501,7 @@
       <label class="f">Birth weight (g)<input id="suW0" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF0" type="number" inputmode="decimal" placeholder="auto"></label>
       <label class="f full">Went home (leave blank while in the NICU)<input id="suH0" type="datetime-local"></label>
+      <label class="f full">Bedside camera link (optional)<input id="suK0" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…"></label>
       <label class="f full">Feed times<select id="suM0"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
       <div class="f full">Color<div class="swatches" id="suC0" role="radiogroup" aria-label="Color"></div></div>
 <div class="full" style="margin-top:6px;font-weight:650"><span class="dot" style="background:var(--t1)"></span>Baby B</div>
@@ -509,6 +510,7 @@
       <label class="f">Birth weight (g)<input id="suW1" type="number" inputmode="numeric"></label>
       <label class="f">Full feed (mL)<input id="suF1" type="number" inputmode="decimal" placeholder="auto"></label>
       <label class="f full">Went home (leave blank while in the NICU)<input id="suH1" type="datetime-local"></label>
+      <label class="f full">Bedside camera link (optional)<input id="suK1" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…"></label>
       <label class="f full">Feed times<select id="suM1"><option value="0">On the hour</option><option value="30">Half past (:30)</option></select></label>
       <div class="f full">Color<div class="swatches" id="suC1" role="radiogroup" aria-label="Color"></div></div>
       <div class="full row"><button class="btn" id="suSave">Save</button><button class="btn ghost" id="suCancel" style="display:none">Cancel</button><span class="msg" id="suMsg"></span></div>
@@ -528,6 +530,7 @@
       <div class="ctx-r"><span class="ctx-age" id="ageLine"></span><span class="ctx-now">Now <b id="nextClock"></b></span></div>
     </div>
     <div id="srcNote"></div>
+    <div id="camTip"></div>
     <div id="next"></div>
   </section>
   <div class="card" id="qCard"><h2>Questions for rounds <span class="muted" id="qCount" style="font-weight:400;font-size:13px"></span></h2>
@@ -715,7 +718,7 @@
     <h2>Baby cameras</h2>
     <div class="cams" id="camFields"></div>
     <div class="msg" id="camMsg" role="status"></div>
-    <div class="note">If your NICU has bedside cameras (such as AngelEye), paste the web address you use to watch. A camera button then appears on her card on Today. Saved only on this phone; each parent adds their own. NICUlog only opens the link; it doesn't see or record the video.</div>
+    <div class="note">If your NICU has bedside cameras (such as AngelEye), paste the web address you use to watch. A camera button then appears on her card on Today, on every phone in your family. NICUlog only opens the link; it doesn't see or record the video.</div>
   </div>
   <div class="card" id="famCard">
     <h2>Family</h2>
@@ -846,9 +849,14 @@
   const md = k => mdD(keyDate(k));
   const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   // Per-phone display preferences (localStorage; never synced)
-  // Bedside camera links (e.g. AngelEye), per baby index, on this phone only: never in family data or backups.
-  const CAMS = (()=>{ try{ return JSON.parse(localStorage.getItem("camLinks")||"{}")||{}; }catch{ return {}; } })();
-  const camLink = i => { const u=CAMS[i]; return typeof u==="string" && /^https:\/\/[^\s"'<>]+$/.test(u) ? u : ""; };
+  // Bedside camera links (e.g. AngelEye), per baby index, shared by the family: config/cams → {links:{0:url,1:url}}
+  // (product owner, Nov 20, 2026). Only https links are used. Links saved on a phone by the first version
+  // (localStorage camLinks) move into the family document once, then leave the phone.
+  let CAMS={};
+  const CAM_OK = /^https:\/\/[^\s"'<>]+$/;
+  const camLink = i => { const u=CAMS[i]; return typeof u==="string" && CAM_OK.test(u) ? u : ""; };
+  const cleanCams = c => { const o={}; const l=c&&c.links; if(l&&typeof l==="object") for(const i of ["0","1"]) if(typeof l[i]==="string"&&CAM_OK.test(l[i])&&l[i].length<=2000) o[i]=l[i]; return o; };
+  const saveCams = next => Store.setConfig("cams", {links:next});
   const PREF = (()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem("prefs")||"{}")||{}; }catch{} return {units:"g",clock:"12",text:"1",night:"manual",look:"system",...p}; })();
   const savePrefs = () => { try{ localStorage.setItem("prefs",JSON.stringify(PREF)); }catch{} };
   const clock = (h,m,short) => PREF.clock==="24" ? `${pad(h)}:${pad(m)}` : `${h%12||12}${m||!short?":"+pad(m):""}${short?(h<12?"a":"p"):(h<12?" AM":" PM")}`;
@@ -1487,7 +1495,7 @@
 
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
-  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); }
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -1550,7 +1558,7 @@
   // Collection names come from Store.lists (one place, firebase-store.js); the fallback matches it.
   const bkCols = () => (window.Store&&Store.lists&&Store.lists.shared) || ["weights","feeds","pumps","drops","checklist","plans","questions","events","needs"];
   const bkPriv = () => (window.Store&&Store.lists&&Store.lists.private) || ["checkins"];
-  const BK_CFG=["profile","diet","people","milk"], BK_APPS=["twins-tracker","niculog"], BK_FORMATS=[1,2];
+  const BK_CFG=["profile","diet","people","milk","cams"], BK_APPS=["twins-tracker","niculog"], BK_FORMATS=[1,2];
   const rawOf = c => c==="weights"?rawW:c==="feeds"?rawF:RAW[c]||[];
   // Format 2: shared collections (incl. events, needs), config, and ONLY the signed-in person's own private data.
   function backupData(){
@@ -2752,6 +2760,11 @@
         Promise.resolve(Store.markClient(MS.CLIENT_V)).catch(()=>{}); }
       if(Store.watchPrivate) bkPriv().forEach(n=>unsubs.push(Store.watchPrivate(n,list=>{ RAWP[n]=list; if(n==="checkins"){ CI=list.map(([id,d])=>cleanCI(id,d)).filter(Boolean).sort((a,b)=>b.t-a.t); renderSupport(); } }, ()=>{})));
       unsubs.push(Store.watch("questions",list=>{ RAW.questions=list; QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
+      let camsSeen=false;
+      unsubs.push(Store.watchConfig("cams",c=>{ RAWC.cams=c; CAMS=cleanCams(c);
+        if(!camsSeen){ camsSeen=true; let local={}; try{ local=cleanCams({links:JSON.parse(localStorage.getItem("camLinks")||"{}")}); }catch{}
+          if(Object.keys(local).length){ if(!Object.keys(CAMS).length) saveCams(local).catch(()=>{}); try{ localStorage.removeItem("camLinks"); }catch{} } }
+        renderNext(); renderCams(); renderCamTip(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ RAWC.milk=c; milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
       unsubs.push(Store.watchConfig("sources",c=>{ SRC_CFG=c&&c.on===true?c:null; renderAll(); }, ()=>{}));
     }
@@ -2797,6 +2810,7 @@
     [0,1].forEach(i=>{ const t=p?p.twins[i]:null;
       $("suN"+i).value=t?t.name:""; $("suT"+i).value=t?t.birthTime||"":""; $("suW"+i).value=t?t.birthG:"";
       $("suH"+i).value=t&&Number.isFinite(+t.home)&&+t.home>0?toLocalInput(new Date(+t.home)):"";
+      $("suK"+i).value=CAMS[i]||"";
       $("suF"+i).value=t&&t.fullMl?t.fullMl:""; $("suM"+i).value=t?String(t.slotMin||0):(i?"30":"0"); swatches(i, t&&t.color || (i?"orange":"blue")); });
   }
   function hideSetup(){ $("setup").style.display="none"; $("main").style.display=""; }
@@ -2813,6 +2827,9 @@
     for(const i of [0,1]){ const v=$("suH"+i).value; if(!v) continue; const t=new Date(v).getTime();
       if(!Number.isFinite(t) || t>Date.now()+60*60e3 || t<keyDate(p.born).getTime()){ $("suMsg").textContent=`Check ${p.twins[i].name}'s went-home date: it has to be between birth and now.`; return; }
       p.twins[i].home=Math.floor(t/60e3)*60e3; }
+    // Bedside camera links: optional, saved for the family in config/cams (not in the profile).
+    const camIn=[0,1].map(i=>$("suK"+i).value.trim());
+    for(const i of [0,1]) if(camIn[i] && !CAM_OK.test(camIn[i])){ $("suMsg").textContent=`Check ${p.twins[i].name}'s camera link: paste the full address, starting with https://`; return; }
     if(profile){ const o=profile.schedule||{}, n=p.schedule, om=(profile.twins||[]).map(t=>+t.slotMin||0).join(), nm=p.twins.map(t=>t.slotMin).join();
       if(((o.everyH||3)!==n.everyH || (o.startH??8)!==n.startH || (o.dayH??7)!==n.dayH || om!==nm) && !confirm("Change feed times?\n\nThe feed sheet and Today cards use the new times from now on. Feeds already logged keep their times and still count toward their day."+strandMsg(p))) return; }
     if(profile) p.twins.forEach((t,i)=>{ const o=profile.twins[i]||{}, aka=new Set(Array.isArray(o.aka)?o.aka:[]);
@@ -2824,7 +2841,10 @@
       // so earlier feed times keep the schedule and scheduled amounts they had (never reinterpreted).
       if(srcOn() && Store.create){ const st=srcState(), cur=MS.periodAt(MS.sortPeriods(st.periods),Date.now());
         if(!MS.samePeriod(cur,MS.periodFromProfile(p))){ await ensurePeriods(); await recordPeriod(Date.now(),"setup",p); } }
-      await Store.setProfile(p); if(renamed){ try{ localStorage.removeItem("view"); }catch{} flash("Renamed — every entry follows the new name."); } }
+      await Store.setProfile(p);
+      { const next={...CAMS}; camIn.forEach((v,i)=>{ if(v) next[i]=v; else delete next[i]; });
+        if(JSON.stringify(next)!==JSON.stringify(CAMS)) await saveCams(next); try{ localStorage.setItem("camTipSeen","1"); }catch{} }
+      if(renamed){ try{ localStorage.removeItem("view"); }catch{} flash("Renamed — every entry follows the new name."); } }
     catch(err){ failWrite(err); }
     finally{ $("suSave").disabled=false; }
   });
@@ -2840,17 +2860,26 @@
   $("fmNew").addEventListener("click",()=>{ if(confirm("Start a new family?\n\nIf your partner already set one up, cancel and ask them for the invite code instead.")) familyChosen(Store.createFamily()); });
   $("fmOut").addEventListener("click",()=>Store.signOut());
   let famInfo=null;
+  // One-time note on Today for a phone with no camera links (e.g. the parent who joined with a code and never saw setup).
+  function renderCamTip(){
+    const el=$("camTip"); if(!el) return; let seen=false; try{ seen=!!localStorage.getItem("camTipSeen"); }catch{}
+    const show=profileReady() && !seen && !TWINS.some((tw,i)=>camLink(i)) && TWINS.some(tw=>inNicu(tw));
+    el.innerHTML = show ? `<div class="card"><p class="slead">Does your NICU have bedside cameras (such as AngelEye)? Add each baby's camera link to watch her from her card on Today.</p>
+      <div class="row"><button class="btn" type="button" data-ct="add">Add camera links</button><button class="btn ghost" type="button" data-ct="no">Not now</button></div></div>` : "";
+  }
+  $("camTip").addEventListener("click",e=>{ const b=e.target.closest("[data-ct]"); if(!b) return;
+    try{ localStorage.setItem("camTipSeen","1"); }catch{} renderCamTip();
+    if(b.dataset.ct==="add"){ showTab("more"); showMoreSec("settings"); setTimeout(()=>{ $("camCard").scrollIntoView({block:"start"}); const f=$("camFields").querySelector("input"); if(f) f.focus(); },60); } });
   function renderCams(){
     const box=$("camFields"); if(!box || !profileReady() || box.contains(document.activeElement)) return;
     box.innerHTML=TWINS.map((tw,i)=>`<label class="f">${esc(tw)}'s camera link<input type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…" data-cam="${i}" value="${esc(CAMS[i]||"")}"></label>`).join("");
   }
   $("camFields").addEventListener("change",e=>{
     const inp=e.target.closest("[data-cam]"); if(!inp) return; const i=inp.dataset.cam, v=inp.value.trim();
-    if(v && !/^https:\/\/[^\s"'<>]+$/.test(v)){ $("camMsg").textContent="Paste the full address, starting with https://"; return; }
-    if(v) CAMS[i]=v; else delete CAMS[i];
-    try{ localStorage.setItem("camLinks",JSON.stringify(CAMS)); }catch{}
-    $("camMsg").textContent = v ? `Saved on this phone. The camera button is on ${TWINS[+i]}'s card on Today.` : "Removed from this phone.";
-    renderNext();
+    if(v && !CAM_OK.test(v)){ $("camMsg").textContent="Paste the full address, starting with https://"; return; }
+    const next={...CAMS}; if(v) next[i]=v; else delete next[i];
+    try{ localStorage.setItem("camTipSeen","1"); }catch{}
+    saveCams(next).then(()=>{ $("camMsg").textContent = v ? `Saved for your family. The camera button is on ${TWINS[+i]}'s card on Today, on both phones.` : "Removed for your family."; }).catch(failWrite);
   });
   async function renderFamily(){
     if(!Store.familyInfo) { $("famCard").style.display="none"; return; }
