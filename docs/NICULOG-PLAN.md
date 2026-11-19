@@ -324,6 +324,11 @@ A stabilization effort, **not a redesign or feature-development phase**. Its goa
 
 ---
 
+### Bedside camera link (product owner, Nov 20, 2026)
+- **Decision:** a per-baby "watch the camera" button on Today that opens the family's own bedside-camera page (e.g. AngelEye). Approved as an exception to the Connected Care guardrail "no AngelEye connectivity now": it is **a link only** — NICUlog doesn't read, embed, store or record anything from the camera system, and the link lives only on each parent's phone (never in family data or backups; no rules change).
+- **Not pursued:** embedding the feed in NICUlog (camera portals typically forbid framing, and iPhone Safari blocks third-party logins in frames; unverified for the family's hospital); importing nurses' messages or media (no public interface).
+- **Later (iOS app):** open the link in an in-app browser sheet (`@capacitor/browser`) — added to `docs/app-store-readiness.md`.
+
 ## Open items
 - **Original family owner:** check in the Firebase console whether `households/main` exists and who its `owner` is. Whoever first taps "New code" or "Remove" becomes the owner.
 - **Account sign-up:** confirm it's enabled in Firebase Authentication if new families should be able to join.

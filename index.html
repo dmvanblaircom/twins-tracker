@@ -197,6 +197,9 @@
   .nx::before,.bcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
   .nx.saving{opacity:.85}
   .bh{display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)}
+  .camb{flex:none;display:inline-grid;place-items:center;width:44px;height:44px;border:1px solid var(--field);border-radius:var(--r-pill);background:var(--surface);color:var(--accent)}
+  .camb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+  .cams{display:grid;gap:var(--sp-2)}
   .idtag{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:750;font-size:var(--fs-lg);
     background:color-mix(in srgb,var(--c) 16%,var(--surface));color:var(--c);box-shadow:inset 0 0 0 2px var(--c)}
   :root[data-theme="night"] .idtag{color:var(--text)}
@@ -708,6 +711,12 @@
     </div>
     <div class="note">Only affects this phone. Weights are always entered in grams, as the NICU charts them.</div>
   </div>
+  <div class="card" id="camCard">
+    <h2>Baby cameras</h2>
+    <div class="cams" id="camFields"></div>
+    <div class="msg" id="camMsg" role="status"></div>
+    <div class="note">If your NICU has bedside cameras (such as AngelEye), paste the web address you use to watch. A camera button then appears on her card on Today. Saved only on this phone; each parent adds their own. NICUlog only opens the link; it doesn't see or record the video.</div>
+  </div>
   <div class="card" id="famCard">
     <h2>Family</h2>
     <div class="note" style="margin-top:0">Everyone here sees and logs the same babies.</div>
@@ -837,6 +846,9 @@
   const md = k => mdD(keyDate(k));
   const toLocalInput = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   // Per-phone display preferences (localStorage; never synced)
+  // Bedside camera links (e.g. AngelEye), per baby index, on this phone only: never in family data or backups.
+  const CAMS = (()=>{ try{ return JSON.parse(localStorage.getItem("camLinks")||"{}")||{}; }catch{ return {}; } })();
+  const camLink = i => { const u=CAMS[i]; return typeof u==="string" && /^https:\/\/[^\s"'<>]+$/.test(u) ? u : ""; };
   const PREF = (()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem("prefs")||"{}")||{}; }catch{} return {units:"g",clock:"12",text:"1",night:"manual",look:"system",...p}; })();
   const savePrefs = () => { try{ localStorage.setItem("prefs",JSON.stringify(PREF)); }catch{} };
   const clock = (h,m,short) => PREF.clock==="24" ? `${pad(h)}:${pad(m)}` : `${h%12||12}${m||!short?":"+pad(m):""}${short?(h<12?"a":"p"):(h<12?" AM":" PM")}`;
@@ -1273,6 +1285,7 @@
       return `<section class="nx ${n.due?"due":""}" style="--c:${C[tw]}" data-tw="${esc(tw)}" data-day="${n.day}" data-i="${n.i}" aria-label="${esc(tw)}, Baby ${letter}">
         <header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
           <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div>
+          ${camLink(TWINS.indexOf(tw))?`<a class="camb" href="${esc(camLink(TWINS.indexOf(tw)))}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${esc(tw)}'s camera"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6.5" width="13" height="11" rx="2.5"/><path d="M15.5 10.5l5-3v9l-5-3z"/></svg></a>`:""}
           <div class="when ${n.due?"is-due":""}">${n.chosen?"Filling in":n.due?"Due":"Next"} <b>${hm(n.t)}</b></div></header>
         ${n.chosen?`<button class="link back" data-act="back">← Back to the latest feed</button>`:""}
         <div class="feed" role="group" aria-label="Record ${esc(tw)}'s ${hm(n.t)} feed">
@@ -1474,7 +1487,7 @@
 
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
-  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); }
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -2827,6 +2840,18 @@
   $("fmNew").addEventListener("click",()=>{ if(confirm("Start a new family?\n\nIf your partner already set one up, cancel and ask them for the invite code instead.")) familyChosen(Store.createFamily()); });
   $("fmOut").addEventListener("click",()=>Store.signOut());
   let famInfo=null;
+  function renderCams(){
+    const box=$("camFields"); if(!box || !profileReady() || box.contains(document.activeElement)) return;
+    box.innerHTML=TWINS.map((tw,i)=>`<label class="f">${esc(tw)}'s camera link<input type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://…" data-cam="${i}" value="${esc(CAMS[i]||"")}"></label>`).join("");
+  }
+  $("camFields").addEventListener("change",e=>{
+    const inp=e.target.closest("[data-cam]"); if(!inp) return; const i=inp.dataset.cam, v=inp.value.trim();
+    if(v && !/^https:\/\/[^\s"'<>]+$/.test(v)){ $("camMsg").textContent="Paste the full address, starting with https://"; return; }
+    if(v) CAMS[i]=v; else delete CAMS[i];
+    try{ localStorage.setItem("camLinks",JSON.stringify(CAMS)); }catch{}
+    $("camMsg").textContent = v ? `Saved on this phone. The camera button is on ${TWINS[+i]}'s card on Today.` : "Removed from this phone.";
+    renderNext();
+  });
   async function renderFamily(){
     if(!Store.familyInfo) { $("famCard").style.display="none"; return; }
     try{ famInfo=await Store.familyInfo(); }catch{ return; }

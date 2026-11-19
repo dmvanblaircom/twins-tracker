@@ -34,9 +34,10 @@ Status: **ready to submit except for the steps that need an Apple Developer acco
    - Web app: create a reCAPTCHA v3 key for the GitHub Pages domain and register it in Firebase App Check.
    - Set `appCheck` in `firebase-config.js`, ship it, watch the App Check metrics show verified requests for a week, **then** turn on enforcement for Firestore. Enforcing earlier would lock out phones on the old version.
    - The app code expects the plugin under `Capacitor.Plugins.FirebaseAppCheck` with `getToken({forceRefresh}) → {token, expireTimeMillis}`; confirm against the plugin version you install.
-5. On a real iPhone (Xcode → Run): sign in, offline entry and sync, camera and library photos, backup → share sheet → Files, restore, delete account on a test account.
-6. Product → Archive → Distribute → App Store Connect → **TestFlight** first; both of you use it for a few days.
-7. Fill in the listing (§4), privacy answers (§5), and review notes (§6); add screenshots (`tests/screens.js` makes iPhone-size ones with fictional babies); submit for review.
+5. Optional: add `@capacitor/browser` so the bedside-camera button opens inside the app (a browser sheet using the Safari login) instead of switching to Safari.
+6. On a real iPhone (Xcode → Run): sign in, offline entry and sync, camera and library photos, backup → share sheet → Files, restore, delete account on a test account.
+7. Product → Archive → Distribute → App Store Connect → **TestFlight** first; both of you use it for a few days.
+8. Fill in the listing (§4), privacy answers (§5), and review notes (§6); add screenshots (`tests/screens.js` makes iPhone-size ones with fictional babies); submit for review.
 
 ## 4. Listing draft
 - **Name:** NICUlog

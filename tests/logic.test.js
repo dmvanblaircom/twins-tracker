@@ -87,6 +87,29 @@ async function main() {
       && log[1][0] === "share" && log[1][1] === `file:///cache/niculog-backup-${day}.json` && log[1][2] === "NICUlog backup", JSON.stringify(log));
     check("…and reports it ready", (await ip.textContent("#bkMsg")).startsWith("Backup ready"));
     await ip.context().close();
+
+    // ===== Bedside camera button (AngelEye etc.): a per-phone link, opened from her Today card =====
+    const URL1 = "https://nicu.example.org/view";
+    const cp = await newPage(browser, base, { now: NOW }); await importData(cp);
+    await tab(cp, "more"); await cp.click('#moreNav button[data-v="settings"]'); await wait(cp);
+    const labels = await cp.$$eval("#camFields label", l => l.map(x => x.textContent.trim()));
+    check("Settings offers a camera link for each baby, by name", labels.length === 2 && labels[0].startsWith(`${ADA}'s camera link`) && labels[1].startsWith(`${BEA}'s camera link`), labels.join(" | "));
+    await cp.fill('[data-cam="0"]', "http://nicu.example.org/view"); await cp.dispatchEvent('[data-cam="0"]', "change"); await wait(cp);
+    check("a link that isn't https is refused in plain words and not saved", (await cp.textContent("#camMsg")).includes("starting with https://") && !((await cp.evaluate(() => localStorage.getItem("camLinks") || "")).includes("http://")));
+    await cp.fill('[data-cam="0"]', URL1); await cp.dispatchEvent('[data-cam="0"]', "change"); await wait(cp);
+    await tab(cp, "feed"); await wait(cp);
+    const cam = await cp.evaluate(() => [...document.querySelectorAll(".nx")].map(n => { const a = n.querySelector("a.camb"); return a && [n.dataset.tw, a.getAttribute("href"), a.target, a.rel, a.getAttribute("aria-label")]; }));
+    check("her Today card gets a camera button that opens the link in a new page; her sister's doesn't", JSON.stringify(cam) === JSON.stringify([[ADA, URL1, "_blank", "noopener noreferrer", `Watch ${ADA}'s camera`], null]), JSON.stringify(cam));
+    check("the camera button is 44 px", await cp.$eval("a.camb", a => a.getBoundingClientRect().height >= 44));
+    check("the link stays on this phone: it is not in the family's data", await cp.evaluate(u => !JSON.stringify(__db).includes(u), URL1));
+    await cp.evaluate(() => { const pr = JSON.parse(JSON.stringify(__db.config.profile)); pr.twins[0].home = Date.now() - 3600e3; return Store.setProfile(pr); }); await wait(cp, 400);
+    check("after she goes home, her camera button goes with her card", !(await cp.$("a.camb")));
+    await cp.evaluate(() => { const pr = JSON.parse(JSON.stringify(__db.config.profile)); delete pr.twins[0].home; return Store.setProfile(pr); }); await wait(cp, 400);
+    await tab(cp, "more"); await cp.click('#moreNav button[data-v="settings"]'); await wait(cp);
+    await cp.fill('[data-cam="0"]', ""); await cp.dispatchEvent('[data-cam="0"]', "change"); await tab(cp, "feed"); await wait(cp);
+    check("clearing the link removes the button", !(await cp.$("a.camb")) && (await cp.evaluate(() => localStorage.getItem("camLinks"))) === "{}");
+    check("no page errors (camera links)", !cp.errors.length, cp.errors.join("; "));
+    await cp.context().close();
   } catch (e) { fails.push("crashed: " + e.message); console.error(e); }
   await browser.close(); srv.close();
   console.log(`\n${pass} passed, ${fails.length} failed`);
