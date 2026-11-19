@@ -6,7 +6,7 @@ NICUlog is more than a NICU log: it's a family record that parents will want to 
 
 This is the **single source of truth** for NICUlog direction, scope and sequencing. It records the product owner's decisions on the Phase 0 audit (`docs/niculog-phase0-audit.md`) and the phase plan. Where the audit or any other document says otherwise, this file wins. Project context and current architecture are in `CLAUDE.md`.
 
-Last updated: Nov 17, 2026 (Phase 2b complete: merged at `3ce60b5`, milk-source rules published; real-device validation still outstanding; Phase 2.5 started).
+Last updated: Nov 19, 2026 (Phases 2.5 and 3 complete and merged; Phases 1–3 smoke tested on real devices by the product owner).
 
 ---
 
@@ -28,11 +28,11 @@ Last updated: Nov 17, 2026 (Phase 2b complete: merged at `3ce60b5`, milk-source 
 
 | Phase | Status |
 |---|---|
-| 1 — Foundations | **Functionally complete and merged** (`6f70a1e`); production rules published and verified. **Real-device validation outstanding**; other release-readiness checks are tracked in Open items and Phase 6. |
-| 2 — Moments and Journey | **Complete and merged** to `main` at `9be9957` (Nov 16, 2026); events rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
+| 1 — Foundations | **Functionally complete and merged** (`6f70a1e`); production rules published and verified. **Smoke tested on real devices** (product owner, Nov 19, 2026); other release-readiness checks are tracked in Open items and Phase 6. |
+| 2 — Moments and Journey | **Complete and merged** to `main` at `9be9957` (Nov 16, 2026); events rules published to production (product owner's confirmation). **Smoke tested on real devices** (Nov 19, 2026). |
 | 2b — Feeding sources | **Complete and merged** to `main` at `3ce60b5` (Nov 17, 2026): Stage A design approved (`docs/phase2b-design.md`), B1 data/rules/calculation, B2 screens, and the backend-enforced activation gate. Milk-source rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
 | 2.5 — Repository stabilization | **Complete** (Nov 19, 2026). Five passes; findings, decisions and verification in `docs/cleanup-ledger.md`. Approved exceptions: discharge (one baby went home); allowlist moved to a console-only document. |
-| 3 — Parent Support | **Complete and merged** (Nov 19, 2026): private check-ins, share / unshare, daily message, parent milestones, resources (US only), privacy policy. All wording approved (`docs/phase3-content.md`). No rules change. **Real-device validation outstanding.** |
+| 3 — Parent Support | **Complete and merged** (Nov 19, 2026): private check-ins, share / unshare, daily message, parent milestones, resources (US only), privacy policy. All wording approved (`docs/phase3-content.md`). No rules change. **Smoke tested on real devices** (Nov 19, 2026). |
 | 4–6 | Planned. Not started. |
 
 ---
@@ -90,7 +90,7 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 - Any new rule is mutation-checked (deliberately weakened in a scratch copy, and the tests fail).
 - No personal data in the repo; `CLAUDE.md` updated; `sw.js` cache bumped.
 
-### Phase 1 — Foundations — **functionally complete and merged; real-device validation outstanding**
+### Phase 1 — Foundations — **complete and merged; smoke tested on real devices**
 - **Shipped:**
   - Navigation per D1: Journey / More, with tab ids unchanged.
   - The catch-all rule excludes `members`, `private` and `revoked`.
@@ -105,12 +105,12 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
   - The deployed text matches `firestore.rules` at `6f70a1e`; the only difference is the two real allowlist emails, which are lowercase.
   - Both emulator suites passed against the deployed text (rules 50/50, real Store 50/50). Nothing was changed in production during verification.
 - **Tests at completion:** browser 176/176, rules 50/50, real Store 50/50. All eight mutation checks are caught.
-- **Not yet done:** real-device validation of the published app on both phones. Release-readiness work (device testing, App Check, privacy labels, bundle id, support email) is not complete; see Open items and Phase 6. "Complete" here means the Phase 1 scope is built, tested, merged and its rules are live, not that the app is release-ready.
+- **Real devices:** smoke tested and functional (product owner, Nov 19, 2026). **Not yet done:** release-readiness work (device testing, App Check, privacy labels, bundle id, support email) is not complete; see Open items and Phase 6. "Complete" here means the Phase 1 scope is built, tested, merged and its rules are live, not that the app is release-ready.
 
-### Phase 2 — Moments and Journey — **complete and merged; real-device validation outstanding**
+### Phase 2 — Moments and Journey — **complete and merged; smoke tested on real devices**
 - **Merged:** `main` = `9be9957` (Nov 16, 2026), a fast-forward of `26aeced`, `ec7af7d`, `ee238c2` (plus the roadmap commit `9be9957`).
 - **Rules:** the events validation rules were published to production (product owner's confirmation).
-- **Real-device validation:** outstanding (see Open items).
+- **Real devices:** smoke tested and functional (product owner, Nov 19, 2026).
 - **Tests at completion:** browser 221/221, rules 56/56, real Store 53/53; three events-rule mutations and the Undo-guard mutation were caught.
 - **Carried forward** (Phase 2.5 / release readiness):
   - VoiceOver testing;
@@ -171,7 +171,7 @@ Each phase ends shippable, keeps all existing tests green, adds tests, updates `
 6. Firsts suggestions.
 7. Tests, `CLAUDE.md`, cache bump, report. **Stop for approval.**
 
-### Phase 2b — Feeding sources (D17) — **complete and merged at `3ce60b5`; real-device validation outstanding**
+### Phase 2b — Feeding sources (D17) — **complete and merged at `3ce60b5`; smoke tested on real devices**
 **Scope**
 - **Milk type on each feed:** mom's milk, donor milk, formula, or a mix.
   - Set from a family default, like the diet line; changeable with one tap per feed.
@@ -322,10 +322,9 @@ A stabilization effort, **not a redesign or feature-development phase**. Its goa
 ---
 
 ## Open items
-- **Real-device validation** of the published app (`9be9957`) on both phones: sign-in and family, offline entry and sync, Journey (add, edit, Undo), and nothing regressed in daily use.
 - **Original family owner:** check in the Firebase console whether `households/main` exists and who its `owner` is. Whoever first taps "New code" or "Remove" becomes the owner.
 - **Account sign-up:** confirm it's enabled in Firebase Authentication if new families should be able to join.
-- **Wording approvals (D8):** Phase 2 catalog approved (D16). Still to come: Phase 3 support messages, parent milestones and resource list.
+- **Wording approvals (D8):** Phase 2 catalog approved (D16); Phase 3 messages, parent milestones and resources approved (`docs/phase3-content.md`, Nov 19, 2026).
 - **Future requirement: multiple birth vs NICU admission.** The app must eventually distinguish **how many babies were born** in the multiple birth from **how many were admitted to the NICU** (for example, twins with only one baby admitted).
   - **It will affect:** conditional milestones (`holding-both`); which babies appear in Today, Growth, the timeline and firsts; the setup screen; milk-need maths; the backup format.
   - **Not scheduled yet.** Phase 2 keeps the two-baby model and writes `holding-both` as a real "more than one baby in the record" check, so the later change is contained.

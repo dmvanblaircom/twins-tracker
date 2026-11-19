@@ -138,7 +138,7 @@ Baseline: `1f91c86`. Scope: the two test packages, their run times, overlap betw
 | ID | Issue | Why not fixed in Phase 2.5 | Target |
 |---|---|---|---|
 | CF-01 | VoiceOver / screen-reader testing not done | Needs a real iOS device | Release readiness |
-| CF-02 | Real-device validation outstanding for Phases 1, 2 and 2b | Needs the product owner's devices | Release readiness |
+| CF-02 | Real-device validation for Phases 1, 2 and 2b | **Closed Nov 19, 2026:** the product owner smoke tested Phases 1–3 on real devices; all functional | — |
 | CF-03 | Journey timeline performance with months of data not measured | Needs long-running data; not a test-tooling item, so pass 4 left it | Release readiness |
 | CF-04 | Journey timeline sits low on the Journey tab | Placement approved as is; revisit after real use | Product decision |
 | CF-05 | An old-app last-member account deletion leaves `config/sources` behind (inaccessible family) | Found in the 2b security review | Pass 2 |
