@@ -69,6 +69,12 @@ async function main() {
     check("a first baby named \"A\" loads normally (Today card shown)", !!(await r.$('.nx[data-tw="A"] input')) && (await r.textContent("#title")).startsWith("A & "));
     check("no page errors (baby named A)", r.errors.length === 0, r.errors.join(" | "));
     await r.context().close();
+
+    // ===== a stale "missing profile" snapshot after the profile loaded never sends the app back to setup =====
+    const sp = await newPage(browser, base, { now: NOW }); await importData(sp); await tab(sp, "feed");
+    await sp.evaluate(() => { const keep = __db.config.profile; delete __db.config.profile; __fireCfg("profile"); __db.config.profile = keep; }); await wait(sp, 300);
+    check("a stale 'missing profile' reading after load keeps the app open (no jump back to setup)", await sp.isVisible("#main") && !(await sp.isVisible("#setup")));
+    await sp.context().close();
   } catch (e) { fails.push("crashed: " + e.message); console.error(e); }
   await browser.close(); srv.close();
   console.log(`\n${pass} passed, ${fails.length} failed`);

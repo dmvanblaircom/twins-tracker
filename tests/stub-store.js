@@ -7,6 +7,7 @@
   const col = n => (db[n] = db[n] || {});
   const fire = n => (subs[n] || []).forEach(cb => cb(Object.entries(col(n)).map(([id, d]) => [id, copy(d)]), { fromCache: false, pending: false }));
   const fireCfg = n => (cfgSubs[n] || []).forEach(cb => cb(copy(db.config[n]) || null));
+  window.__fireCfg = fireCfg;   // tests: deliver a config snapshot as it stands (e.g. a stale "missing profile")
   const watch = (n, cb) => { (subs[n] = subs[n] || []).push(cb); setTimeout(() => fire(n)); return () => { subs[n] = subs[n].filter(x => x !== cb); }; };
   // Generic writes into the milk-source collections follow the rules too (create-only history; allocations: valid shape,
   // and an existing allocation is only replaced through the rev check — a restore of an id already here is refused).

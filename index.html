@@ -25,7 +25,7 @@
     --bg:#F3F6F9; --surface:#FFFFFF; --surface-2:#F7F9FB; --track:#E8EEF4;
     --line:#DFE6ED; --grid:#E9EEF3; --field:#7C8D9E;
     /* text */
-    --text:#182B3A; --title:#193653; --text2:#637587; --muted:#5A6D80; --seg-off:#44586B; --scrim:rgba(0,0,0,.35);
+    --text:#182B3A; --title:#193653; --text2:#637587; --muted:#5A6D80; --seg-off:#44586B; --scrim:rgba(0,0,0,.35); --scrim-strong:rgba(0,0,0,.6); --on-scrim:#FFFFFF;
     /* action */
     --accent:#3976A8; --on-accent:#FFFFFF; --primary:#3976A8; --focus:rgba(57,118,168,.45); --brand:#193653;
     /* status: base (icons, bars) / ink (text) / tint (backgrounds) */
@@ -318,6 +318,15 @@
   .subnav .seg button{flex:1 1 auto;padding:0 var(--sp-2);min-height:44px;font-size:var(--fs-md);border-radius:0;background:none;box-shadow:none}
   .subnav .seg button.on{background:none;box-shadow:inset 0 -3px 0 var(--accent);color:var(--title)}
   .msec{display:none} .msec.on{display:block}
+  .phgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2);margin-bottom:var(--sp-2)}
+  .phgrid:empty{display:none}
+  .phcell{position:relative} .phcell img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--r-sm);background:var(--track)}
+  .phcell button{position:absolute;top:0;right:0;width:44px;height:44px;border:0;border-radius:0 var(--r-sm) 0 var(--r-sm);background:var(--scrim-strong);color:var(--on-scrim);font:inherit;font-size:var(--fs-lg);cursor:pointer}
+  .jph{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin:var(--sp-2) 0 0;align-items:center}
+  .phth{width:64px;height:64px;padding:0;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:var(--track);cursor:pointer}
+  .phth img{display:block;width:100%;height:100%;object-fit:cover}
+  .phmore{font-size:var(--fs-sm);color:var(--muted)}
+  .phcard img{display:block;max-width:100%;max-height:68vh;margin:0 auto;border-radius:var(--r-sm)}
   .crisis{border:2px solid var(--accent)} .crisis .note{margin-bottom:0}
   .supmsg{margin:0;font-size:var(--fs-lg);font-weight:600;color:var(--title);line-height:1.4}
   .moods{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:var(--sp-2);margin-bottom:var(--sp-3)}
@@ -718,6 +727,7 @@
   <div class="sect" style="border-top:0;margin-top:0;padding-top:0"><h2>Full backup</h2>
     <div class="note" style="margin-top:0">Everything in one file: feeds, weights, pumping, drop-offs, NICU count, checklists, rounds plans, questions and your setup. Keep a copy somewhere safe.</div>
     <div class="row"><button class="btn ghost" id="bkGo">Save full backup</button><button class="btn ghost" id="rsGo">Restore from backup</button><input id="rsFile" type="file" accept="application/json,.json" hidden><span class="msg" id="bkMsg"></span></div>
+    <p class="note" id="phUse"></p>
     <div class="note">Restore only adds what's missing. It never changes or deletes anything already here.</div>
   </div>
   <div class="sect"><h2>CSV for spreadsheets</h2>
@@ -748,9 +758,20 @@
     <label class="f" id="mTitleL">What happened?<input id="mTitle" type="text" maxlength="120" placeholder="e.g. First hold"></label>
     <label class="f">When?<input id="mWhen" type="datetime-local"></label>
     <label class="f">Anything you want to remember?<textarea id="mNote" maxlength="2000" rows="3"></textarea></label>
+    <div class="mlbl" id="mPhL">Photos</div>
+    <div class="phgrid" id="mPhotos" role="group" aria-labelledby="mPhL"></div>
+    <div class="row"><button class="btn ghost" id="mPhAdd" type="button">Add photos</button><input id="mPhFile" type="file" accept="image/*" multiple hidden></div>
     <div class="msg" id="mMsg" role="status"></div>
     <div class="row mbtns"><button class="btn" id="mSave" type="submit">Save</button><button class="btn ghost" id="mCancel" type="button">Cancel</button><button class="link danger" id="mDel" type="button" hidden>Delete</button></div>
   </form>
+</div>
+<div class="msheet" id="phView" hidden>
+  <div class="msheet-back" id="phBack"></div>
+  <div class="msheet-card phcard" role="dialog" aria-modal="true" aria-label="Photo">
+    <img id="phImg" alt="">
+    <p class="note" id="phMsg" role="status"></p>
+    <div class="row"><button class="btn ghost" id="phPrev" type="button">Previous</button><button class="btn ghost" id="phNext" type="button">Next</button><button class="btn" id="phClose" type="button">Close</button></div>
+  </div>
 </div>
 <div class="msheet" id="sSheet" hidden>
   <div class="msheet-back" id="sBack"></div>
@@ -1093,6 +1114,7 @@
     document.querySelectorAll(".msec").forEach(m=>m.classList.toggle("on",m.dataset.sec===sec));
     // Pick up members who joined since the app opened. (Also runs once at startup, before the data state below exists.)
     if(sec==="care"||sec==="settings"){ try{ if(dataStarted) renderFamily(); }catch{} }
+    if(sec==="settings"){ try{ if(dataStarted){ renderPhUse(); phMetaAll().then(m=>{ phMetaCache=m; }); } }catch{} }
     if(sec==="support"){ try{ renderSupport(); }catch{} }
     const vb=document.querySelector(".viewbar"); if(vb && (document.querySelector(".tab.on")||{}).dataset?.tab==="more") vb.style.display = sec==="support" ? "none" : "";
     [...$("moreNav").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v===sec); b.setAttribute("aria-pressed",b.dataset.v===sec?"true":"false"); });
@@ -1525,7 +1547,8 @@
     return {app:"twins-tracker", format:2, exported:new Date().toISOString(), data};
   }
   $("bkGo").addEventListener("click", async ()=>{
-    const b=backupData(), n=bkCols().reduce((a,c)=>a+Object.keys(b.data[c]).length,0)+bkPriv().reduce((a,c)=>a+Object.keys(b.data.private[c]).length,0), name=`twins-tracker-backup-${dKey(new Date())}.json`;
+    const b=backupData(); b.data.photos=phMetaCache;   // metadata only (read when Settings opened); the images aren't in this file
+    const n=bkCols().reduce((a,c)=>a+Object.keys(b.data[c]).length,0)+bkPriv().reduce((a,c)=>a+Object.keys(b.data.private[c]).length,0), name=`twins-tracker-backup-${dKey(new Date())}.json`;
     const file=new File([JSON.stringify(b)], name, {type:"application/json"});
     try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:"Twins Tracker backup"}); $("bkMsg").textContent=`Backup ready · ${n} records.`; return; } }
     catch(err){ if(err&&err.name==="AbortError") return; }
@@ -1817,7 +1840,7 @@
     const tl=buildTimeline({F,W:W2,CK,PLANS,QS,P,D,EV,twins:TWINS,shown:shown(),feedsPerDay:FEEDS_PER_DAY,dayOf:feedDay,checkLabel:ckLabel,milkOf:srcOn()?daySrc:null});
     const who = i => i==null ? "" : esc(TWINS[i]), col = i => i==null ? "var(--muted)" : C[TWINS[i]];
     const scopeName = e => e.scope==="baby" ? esc(TWINS[e.i]) : e.scope==="family" ? "Our family" : "Me";
-    const rows=[];
+    const rows=[], shownEv=[];
     tl.slice(0,jDays).forEach(g=>{
       const dol=dayOfLife(g.day); rows.push(`<li class="jday">${longD(keyDate(g.day))}${dol!=null&&dol>=0?` · Day ${dol+1}`:""}</li>`);   // birth date = Day 1
       g.items.forEach(it=>{
@@ -1829,7 +1852,7 @@
           rows.push(`<li class="ji ${isJ?"ji-jr":"ji-ms"}" style="--c:${c}"><span class="jdot" aria-hidden="true">${isJ?"":initial}</span>
             <button type="button" class="jcard" data-ev="${esc(e.id)}" aria-label="${isJ?"Journal":"Milestone"}: ${esc(e.title)}, ${hm(e.t)}. Tap to edit.">
             ${isJ?`<span class="jlabel">Journal</span>`:fromLogs}<div class="jt">${head}</div>${isJ&&e.src!=="checkin"&&e.title&&e.title!=="Journal"?`<div class="jt" style="font-weight:600">${esc(e.title)}</div>`:""}
-            ${e.note?`<div class="jn">${esc(e.note)}</div>`:""}<div class="jm">${hm(e.t)} · ${isJ?"Written":"Added"} by ${esc(whoName(e.by)||"—")}</div></button></li>`); }
+            ${e.note?`<div class="jn">${esc(e.note)}</div>`:""}<div class="jm">${hm(e.t)} · ${isJ?"Written":"Added"} by ${esc(whoName(e.by)||"—")}</div></button>${phRow(e.id)}</li>`); shownEv.push(e.id); }
         else if(it.type==="summary"){ const txt = it.sub==="feed"
             ? `<b>${who(it.i)}:</b> ${fmtG(it.mL)} mL by mouth · ${it.n} of ${it.N} feeds${it.tube?` · ${it.tube} by tube`:""}${it.milk?` · ${SRC_LOW[it.milk]}`:""}`
             : `Pumped ${fmtG(it.mL)} mL · ${it.n} session${it.n===1?"":"s"}${it.drop?` · ${fmtG(it.drop)} mL to the NICU`:""}`;
@@ -1843,6 +1866,7 @@
       });
     });
     $("jRail").innerHTML = rows.join("") || "";
+    syncPhotoWatch(mState&&mState.id ? [...shownEv, mState.id] : shownEv);
     $("jRail").insertAdjacentHTML("beforebegin","");
     const empty=!tl.length; let em=$("jEmpty"); if(!em){ em=document.createElement("p"); em.id="jEmpty"; em.className="jempty"; $("jRail").before(em); }
     em.textContent = empty ? "This is where your story lives. Add a first hold, a first bath, or anything you want to remember about these days." : ""; em.hidden=!empty;
@@ -1878,6 +1902,115 @@
     try{ await Store.put("events",id,rec); undoBar("Saved to your journey", evUndo("new",id,now,()=>Store.remove("events",id))); }catch(err){ failWrite(err); }
   });
 
+  // ===================== Photos on moments (Phase 5, D3/D4) =====================
+  // Re-encoded on the phone (which also drops location and other metadata): ≤1600 px JPEG + a ~320 px thumbnail, one photo
+  // at a time, size-checked before writing. Thumbnails load only for the moments on screen (watchPhotos); a full image is
+  // read only when opened. Delete is a soft delete with Undo, then this phone purges the image and its metadata.
+  const PH_MAX=6, PH_FULL=1600, PH_THUMB=320, PH_FULL_LIM=921600, PH_THUMB_LIM=102400;
+  let PHOTOS={}, phUnsub=null, phKey="", phMetaCache={};
+  const phURL={};   // id → object URL of its thumbnail
+  const phPending=new Set();   // soft-deleted here, purged once Undo has passed
+  const blobURL = u8 => URL.createObjectURL(new Blob([u8],{type:"image/jpeg"}));
+  async function toJpeg(bmp, max, qs, lim){
+    const sc=Math.min(1, max/Math.max(bmp.width,bmp.height)), w=Math.max(1,Math.round(bmp.width*sc)), h=Math.max(1,Math.round(bmp.height*sc));
+    const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(bmp,0,0,w,h);
+    for(const q of qs){ const b=await new Promise(r=>c.toBlob(r,"image/jpeg",q)); if(b && b.size>0 && b.size<=lim) return {bytes:new Uint8Array(await b.arrayBuffer()), w, h}; }
+    return null;
+  }
+  async function encodePhoto(file){
+    let bmp; try{ bmp=await createImageBitmap(file,{imageOrientation:"from-image"}); }catch{ return null; }
+    try{ const full=await toJpeg(bmp,PH_FULL,[.82,.72,.62,.5],PH_FULL_LIM), thumb=await toJpeg(bmp,PH_THUMB,[.72,.55,.4],PH_THUMB_LIM);
+      return full && thumb ? {full:full.bytes, thumb:thumb.bytes, w:full.w, h:full.h} : null; }
+    finally{ if(bmp.close) bmp.close(); }
+  }
+  const phOf = ev => Object.entries(PHOTOS).filter(([,p])=>p.ev===ev && !p.deletedT).sort((a,b)=>a[1].t-b[1].t);
+  const phThumb = id => { if(!phURL[id] && PHOTOS[id] && PHOTOS[id].thumb) phURL[id]=blobURL(PHOTOS[id].thumb); return phURL[id]||""; };
+  function phRow(ev){
+    const l=phOf(ev); if(!l.length) return "";
+    return `<div class="jph">${l.slice(0,3).map(([id],k)=>`<button type="button" class="phth" data-ph="${esc(id)}" aria-label="Open photo ${k+1} of ${l.length}"><img alt="" src="${phThumb(id)}"></button>`).join("")}${l.length>3?`<span class="phmore">+${l.length-3}</span>`:""}</div>`;
+  }
+  // Watch photos for exactly the moments on screen (plus one being edited); re-subscribe only when that set changes.
+  function syncPhotoWatch(ids){
+    if(!Store.watchPhotos) return;
+    const key=[...new Set(ids)].sort().join(","); if(key===phKey) return; phKey=key;
+    if(phUnsub){ phUnsub(); phUnsub=null; }
+    if(!key){ PHOTOS={}; return; }
+    phUnsub=Store.watchPhotos(key.split(","), list=>{
+      const next={}; list.forEach(([id,p])=>{ if(p && typeof p.ev==="string" && p.thumb) next[id]=p; });
+      Object.keys(phURL).forEach(id=>{ if(!next[id]){ URL.revokeObjectURL(phURL[id]); delete phURL[id]; } });
+      PHOTOS=next;
+      // A delete whose Undo time passed on another phone (or after this one closed): finish it.
+      Object.entries(PHOTOS).forEach(([id,p])=>{ if(p.deletedT && Date.now()-p.deletedT>10*60e3) Store.purgePhoto(id).catch(()=>{}); });
+      renderJourney(); if(mState) mPhRender();
+    }, ()=>{});
+  }
+  function phPurgeLater(ids){ ids.forEach(id=>phPending.add(id)); setTimeout(()=>ids.forEach(id=>{ if(phPending.delete(id)) Store.purgePhoto(id).catch(()=>{}); }), 9500); }
+  async function phMark(ids, on){ const t=Date.now(); for(const id of ids){ if(!on) phPending.delete(id); await Store.markPhoto(id, on?t:null); } }
+  // Saves the sheet's photo changes for moment `ev`: removals are soft deletes, additions are new photos.
+  async function phCommit(ev){
+    const ph=mState&&mState.ph; if(!ph) return {added:[],removed:[]};
+    const removed=[...ph.removed], added=[], now=Date.now();
+    if(removed.length){ await phMark(removed,true); phPurgeLater(removed); }
+    await Promise.all(ph.add.map((a,k)=>{ const id=`ph-${now+k}-${Math.random().toString(36).slice(2,6)}`; added.push(id);
+      return Store.putPhoto(id,{ev,t:now+k,w:a.w,h:a.h,bytes:a.full.length+a.thumb.length,thumb:a.thumb},a.full); }));
+    return {added, removed};
+  }
+  // Undo of a save also undoes its photo changes (only when the moment's own Undo went ahead).
+  const phUndo = (fn, ph) => async ()=>{ const r=await fn(); if(r===false) return false;
+    if(ph.removed.length) await phMark(ph.removed,false); for(const id of ph.added) await Store.purgePhoto(id); };
+  function mPhRender(){
+    const g=$("mPhotos"); if(!g||!mState) return; const ph=mState.ph;
+    const have=(mState.id?phOf(mState.id):[]).filter(([id])=>!ph.removed.has(id));
+    g.innerHTML = have.map(([id],k)=>`<div class="phcell"><img alt="" src="${phThumb(id)}"><button type="button" data-phrm="${esc(id)}" aria-label="Remove photo ${k+1}">×</button></div>`).join("")
+      + ph.add.map((a,k)=>`<div class="phcell"><img alt="" src="${a.url}"><button type="button" data-phnew="${k}" aria-label="Remove new photo ${k+1}">×</button></div>`).join("");
+    $("mPhAdd").disabled = have.length+ph.add.length>=PH_MAX;
+  }
+  $("mPhAdd").addEventListener("click",()=>$("mPhFile").click());
+  $("mPhFile").addEventListener("change", async e=>{
+    const files=[...e.target.files]; e.target.value=""; if(!mState) return;
+    const ph=mState.ph, room=PH_MAX-((mState.id?phOf(mState.id).filter(([id])=>!ph.removed.has(id)).length:0)+ph.add.length);
+    let bad=0;
+    for(const f of files.slice(0,Math.max(0,room))){
+      $("mMsg").textContent="Preparing photo…";
+      const r=await encodePhoto(f); if(!mState) return;
+      if(!r){ bad++; continue; }
+      ph.add.push({...r, url:blobURL(r.thumb)}); mPhRender();
+    }
+    $("mMsg").textContent = bad ? "That photo couldn't be read. Try another." : files.length>room ? `Up to ${PH_MAX} photos per moment.` : "";
+  });
+  $("mPhotos").addEventListener("click",e=>{
+    const rm=e.target.closest("[data-phrm]"), nw=e.target.closest("[data-phnew]"); if(!mState) return;
+    if(rm) mState.ph.removed.add(rm.dataset.phrm);
+    if(nw){ const a=mState.ph.add.splice(+nw.dataset.phnew,1)[0]; if(a) URL.revokeObjectURL(a.url); }
+    mPhRender();
+  });
+  // ---- viewer ----
+  let phV=null;   // {list:[ids], k}
+  async function phShow(){
+    const id=phV.list[phV.k], img=$("phImg"); $("phMsg").textContent=""; img.src=phThumb(id);
+    $("phPrev").hidden=$("phNext").hidden=phV.list.length<2; $("phPrev").disabled=phV.k===0; $("phNext").disabled=phV.k===phV.list.length-1;
+    const full=await Store.photoFull(id); if(!phV || phV.list[phV.k]!==id) return;
+    if(full){ const u=blobURL(full); img.onload=()=>setTimeout(()=>URL.revokeObjectURL(u),1000); img.src=u; }
+    else $("phMsg").textContent="The full-size photo isn't on this phone yet. It will load when you're back online.";
+  }
+  function phOpen(id){ const p=PHOTOS[id]; if(!p) return; const list=phOf(p.ev).map(([x])=>x); phV={list, k:Math.max(0,list.indexOf(id))};
+    $("phView").hidden=false; document.body.style.overflow="hidden"; phShow(); setTimeout(()=>$("phClose").focus(),50); }
+  function phClose(){ $("phView").hidden=true; document.body.style.overflow=""; phV=null; $("phImg").removeAttribute("src"); }
+  $("phClose").addEventListener("click",phClose); $("phBack").addEventListener("click",phClose);
+  $("phPrev").addEventListener("click",()=>{ if(phV&&phV.k>0){ phV.k--; phShow(); } });
+  $("phNext").addEventListener("click",()=>{ if(phV&&phV.k<phV.list.length-1){ phV.k++; phShow(); } });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("phView").hidden) phClose(); });
+  // ---- Settings: how much of the free storage photos use ----
+  async function renderPhUse(){
+    const el=$("phUse"); if(!el||!Store.photoUsage) return;
+    try{ const u=await Store.photoUsage(); el.textContent=`Photos: ${u.n} · about ${u.bytes<1048576&&u.bytes>0?"<1":Math.round(u.bytes/1048576)} MB of the 1 GB free storage.`; }
+    catch{ el.textContent="Photo storage is shown when you're online."; }
+  }
+  // Backup: photo metadata only (no images), for every moment.
+  function phMetaAll(){ return new Promise(res=>{ if(!Store.watchPhotos||!EV.length) return res({}); let u=null, done=false;
+    const fin=l=>{ if(done) return; done=true; if(u) setTimeout(()=>u()); const o={}; (l||[]).forEach(([id,p])=>{ const {thumb,...m}=p; o[id]=m; }); res(o); };
+    u=Store.watchPhotos(EV.map(e=>e.id), fin); setTimeout(()=>fin([]),4000); }); }
+
   // ---- Add / edit sheet ----
   let mState=null;   // {id?, had?, scope, i, kind}
   function mSetWho(v){ mState.who=v; [...$("mWho").children].forEach(b=>b.classList.toggle("on",b.dataset.v===v)); syncPressed("mWho"); mFillPick(); }
@@ -1898,7 +2031,7 @@
   }
   const toLocal = t => toLocalInput(new Date(t));
   function openMoment(ev){
-    mState={id:ev?ev.id:null, had:ev?`${ev.editT}|${ev.editBy}`:null};
+    mState={id:ev?ev.id:null, had:ev?`${ev.editT}|${ev.editBy}`:null, ph:{add:[], removed:new Set()}};
     $("mWho").innerHTML = TWINS.map((tw,i)=>`<button type="button" data-v="${i}">${esc(tw)}</button>`).join("")+`<button type="button" data-v="parent">Me</button><button type="button" data-v="family">Our family</button>`;
     $("mHead").textContent = ev ? (ev.kind==="journal"?"Edit journal entry":"Edit moment") : "Add a moment";
     const who = ev ? (ev.scope==="baby"?String(ev.i):ev.scope) : (state.view!=="both" ? String(TWINS.indexOf(state.view)) : "0");
@@ -1906,12 +2039,12 @@
     $("mPick").value = ev && ev.kind==="milestone" && ev.key && !ev.ref ? ev.key : ""; mPickChanged();
     $("mTitle").value = ev ? (ev.kind==="journal"&&ev.title==="Journal" ? "" : ev.title) : "";
     $("mWhen").value = toLocal(ev ? ev.t : Date.now()); $("mNote").value = ev ? ev.note : ""; $("mMsg").textContent="";
-    $("mDel").hidden=!ev; $("mSheet").hidden=false; document.body.style.overflow="hidden";
+    $("mDel").hidden=!ev; $("mSheet").hidden=false; document.body.style.overflow="hidden"; mPhRender();
     setTimeout(()=>($("mTitleL").hidden?$("mWhen"):$("mTitle")).focus(),50);
   }
-  function closeMoment(){ $("mSheet").hidden=true; document.body.style.overflow=""; mState=null; }
+  function closeMoment(){ if(mState) mState.ph.add.forEach(a=>URL.revokeObjectURL(a.url)); $("mSheet").hidden=true; document.body.style.overflow=""; mState=null; }
   $("jAdd").addEventListener("click",()=>openMoment(null));
-  $("jRail").addEventListener("click",e=>{ const b=e.target.closest("[data-ev]"); if(!b) return; const ev=EV.find(x=>x.id===b.dataset.ev); if(ev) openMoment(ev); });
+  $("jRail").addEventListener("click",e=>{ const t=e.target.closest("[data-ph]"); if(t){ phOpen(t.dataset.ph); return; } const b=e.target.closest("[data-ev]"); if(!b) return; const ev=EV.find(x=>x.id===b.dataset.ev); if(ev) openMoment(ev); });
   $("mWho").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) mSetWho(b.dataset.v); });
   $("mKind").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) mSetKind(b.dataset.v); });
   $("mPick").addEventListener("change",mPickChanged);
@@ -1935,26 +2068,28 @@
       if(!mState.id){
         const id=evId(now), rec={...f,ref:null,src:null,createdT:now,editT:now,editBy:myEmail};
         if(!validEvent(rec)){ $("mMsg").textContent="That can't be saved — check the details."; return; }
-        await Store.put("events",id,rec); closeMoment(); undoBar("Saved to your journey", evUndo("new",id,now,()=>Store.remove("events",id))); return;
+        await Store.put("events",id,rec); const ph=await phCommit(id); closeMoment(); undoBar("Saved to your journey", phUndo(evUndo("new",id,now,()=>Store.remove("events",id)),ph)); return;
       }
       const id=mState.id, old=RAW.events&&RAW.events.find(([x])=>x===id), cur=EV.find(x=>x.id===id);
       if(!cur){   // removed meanwhile (by the other parent or another phone)
         if(!confirm("This was removed from your journey. Save yours as a new entry?")) return;
         const nid=evId(now), rec={...f,ref:null,src:null,createdT:now,editT:now,editBy:myEmail};
-        await Store.put("events",nid,rec); closeMoment(); undoBar("Saved to your journey", evUndo("new",nid,now,()=>Store.remove("events",nid))); return;
+        await Store.put("events",nid,rec); mState.ph.removed.clear(); const ph=await phCommit(nid); closeMoment(); undoBar("Saved to your journey", phUndo(evUndo("new",nid,now,()=>Store.remove("events",nid)),ph)); return;
       }
       if(`${cur.editT}|${cur.editBy}`!==mState.had && cur.editBy && cur.editBy!==myEmail && !confirm(`${whoName(cur.editBy)||"The other parent"} just edited this. Replace their changes with yours?`)) return;
       const before=evRec(cur), fields={kind:f.kind,scope:f.scope,i:f.i,key:f.key,t:f.t,title:f.title,note:f.note,editT:now,editBy:myEmail};
       if(cur.ref){ fields.kind=cur.kind; fields.key=cur.key; fields.scope=cur.scope; fields.i=cur.i; if(!$("mTitle").value.trim()) fields.title=cur.title; }   // a saved first keeps its link
       if(!validEvent({...before,...fields})){ $("mMsg").textContent="That can't be saved — check the details."; return; }
-      await Store.patch("events",id,fields); closeMoment();
-      undoBar("Saved to your journey", evUndo("edit",id,now,()=>Store.put("events",id,before)));
+      await Store.patch("events",id,fields); const ph=await phCommit(id); closeMoment();
+      undoBar("Saved to your journey", phUndo(evUndo("edit",id,now,()=>Store.put("events",id,before)),ph));
     }catch(err){ failWrite(err); }
   });
   $("mDel").addEventListener("click", async ()=>{
     if(!mState||!mState.id) return; const cur=EV.find(x=>x.id===mState.id); if(!cur){ closeMoment(); return; }
     const before=evRec(cur), id=cur.id;
-    try{ await Store.remove("events",id); closeMoment(); undoBar("Removed from your journey", evUndo("delete",id,null,()=>Store.put("events",id,before))); }catch(err){ failWrite(err); }
+    try{ const gone=phOf(id).map(([x])=>x); if(gone.length){ await phMark(gone,true); phPurgeLater(gone); }   // its photos go with it
+      await Store.remove("events",id); closeMoment();
+      undoBar("Removed from your journey", phUndo(evUndo("delete",id,null,()=>Store.put("events",id,before)),{added:[],removed:gone})); }catch(err){ failWrite(err); }
   });
   const twIdx = tw => TWINS.indexOf(tw);
   function ckRow(id,label,c){
@@ -2738,7 +2873,12 @@
         unProfile&&unProfile();
         renderFamily();
         unProfile=Store.watchProfile(p=>{
-          if(!validProfile(p)){ profile=null; showSetup(false); return; }
+          if(!validProfile(p)){
+            // Once a profile has loaded in this session, a "missing" reading is a stale listener snapshot (seen right after
+            // the first setup save, while the server holds the profile): nothing deletes the profile while anyone is signed
+            // in to the family (only the last member's account deletion does, which signs them out). Keep the loaded one.
+            if(profileApplied) return;
+            profile=null; showSetup(false); return; }
           applyProfile(p); hideSetup();
           if(!dataStarted){ dataStarted=true; startData(); } else { rebuild(); renderAll(); }
         }, err=>{ console.error(err); banner("Couldn't load your babies' details. Check your connection and reopen the app."); });

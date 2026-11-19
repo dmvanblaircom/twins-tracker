@@ -116,6 +116,23 @@ const until = async (fn, ms = 20000) => { const end = Date.now() + ms; while (Da
   await t("phone B's account is refused reading phone A's private check-in", async () => {
     const { getDoc: gd, doc: dd } = require("firebase/firestore"); const db = env.authenticatedContext(ub, { email: EB }).firestore();
     try { await gd(dd(db, `${H}/private/${ua}/checkins/${ciId}`)); return false; } catch (e) { return /permission/i.test(e.code || e.message); } });
+  // Phase 5: a photo added to a moment on phone A (offline) reaches phone B, which opens the full image.
+  const png = Buffer.from(await A.evaluate(async () => { const c = document.createElement("canvas"); c.width = 2400; c.height = 1600; const g = c.getContext("2d");
+    const gr = g.createLinearGradient(0, 0, 2400, 1600); gr.addColorStop(0, "#c96"); gr.addColorStop(1, "#369"); g.fillStyle = gr; g.fillRect(0, 0, 2400, 1600);
+    const b = await new Promise(r => c.toBlob(r, "image/png")); return [...new Uint8Array(await b.arrayBuffer())]; }));
+  await A.context().setOffline(true);
+  await tab(A, "trends"); await A.click("#jAdd"); await A.waitForTimeout(300); await A.click('#mWho button[data-v="family"]'); await A.selectOption("#mPick", "family-photo");
+  await A.setInputFiles("#mPhFile", { name: "fictional.png", mimeType: "image/png", buffer: png }); await A.waitForTimeout(1500);
+  await A.click("#mSave"); await A.waitForTimeout(2500);
+  await A.context().setOffline(false);
+  await t("back online, the moment and its photo (metadata and full image) reach the server", async () => {
+    const id = await A.evaluate(() => { const b = document.querySelector("#jRail .phth"); return b && b.dataset.ph; });
+    await until(async () => { const m = await get(`${H}/photos/${id}`), d = await get(`${H}/photoData/${id}`); return m && d && m.w === 1600 && m.h === 1067 && m.ev; }, 30000);
+    return true; });
+  await t("phone B shows the thumbnail and opens the full photo", async () => {
+    await tab(B, "trends"); await until(() => B.$("#jRail .phth"), 20000); await B.click("#jRail .phth");
+    await until(async () => (await B.evaluate(() => document.querySelector("#phImg").naturalWidth)) === 1600, 15000); await B.click("#phClose"); return true; });
+  await shot(B, "07-phoneB-photo");
   await t("no page errors on either phone", () => A.errs.length === 0 && B.errs.length === 0 || (console.log(A.errs, B.errs), false));
   console.log(`\n${pass} passed, ${fail} failed`);
   await browser.close(); srv.close(); await env.cleanup(); process.exit(fail ? 1 : 0);

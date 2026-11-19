@@ -34,7 +34,8 @@ Last updated: Nov 19, 2026 (Phases 2.5 and 3 complete and merged; Phases 1–3 s
 | 2.5 — Repository stabilization | **Complete** (Nov 19, 2026). Five passes; findings, decisions and verification in `docs/cleanup-ledger.md`. Approved exceptions: discharge (one baby went home); allowlist moved to a console-only document. |
 | 3 — Parent Support | **Complete and merged** (Nov 19, 2026): private check-ins, share / unshare, daily message, parent milestones, resources (US only), privacy policy. All wording approved (`docs/phase3-content.md`). No rules change. **Smoke tested on real devices** (Nov 19, 2026). |
 | 4 — Family Support | **Complete and merged** (Nov 19, 2026): family milestones only. The needs list was dropped by the product owner (Nov 19, 2026); `needs` stays a dormant, backed-up collection. |
-| 5–6 | Planned. Phase 5 next. |
+| 5 — Photos | **Built** on the working branch (Nov 20, 2026), moments only (product owner's scope, Nov 19): up to 6 photos per moment, timeline thumbnails, viewer, delete with Undo, offline, usage in Settings, backup lists photo metadata. Check-in photos and the ZIP backup are deferred. **Needs a rules publish before merge.** |
+| 6 | Planned. |
 
 ---
 
@@ -310,6 +311,7 @@ A stabilization effort, **not a redesign or feature-development phase**. Its goa
 - **Deletion:** soft delete with Undo, then the deleting phone purges `photoData` and the metadata.
 - **Backup:** an optional "Backup with photos" ZIP (uncompressed STORE format, hand-written writer and reader, no library) holding `backup.json` and `photos/{id}.jpg`. The default JSON backup carries photo metadata only.
 - New collections are added to `Store.lists`, so deletion, cleanup and backup cover them.
+- **Scope decided Nov 19, 2026 (product owner):** moments only. Deferred until missed: private check-in photos (`private/{uid}/photos`, `photoData`) and the ZIP "Backup with photos". Usage is shown in Settings ("Photos: N · about X MB of the 1 GB free storage"); no hard limit.
 
 ### Phase 6 — NICUlog rebrand, iOS hardening, privacy
 - **Rename** the title, brand eyebrow, manifest, `capacitor.config.json` `appName` and `privacy.html`. Keep localStorage keys and the backup `app` tag (`"twins-tracker"`, plus accept `"niculog"`).
