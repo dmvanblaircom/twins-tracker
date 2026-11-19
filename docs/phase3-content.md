@@ -1,6 +1,6 @@
 # Phase 3 content — wording for approval (D8)
 
-Status: §1–§5 **approved by the product owner** (Nov 19, 2026; market: US only). §6 (added while building) awaits approval. Family language, no clinical terms, no scoring, nothing conditional on check-ins or the babies' data, nothing sent automatically.
+Status: **approved by the product owner** (Nov 19, 2026): §1–§5 before building (market: US only), §6 before merge. Family language, no clinical terms, no scoring, nothing conditional on check-ins or the babies' data, nothing sent automatically.
 
 ## 1. Check-in (More → Support)
 - **Heading:** How are you doing?
@@ -58,7 +58,7 @@ Footer: "These are independent services, not part of this app. This app doesn't 
 ## 5. Market decision (open item)
 Proposed: **US only for now** (the only family using the app is in the US). Every screen that lists resources adds: "Outside the US? Call your local emergency number." Country handling waits until the app is offered outside the US (Phase 6).
 
-## 6. Added while building — awaiting approval
+## 6. Added while building — approved Nov 19, 2026
 - **Small labels:** "Save check-in" (button; off until a choice is made), "Saved" (Undo bar), "Note" (field label), "For me" (group heading of the parent milestones), "Call" / "Text" / site-name buttons on each resource.
 - **Not shared yet:** a check-in whose copy never reached the journey (or was removed) simply shows "Share with my partner" again; no new wording.
 - **Privacy policy (`privacy.html`, D15):**
