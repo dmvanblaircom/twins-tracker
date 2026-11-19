@@ -99,6 +99,23 @@ const until = async (fn, ms = 20000) => { const end = Date.now() + ms; while (Da
     return true; });
   await t("phone A then shows phone B's choice", async () => { await until(async () => (await A.textContent('.nx[data-tw="Ada"] [data-act="src"]')).includes("Donor milk")); return true; });
   await shot(A, "06-phoneA-sees-resolution");
+  // Phase 3: a private check-in, shared while offline, reaches the family as exactly one copy; the partner can't read the original.
+  const support = async p => { await tab(p, "more"); await p.click('#moreNav button[data-v="support"]'); await p.waitForTimeout(300); };
+  await support(A); await A.click('#ciScale [data-mood="3"]'); await A.fill("#ciNote", "fictional note"); await A.click("#ciSave"); await A.waitForTimeout(800);
+  const ciId = await A.evaluate(() => document.querySelector("#ciList [data-ci]").dataset.ci);
+  await A.context().setOffline(true);
+  await A.click('#ciList [data-cia="share"]'); await A.waitForTimeout(1800);
+  await t("offline, the check-in shows as shared on phone A", async () => (await A.textContent("#ciList")).includes("Shared"));
+  await A.context().setOffline(false);
+  let shared;
+  await t("back online, exactly one shared copy reaches the server, under the id the check-in recorded", async () => {
+    await until(async () => { shared = await A.evaluate(id => new Promise(r => { const u = Store.watchPrivate("checkins", l => { u(); r((l.find(([x]) => x === id) || [])[1]); }); }), ciId); return shared && shared.sharedEv && await get(`${H}/events/${shared.sharedEv}`); }, 30000);
+    let n = 0; await env.withSecurityRulesDisabled(async c => { const { collection, getDocs } = require("firebase/firestore"); (await getDocs(collection(c.firestore(), `${H}/events`))).forEach(d => { if (d.data().src === "checkin") n++; }); });
+    const e = await get(`${H}/events/${shared.sharedEv}`); return n === 1 && e.ref === null && e.scope === "parent" && !JSON.stringify(e).includes(ciId); });
+  await t("phone B sees the shared copy in the family journey", async () => { await tab(B, "trends"); await until(async () => (await B.textContent("#jRail")).includes("shared a check-in")); return true; });
+  await t("phone B's account is refused reading phone A's private check-in", async () => {
+    const { getDoc: gd, doc: dd } = require("firebase/firestore"); const db = env.authenticatedContext(ub, { email: EB }).firestore();
+    try { await gd(dd(db, `${H}/private/${ua}/checkins/${ciId}`)); return false; } catch (e) { return /permission/i.test(e.code || e.message); } });
   await t("no page errors on either phone", () => A.errs.length === 0 && B.errs.length === 0 || (console.log(A.errs, B.errs), false));
   console.log(`\n${pass} passed, ${fail} failed`);
   await browser.close(); srv.close(); await env.cleanup(); process.exit(fail ? 1 : 0);

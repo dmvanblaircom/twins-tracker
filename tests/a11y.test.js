@@ -53,7 +53,7 @@ async function main() {
       await p.evaluate(() => __nicu.src.setUsual(1, { mom: 60, donor: 40, formula: 0 })); await p.waitForTimeout(300);
       const bad = [];
       const run = async (label, root) => { const r = await p.evaluate(audit, root); for (const k of ["contrast", "small", "noname"]) r[k].forEach(x => bad.push(`${label}: ${x}`)); if (r.overflow) bad.push(`${label}: sideways scroll`); };
-      for (const [t, sub] of [["feed"], ["weight"], ["milk"], ["trends"], ["more", "records"], ["more", "care"], ["more", "settings"]]) {
+      for (const [t, sub] of [["feed"], ["weight"], ["milk"], ["trends"], ["more", "records"], ["more", "care"], ["more", "support"], ["more", "settings"]]) {
         await tab(p, t); if (sub) { await p.click(`#moreNav button[data-v="${sub}"]`); await p.waitForTimeout(250); }
         if (sub === "settings") await p.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
         await run(sub || t, ".tab.on");

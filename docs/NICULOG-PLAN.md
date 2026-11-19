@@ -32,7 +32,7 @@ Last updated: Nov 17, 2026 (Phase 2b complete: merged at `3ce60b5`, milk-source 
 | 2 — Moments and Journey | **Complete and merged** to `main` at `9be9957` (Nov 16, 2026); events rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
 | 2b — Feeding sources | **Complete and merged** to `main` at `3ce60b5` (Nov 17, 2026): Stage A design approved (`docs/phase2b-design.md`), B1 data/rules/calculation, B2 screens, and the backend-enforced activation gate. Milk-source rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
 | 2.5 — Repository stabilization | **Complete** (Nov 19, 2026). Five passes; findings, decisions and verification in `docs/cleanup-ledger.md`. Approved exceptions: discharge (one baby went home); allowlist moved to a console-only document. |
-| 3 — Parent Support | **In progress** (started Nov 19, 2026 from the scope below, under the Nov 19 process). |
+| 3 — Parent Support | **Built** on the working branch (Nov 19, 2026): check-ins, share / unshare, daily message, parent milestones, resources (US only, approved), privacy policy. Wording §1–§5 approved; the added labels and privacy text (`docs/phase3-content.md` §6) await approval before merge. |
 | 4–6 | Planned. Not started. |
 
 ---

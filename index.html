@@ -314,10 +314,18 @@
   .ind .mk{grid-row:1 / span 2;grid-column:2;align-self:start}
   .ckmeta{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 var(--sp-2)}
   .ck .dt{font-size:var(--fs-xs);color:var(--muted);text-align:right;white-space:nowrap}
-  .subnav{margin:0 0 var(--sp-3)} .subnav .seg{display:flex;width:100%;background:none;padding:0;gap:0;border-radius:0;border-bottom:1px solid var(--line)}
-  .subnav .seg button{flex:1;min-height:44px;font-size:var(--fs-md);border-radius:0;background:none;box-shadow:none}
+  .subnav{margin:0 0 var(--sp-3)} .subnav .seg{display:flex;flex-wrap:wrap;width:100%;background:none;padding:0;gap:0;border-radius:0;border-bottom:1px solid var(--line)}
+  .subnav .seg button{flex:1 1 auto;padding:0 var(--sp-2);min-height:44px;font-size:var(--fs-md);border-radius:0;background:none;box-shadow:none}
   .subnav .seg button.on{background:none;box-shadow:inset 0 -3px 0 var(--accent);color:var(--title)}
   .msec{display:none} .msec.on{display:block}
+  .crisis{border:2px solid var(--accent)} .crisis .note{margin-bottom:0}
+  .supmsg{margin:0;font-size:var(--fs-lg);font-weight:600;color:var(--title);line-height:1.4}
+  .moods{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:var(--sp-2);margin-bottom:var(--sp-3)}
+  .cis,.res{list-style:none;margin:var(--sp-3) 0 0;padding:0}
+  .cis li,.res li{padding:var(--sp-3) 0;border-top:1px solid var(--grid)}
+  .cis .when{font-size:var(--fs-xs);color:var(--muted)} .cis .ciw{font-weight:700;color:var(--title)} .cis .row{margin-top:var(--sp-2)}
+  .res .row{margin-top:var(--sp-2)} .res a.btn{text-decoration:none;display:inline-flex;align-items:center}
+  .crisis a.btn{text-decoration:none;display:inline-flex;align-items:center}
   #recF{margin:0 0 var(--sp-2)}
   .rec th,.rec td{padding:8px 3px} .rec td{vertical-align:top} .rec td:first-child{white-space:nowrap;font-size:var(--fs-xs);color:var(--text2)}
   .rec .rk{display:flex;flex-direction:column;gap:2px;min-width:0} .rec .rk b{font-size:var(--fs-sm);color:var(--title);white-space:nowrap}
@@ -605,7 +613,7 @@
   </section>
 
   <section class="tab" data-tab="more">
-  <nav class="subnav" aria-label="More sections"><div class="seg" id="moreNav"><button data-v="records">Records</button><button data-v="care">Care</button><button data-v="settings">Settings</button></div></nav>
+  <nav class="subnav" aria-label="More sections"><div class="seg" id="moreNav"><button data-v="records">Records</button><button data-v="care">Care</button><button data-v="support">Support</button><button data-v="settings">Settings</button></div></nav>
 
   <div class="msec" data-sec="records">
   <div class="card">
@@ -617,6 +625,36 @@
       <tbody id="logBody"></tbody>
     </table></div>
     <div class="row" style="margin-top:10px"><button class="btn ghost" id="moreBtn">Show more</button></div>
+  </div>
+  </div>
+
+  <div class="msec" data-sec="support">
+  <div class="card crisis" id="crisis" role="region" aria-label="Crisis support">
+    <p class="slead"><b>If you're thinking about harming yourself, or don't feel safe,</b> call or text <b>988</b> (Suicide &amp; Crisis Lifeline), any time, free. <b>In an emergency, call 911.</b></p>
+    <div class="row"><a class="btn" href="tel:988">Call 988</a><a class="btn ghost" href="sms:988">Text 988</a></div>
+    <p class="note">Outside the US? Call your local emergency number.</p>
+  </div>
+  <div class="card"><p class="supmsg" id="supMsg"></p></div>
+  <div class="card" id="ciCard">
+    <h2>How are you doing?</h2>
+    <div class="moods" id="ciScale" role="group" aria-label="How are you doing?"></div>
+    <label class="f">Note<input id="ciNote" type="text" maxlength="120" placeholder="Anything you want to remember (optional)"></label>
+    <div class="row"><button class="btn" id="ciSave" type="button" disabled>Save check-in</button></div>
+    <p class="note">Only you can see your check-ins. You can share one with your partner if you want to.</p>
+    <ul class="cis" id="ciList"></ul>
+  </div>
+  <div class="card" id="resources">
+    <h2>Support for parents</h2>
+    <ul class="res">
+      <li><b>National Maternal Mental Health Hotline</b> — call or text <b>1-833-TLC-MAMA (1-833-852-6262)</b>, 24/7, free and confidential. Support for pregnant and new parents and their families.
+        <div class="row"><a class="btn ghost" href="tel:18338526262">Call</a><a class="btn ghost" href="sms:18338526262">Text</a></div></li>
+      <li><b>Postpartum Support International HelpLine</b> — call or text <b>1-800-944-4773</b> (Spanish text: 971-203-7773). Leave a message; a trained volunteer gets back to you, usually during business hours. Not for emergencies. Free online groups, including groups for NICU parents.
+        <div class="row"><a class="btn ghost" href="tel:18009444773">Call</a><a class="btn ghost" href="sms:18009444773">Text</a><a class="btn ghost" href="https://www.postpartum.net" target="_blank" rel="noopener">postpartum.net</a></div></li>
+      <li><b>Hand to Hold</b> — free peer mentors (parents who've been through the NICU) and support groups, in English and Spanish.
+        <div class="row"><a class="btn ghost" href="https://handtohold.org" target="_blank" rel="noopener">handtohold.org</a></div></li>
+      <li><b>Your NICU's social worker</b> — every NICU has one. Ask your baby's nurse to connect you; they can help with stress, money, lodging and getting home.</li>
+    </ul>
+    <p class="note">These are independent services, not part of this app. This app doesn't read or send anything about your check-ins.</p>
   </div>
   </div>
 
@@ -1050,11 +1088,13 @@
   }
   // Records sub-sections (remembered per phone) + record filter
   function showMoreSec(sec){
-    if(!["records","care","settings"].includes(sec)) sec="records";
+    if(!["records","care","support","settings"].includes(sec)) sec="records";
     state.moreSec=sec; try{ localStorage.setItem("moreSec",sec); }catch{}
     document.querySelectorAll(".msec").forEach(m=>m.classList.toggle("on",m.dataset.sec===sec));
     // Pick up members who joined since the app opened. (Also runs once at startup, before the data state below exists.)
     if(sec==="care"||sec==="settings"){ try{ if(dataStarted) renderFamily(); }catch{} }
+    if(sec==="support"){ try{ renderSupport(); }catch{} }
+    const vb=document.querySelector(".viewbar"); if(vb && (document.querySelector(".tab.on")||{}).dataset?.tab==="more") vb.style.display = sec==="support" ? "none" : "";
     [...$("moreNav").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v===sec); b.setAttribute("aria-pressed",b.dataset.v===sec?"true":"false"); });
   }
   $("moreNav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ showMoreSec(b.dataset.v); scrollTo(0,0); } });
@@ -1366,7 +1406,7 @@
     document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===name));
     document.querySelectorAll("#tabbar button").forEach(b=>{ b.classList.toggle("on",b.dataset.tab===name); b.toggleAttribute("aria-current",b.dataset.tab===name); if(b.dataset.tab===name) b.setAttribute("aria-current","page"); });
     store.set("tab",name); scrollTo(0,0);
-    document.querySelector(".viewbar").style.display = name==="milk" ? "none" : "";
+    document.querySelector(".viewbar").style.display = name==="milk" || (name==="more" && state.moreSec==="support") ? "none" : "";   // nothing baby-specific there
     updateFab();
     if(name==="milk") ["pmT","dpT"].forEach(id=>{ if(document.activeElement!==$(id)) $(id).value=toLocalInput(new Date()); });
     if(TWINS[0]!=="A") renderAll();        // charts can only be measured while visible
@@ -1412,7 +1452,7 @@
 
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
-  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); }
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); }
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -1625,6 +1665,64 @@
     ["appt","First pediatrician visit booked"],["recipe","Home feeding recipe written down"]];
   let CK={}, PLANS={}, QS=[];
 
+  // ===================== Support: private check-ins, sharing, daily message =====================
+  // Approved wording: docs/phase3-content.md (D8). Check-ins live only in my private subtree (CI, from RAWP) and appear only
+  // here. Nothing on any other screen reads them, and nothing about them is sent anywhere. Sharing writes an explicit copy
+  // into events (D6/D13/D14): the check-in first records the copy's id (sharedEv), then the copy is written under exactly
+  // that id, so a retry, restart or delayed sync can never make a second copy. Unshare deletes the copy, then clears sharedEv.
+  const MOOD=["Really hard","Hard","Getting by","Okay","Good"];
+  const SUP_MSGS=["You don't have to have it all figured out today.","Some days are about getting through. That's enough.","It's okay to feel more than one thing at once.",
+    "Rest is part of taking care of them. The NICU team is with them right now.","You're allowed to go home and sleep.","Asking a nurse to explain something again is part of the job, not a bother.",
+    "Eating a real meal and drinking water counts today.","The time you spend with them matters, even when it's short.","Small steps still move forward.",
+    "When people offer to help, let them. Dinner, laundry, a ride.","Your partner may be feeling this differently. Both ways are okay.","A hard moment today isn't the whole story."];
+  // Chosen by the calendar date only: never by a check-in or anything in the babies' records.
+  const supMsg = d => { const k=dKey(d||new Date()), n=Math.round(Date.UTC(+k.slice(0,4),+k.slice(5,7)-1,+k.slice(8,10))/DAY); return SUP_MSGS[((n%SUP_MSGS.length)+SUP_MSGS.length)%SUP_MSGS.length]; };
+  let CI=[], ciMood=null;
+  function cleanCI(id,d){
+    if(!d || !Number.isInteger(d.mood) || d.mood<1 || d.mood>5 || !(typeof d.t==="number" && isFinite(d.t))) return null;
+    return {id, t:d.t, mood:d.mood, note:typeof d.note==="string"?d.note.slice(0,120):"", sharedEv:typeof d.sharedEv==="string"&&/^e-\d+-[a-z0-9]{1,8}$/.test(d.sharedEv)?d.sharedEv:null, raw:d};
+  }
+  // Shared means: the check-in names its copy, and (once events have loaded) the copy is there. A copy that never got
+  // written, or that was removed, shows as not shared; sharing again reuses the same id.
+  const ciShared = c => !!c.sharedEv && (!RAW.events || EV.some(e=>e.id===c.sharedEv));
+  const ciCopy = (c,now) => ({kind:"journal",scope:"parent",i:null,key:null,t:c.t,title:`${MOOD[c.mood-1]} today`,note:c.note,ref:null,src:"checkin",createdT:now,editT:now,editBy:myEmail});
+  async function shareCI(id){
+    const c=CI.find(x=>x.id===id); if(!c) return;
+    if(!confirm("Your partner will see this check-in in the family journey. You can unshare it later.")) return;
+    const now=Date.now(), eid=c.sharedEv||evId(now), rec=ciCopy(c,now);   // the copy's id is new: nothing in it points back to the check-in
+    if(!validEvent(rec)) return;
+    try{
+      if(c.sharedEv!==eid) await Store.putPrivate("checkins",id,{...c.raw,sharedEv:eid});   // 1. remember the copy's id (content untouched)
+      await Store.put("events",eid,rec);                                                     // 2. the copy, under exactly that id
+    }catch(err){ failWrite(err); }
+  }
+  async function unshareCI(id){
+    const c=CI.find(x=>x.id===id); if(!c||!c.sharedEv) return;
+    try{
+      await Store.remove("events",c.sharedEv);                          // 1. remove the copy (safe to repeat)
+      await Store.putPrivate("checkins",id,{...c.raw,sharedEv:null});   // 2. forget it (content untouched)
+      flash("Removed from the family journey. Your private check-in stays here.");
+    }catch(err){ failWrite(err); }
+  }
+  function renderSupport(){
+    if(!$("ciScale")) return;
+    $("supMsg").textContent=supMsg();
+    if(!$("ciScale").children.length) $("ciScale").innerHTML=MOOD.map((m,k)=>`<button type="button" class="chip" data-mood="${k+1}" aria-pressed="false">${m}</button>`).join("");
+    [...$("ciScale").children].forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.mood===ciMood)));
+    $("ciSave").disabled=!ciMood;
+    $("ciList").innerHTML=CI.slice(0,30).map(c=>{ const sh=ciShared(c);
+      return `<li data-ci="${esc(c.id)}"><div class="when">${esc(longD(new Date(c.t)))} · ${esc(hm(c.t))}${sh?" · Shared":""}</div><div class="ciw">${esc(MOOD[c.mood-1])}</div>${c.note?`<div>${esc(c.note)}</div>`:""}
+        <div class="row">${sh?`<button class="btn ghost" type="button" data-cia="unshare">Stop sharing</button>`:`<button class="btn ghost" type="button" data-cia="share">Share with my partner</button>`}</div></li>`; }).join("");
+  }
+  $("ciScale").addEventListener("click",e=>{ const b=e.target.closest("[data-mood]"); if(!b) return; ciMood=+b.dataset.mood; renderSupport(); });
+  $("ciSave").addEventListener("click", async ()=>{
+    if(!ciMood) return;
+    const now=Date.now(), id=`c-${now}-${Math.random().toString(36).slice(2,6)}`, rec={t:now,mood:ciMood,note:$("ciNote").value.trim().slice(0,120),sharedEv:null};
+    try{ await Store.putPrivate("checkins",id,rec); ciMood=null; $("ciNote").value=""; renderSupport();
+      undoBar("Saved", ()=>Store.removePrivate("checkins",id)); }catch(err){ failWrite(err); }
+  });
+  $("ciList").addEventListener("click",e=>{ const b=e.target.closest("[data-cia]"); if(!b) return; const id=b.closest("[data-ci]").dataset.ci; b.dataset.cia==="share"?shareCI(id):unshareCI(id); });
+
   // ===================== Journey: moments, firsts and the timeline =====================
   // Content is exactly the approved catalog in docs/phase2-catalog.md (D16). Baby records use index i, never names.
   const MS_GROUPS=[
@@ -1633,7 +1731,10 @@
     ["Everyday care",[["first-diaper","First diaper change"],["first-bath","First bath"],["first-outfit","First outfit"],["first-swaddle","First swaddle"],["first-story","First story read aloud"],["first-song","First song sung"]]],
     ["Family and visitors",[["meets-sibling","First meeting with big brother or sister"],["meets-grandparents","Met grandparents"]]],
     ["Along the way",[["breathing-own","Breathing without help"],["room-move","Moved to a new room"],["came-home","Came home"]]]];
-  const MS_FAMILY=[["holding-both","First time holding both babies at once"]];   // offered only when more than one baby is in the record
+  const MS_FAMILY=[["holding-both","First time holding both babies at once"]];
+  // Parent milestones ("Me"): approved wording in docs/phase3-content.md (D8).
+  const MS_PARENT=[["first-rounds","First time joining rounds"],["first-solo-care","First care time on my own"],["first-pump","First pumping session"],["met-nicu-parent","Met another NICU parent"],
+    ["asked-for-help","Asked for help"],["first-full-night","First full night's sleep"],["time-for-me","Took time for myself"],["first-walk-out","First walk outside for me"]];   // offered only when more than one baby is in the record
   const FIRSTS={"came-home":"Came home","first-po":"First feed by mouth","first-full":"First full feed by mouth","first-full-day":"First day with every feed by mouth","birth-weight":"Back to birth weight",
     "one-week":"One week old","one-month":"One month old","hundred-days":"100 days old","due-date":"Due date"};
   const EV_KINDS=["milestone","journal","moment"], EV_SCOPES=["baby","parent","family"];
@@ -1779,7 +1880,7 @@
   function mSetWho(v){ mState.who=v; [...$("mWho").children].forEach(b=>b.classList.toggle("on",b.dataset.v===v)); syncPressed("mWho"); mFillPick(); }
   function mSetKind(v){ mState.kind=v; [...$("mKind").children].forEach(b=>b.classList.toggle("on",b.dataset.v===v)); syncPressed("mKind"); mFillPick(); }
   function mFillPick(){
-    const isM=mState.kind==="milestone", w=mState.who, list = w==="0"||w==="1" ? MS_GROUPS : w==="family" && TWINS.length>1 ? [["For the family",MS_FAMILY]] : [];
+    const isM=mState.kind==="milestone", w=mState.who, list = w==="0"||w==="1" ? MS_GROUPS : w==="parent" ? [["For me",MS_PARENT]] : w==="family" && TWINS.length>1 ? [["For the family",MS_FAMILY]] : [];
     $("mPickL").hidden = !isM;
     const cur=$("mPick").value;
     $("mPick").innerHTML = `<option value="">Write your own</option>` + list.map(([g,items])=>`<optgroup label="${esc(g)}">${items.map(([k,t])=>`<option value="${k}">${esc(t)}</option>`).join("")}</optgroup>`).join("");
@@ -1816,7 +1917,7 @@
   function mBuild(){
     const w=mState.who, scope = w==="0"||w==="1" ? "baby" : w, i = scope==="baby" ? +w : null, isJ=mState.kind==="journal";
     const key = !isJ && $("mPick").value ? $("mPick").value : null;
-    const title0 = key ? ([...MS_GROUPS.flatMap(g=>g[1]),...MS_FAMILY].find(([k])=>k===key)||[])[1] : $("mTitle").value.trim();
+    const title0 = key ? ([...MS_GROUPS.flatMap(g=>g[1]),...MS_FAMILY,...MS_PARENT].find(([k])=>k===key)||[])[1] : $("mTitle").value.trim();
     const note=$("mNote").value.trim().slice(0,2000), t=new Date($("mWhen").value).getTime();
     const title = isJ ? (title0 || (note.split("\n")[0].slice(0,60)) || "Journal") : title0;
     return {kind: isJ ? "journal" : key ? "milestone" : "moment", scope, i, key, t, title:(title||"").slice(0,120), note};
@@ -2480,7 +2581,7 @@
       unsubs.push(Store.watch("plans",list=>{ RAW.plans=list; PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); }, ()=>{}));
       // The other shared collections: events (Journey), milk sources, and needs (no screen yet: watched only so backups carry it).
       bkCols().filter(c=>!["weights","feeds","pumps","drops","checklist","plans","questions"].includes(c)).forEach(c=>unsubs.push(Store.watch(c,list=>{ RAW[c]=list;
-        if(c==="events"){ EV=list.map(([id,d])=>cleanE(id,d)).filter(Boolean); renderJourney(); }
+        if(c==="events"){ EV=list.map(([id,d])=>cleanE(id,d)).filter(Boolean); renderJourney(); renderSupport(); }
         // Milk sources: only documents that pass the same validation as the rules are used.
         if(c==="slotMilk"){ ALLOC={}; list.forEach(([id,d])=>{ if(MS.validAlloc(id,d)) ALLOC[id]=d; }); renderMilk(); renderNext(); renderLog(); renderJourney(); if(SS&&SS.mode==="edit"&&!$("sCard").contains(document.activeElement)) renderSS(); }
         if(c==="milkUsual"){ const had=usualSeen?new Set(USUAL.map(u=>u.id)):null; USUAL=list.filter(([id,d])=>MS.validUsual(id,d)).map(([id,d])=>({id,...d}));
@@ -2490,7 +2591,7 @@
       // This account's app version, and every member's, so milk-source tracking waits until everyone has the updated app.
       if(Store.markClient){ unsubs.push(Store.watch("clients",list=>{ CLIENTS={}; list.forEach(([id,d])=>{ if(d&&Number.isInteger(d.v)) CLIENTS[id]=d; }); renderSrcCare(); }, ()=>{}));
         Promise.resolve(Store.markClient(MS.CLIENT_V)).catch(()=>{}); }
-      if(Store.watchPrivate) bkPriv().forEach(n=>unsubs.push(Store.watchPrivate(n,list=>{ RAWP[n]=list; }, ()=>{})));
+      if(Store.watchPrivate) bkPriv().forEach(n=>unsubs.push(Store.watchPrivate(n,list=>{ RAWP[n]=list; if(n==="checkins"){ CI=list.map(([id,d])=>cleanCI(id,d)).filter(Boolean).sort((a,b)=>b.t-a.t); renderSupport(); } }, ()=>{})));
       unsubs.push(Store.watch("questions",list=>{ RAW.questions=list; QS=list.map(([id,d])=>d&&typeof d.text==="string"?{id,text:d.text.slice(0,200),done:!!d.done,t:+d.t||0,doneT:+d.doneT||0,ans:typeof d.ans==="string"?d.ans:"",by:typeof d.by==="string"?d.by:""}:null).filter(Boolean); renderQs(); renderCare(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ RAWC.milk=c; milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
       unsubs.push(Store.watchConfig("sources",c=>{ SRC_CFG=c&&c.on===true?c:null; renderAll(); }, ()=>{}));
@@ -2626,7 +2727,7 @@
         Store.family().then(f=>{ if(f) enterFamily(); else showFamily(); })
           .catch(err=>banner(err&&err.code==="cleanup-pending"?err.message:err&&err.code==="denied"?"This account can't open the tracker. Sign out and sign in with the account set up for you.":"Couldn't reach your family's data. Check your connection and reopen the app."));
       } else {
-        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; profileApplied=false; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; ALLOC={}; USUAL=[]; PERIODS=[]; CLIENTS={}; SRC_CFG=null; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k])); EV=[];
+        unsubs.forEach(u=>u()); unsubs=[]; dataStarted=false; profile=null; profileApplied=false; W={}; F=[]; rawW=[]; rawF=[]; P=[]; D=[]; milkCfg=null; people=[]; CK={}; PLANS={}; QS=[]; meta.w=meta.f=null; ALLOC={}; USUAL=[]; PERIODS=[]; CLIENTS={}; SRC_CFG=null; [RAW,RAWC,RAWP].forEach(o=>Object.keys(o).forEach(k=>delete o[k])); EV=[]; CI=[];
         $("setup").style.display="none"; $("family").style.display="none"; $("main").style.display=""; $("login").style.display="flex";
       }
     });

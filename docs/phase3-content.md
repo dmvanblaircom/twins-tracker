@@ -1,6 +1,6 @@
 # Phase 3 content — wording for approval (D8)
 
-Status: **draft for the product owner's approval** (Nov 19, 2026). Nothing here ships until it is approved. Family language, no clinical terms, no scoring, nothing conditional on check-ins or the babies' data, nothing sent automatically.
+Status: §1–§5 **approved by the product owner** (Nov 19, 2026; market: US only). §6 (added while building) awaits approval. Family language, no clinical terms, no scoring, nothing conditional on check-ins or the babies' data, nothing sent automatically.
 
 ## 1. Check-in (More → Support)
 - **Heading:** How are you doing?
@@ -57,6 +57,15 @@ Footer: "These are independent services, not part of this app. This app doesn't 
 
 ## 5. Market decision (open item)
 Proposed: **US only for now** (the only family using the app is in the US). Every screen that lists resources adds: "Outside the US? Call your local emergency number." Country handling waits until the app is offered outside the US (Phase 6).
+
+## 6. Added while building — awaiting approval
+- **Small labels:** "Save check-in" (button; off until a choice is made), "Saved" (Undo bar), "Note" (field label), "For me" (group heading of the parent milestones), "Call" / "Text" / site-name buttons on each resource.
+- **Not shared yet:** a check-in whose copy never reached the journey (or was removed) simply shows "Share with my partner" again; no new wording.
+- **Privacy policy (`privacy.html`, D15):**
+  - *What the app stores:* "Your private check-ins (More → Support): how you're doing and an optional note. Only you can read them; no one else in your family can, and the app's developer does not look at them. They are stored with the rest of your family's data and encrypted in transit and at rest, but they are not end-to-end encrypted." · "Check-ins you choose to share: sharing puts a copy in your family's journey, where everyone in your family can see it. Unsharing removes the copy."
+  - *What the app does not do:* "Check-ins are never scored, never trigger alerts, and are never sent anywhere. Nothing on any other screen changes because of them." · "The support resources (More → Support) are phone numbers and links to independent services, such as the 988 Suicide & Crisis Lifeline. They are part of the app itself, so they work with no signal; the app shares nothing with them. If you call, text or visit one, that service's own privacy practices apply."
+  - *Keeping and deleting:* "When you leave a family, are removed from it, or delete your account, your private check-ins are deleted. Copies you shared stay in the family's journey."
+  - Effective date → November 19, 2026.
 
 ## Sources checked (Nov 19, 2026)
 - 988: call, text or chat, 24/7, free; 911 first in immediate danger — [SAMHSA 988 key messages](https://www.samhsa.gov/resource/988/988-key-messages), [988 factsheet](https://www.samhsa.gov:443/sites/default/files/988-factsheet.pdf).

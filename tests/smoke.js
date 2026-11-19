@@ -604,7 +604,7 @@ async function main() {
     await tab(N, "trends");
     check("Journey shows the existing Progress experience", await N.isVisible(".glance") && (await N.textContent(".glance h2")) === "Progress at a glance" && await N.isVisible("#ckBabies"));
     await tab(N, "more"); await N.click('#moreNav button[data-v="records"]'); await N.waitForTimeout(150);
-    check("More opens Records / Care / Settings", await N.isVisible("#moreNav") && (await N.$$eval("#moreNav button", b => b.map(x => x.textContent).join())) === "Records,Care,Settings" && await N.isVisible("#logBody"));
+    check("More opens Records / Care / Support / Settings", await N.isVisible("#moreNav") && (await N.$$eval("#moreNav button", b => b.map(x => x.textContent).join())) === "Records,Care,Support,Settings" && await N.isVisible("#logBody"));
     await tab(N, "trends"); await N.reload(); await N.waitForTimeout(700);
     check("the chosen tab is remembered (stored id 'trends' still valid)", await N.$eval("#tabbar .on", b => b.dataset.tab) === "trends" && await N.isVisible(".glance"));
       check("no page errors in navigation", N.errors.length === 0, N.errors.join(" | "));
