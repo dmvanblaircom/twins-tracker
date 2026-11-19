@@ -57,6 +57,15 @@ const srv = http.createServer((q, r) => {
   await S(B, () => Store.signUp("partner@example.net", "pw-partner-1"));
   await S(C, () => Store.signUp("third@example.net", "pw-third-1"));
   const ua = await uidOf(A), ub = await uidOf(B), uc = await uidOf(C);
+  await t("the test stub (tests/stub-store.js) offers exactly the real Store's methods and collection lists", async () => {
+    const real = await S(A, () => ({ keys: Object.keys(Store).sort(), lists: Store.lists }));
+    const sp = await browser.newPage(); await sp.setContent("<!doctype html><body>");
+    for (const f of ["milk-sources.js", "tests/stub-store.js"]) await sp.addScriptTag({ content: fs.readFileSync(path.join(ROOT, f), "utf8") });
+    const stub = await sp.evaluate(() => ({ keys: Object.keys(Store).sort(), lists: Store.lists })); await sp.close();
+    const miss = real.keys.filter(k => !stub.keys.includes(k)), extra = stub.keys.filter(k => !real.keys.includes(k));
+    if (miss.length || extra.length) throw new Error(`stub lacks: ${miss.join(", ") || "-"}; stub only: ${extra.join(", ") || "-"}`);
+    if (JSON.stringify(real.lists) !== JSON.stringify(stub.lists)) throw new Error(`lists differ: ${JSON.stringify(real.lists)} vs ${JSON.stringify(stub.lists)}`);
+    return true; });
   await t("a new account has no family yet", async () => (await S(A, () => Store.family())) === null);
   const { hid } = await S(A, () => Store.createFamily());
   const code1 = (await S(A, () => Store.familyInfo())).code;

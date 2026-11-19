@@ -15,7 +15,7 @@ Governed by `docs/NICULOG-PLAN.md` (D18, Phase 2.5). The goal is to clean up eve
 | 1 | Architecture | Nov 17, 2026 (baseline `3ce60b5`) | 16 | 6 fix · 3 remove · 3 defer · 4 reject (all per recommendation, approved Nov 17) | Yes (see 3) | Approved Nov 17, 2026; merged to `main` |
 | 2 | Rules and logic | Nov 17, 2026 (baseline `dd1ec15`) | 11 | 7 fix · 1 remove · 1 defer · 2 reject (all per recommendation, approved Nov 17) | Yes (see 3) | Approved Nov 17, 2026; merged to `main`; rules published (incl. `admin/allowlist`, confirmed Nov 18) |
 | 3 | UI and CSS | Nov 18, 2026 (baseline `1faf892`) | 9 | 4 fix · 1 remove · 1 fix + remove · 1 reject · 2 defer (all per recommendation, approved Nov 18) | Yes (see 3) | Approved Nov 19, 2026 (merges with the end of 2.5) |
-| 4 | Tests and tooling | | | | | |
+| 4 | Tests and tooling | Nov 19, 2026 (baseline `1f91c86`) | 7 | 4 fix · 3 reject; no test removed (recommendations applied under the Nov 19 process) | Yes (see 3) | Reported Nov 19, 2026 |
 | 5 | Independent final audit | | | | | |
 
 **Severity:** High = could lose or expose data, break security, or produce wrong care numbers · Med = a real defect or maintenance risk with no data or security impact · Low = clarity, duplication or style.
@@ -74,10 +74,23 @@ Baseline: `1faf892`. Scope: the `<style>` block and inline styles in `index.html
 | P3-08 | Coverage | The runtime sweep isn't a test; nothing stops a future change from adding a pair below 4.5:1 again. | Low | **Defer to pass 4** (tests and tooling): decide there whether a contrast check joins `smoke.js` or `screens.js`, together with the test-redundancy review, so no new suite is added now. | Defer | Pass 4 |
 | P3-09 | Screen reader (CF-01) | Accessible names are present and decorative dots are `aria-hidden`, but real VoiceOver reading order and announcements are unverified. | Low | **Defer** (stays CF-01; needs an iPhone). | Defer | CF-01 |
 
+## 2d. Findings — Pass 4 (Tests and tooling)
+Baseline: `1f91c86`. Scope: the two test packages, their run times, overlap between suites, the stub Store, tooling around the app shell and the iOS build. **Measured run times** (this container): smoke 94 s · engine unit <1 s · sources logic 26 s · sources screens 69 s · discharge 11 s · logic 10 s; emulator: rules 4 s · store 17 s · sources rules 4 s · sources store 9 s · two-phone app 11 s · mutations 118 s. A full run is about 8 min, not the 15–20 min CLAUDE.md stated. Under the Nov 19 process, recommendations were applied straight away.
+
+| ID | Area | Finding | Sev. | Recommendation | Decision | Status |
+|---|---|---|---|---|---|---|
+| P4-01 | Redundancy | Every suite was read against the others. Apparent overlaps test different things: smoke's Store checks exercise the stub that every browser suite relies on, `store.test.js` the real Store; smoke's 44 px walk covers states the new accessibility sweep doesn't reach; "old summary tiles are gone" costs nothing. Mutations are 60 % of the emulator time but run only when rules change. | Low | **Reject cutting**: no suite or check is redundant enough to be worth its removal; the whole run is ~8 min. | Reject | Closed — no test removed |
+| P4-02 | Docs: run times | CLAUDE.md's testing table overstated times (15–20 min full run). | Low | **Fix** with the measured times. | Fix | Done |
+| P4-03 | Tooling: offline cache | Nothing stops a change to an app-shell file from shipping without a new `sw.js` `CACHE` name (pass 1 missed one), which leaves installed phones on the old copy. | Med | **Fix**: `tests/cache-check.js`, first in `npm test`: fails when a `SHELL` file changed since `origin/main` and `CACHE` didn't. | Fix | Done — proven both ways (current branch passes; an edited `index.html` with the old name fails) |
+| P4-04 | Accessibility guard (P3-08) | Pass 3's contrast sweep was a scratch script; a later change could bring low contrast back unnoticed. | Low | **Fix**: `tests/a11y.test.js` (12 checks, ~30 s): every tab, both sheets and setup × light / dark / night / A++ — contrast against the real background, 12 px minimum, 44 px, names, no sideways scroll. Run when CSS or markup changes and before a merge. | Fix | Done — proven to catch a reverted P3-01 fix |
+| P4-05 | Stub Store parity | CLAUDE.md says "keep the stub in step" with `firebase-store.js`, but nothing checks it; every browser suite trusts the stub. Today both expose the same 38 methods. | Low | **Fix**: a check in `store.test.js` that loads the stub beside the real Store and compares method names and `Store.lists`. | Fix | Done |
+| P4-06 | Duplicated helpers | The three emulator browser suites each carry their own ~10-line static server, each slightly different (harness page, error capture). | Low | **Reject**: merging them is churn for no protection gained. | Reject | Closed |
+| P4-07 | iOS build file list | `native/build.mjs` copies its own list of files, separate from `sw.js` `SHELL` (it adds `privacy.html`, bundles Chart.js and Firebase). They match today. | Low | **Reject (document)**: different jobs; a shared list would couple the PWA and the iOS build. Native builds are checked on a Mac at release. | Reject | Closed |
+
 ### Exceptions approved during Phase 2.5
 - **Discharge (one baby went home)** — a new feature, approved by the product owner on Nov 17, 2026 as an exception to Phase 2.5's "no new features" rule because the milk estimate was still charging the discharged baby's feeds. Built as one small change with its own tests (`tests/discharge.test.js`, 5 new engine checks); see `CLAUDE.md` → Discharge.
 - **Allowlist out of the rules file** — approved Nov 18, 2026 so rules can be published exactly as committed: `legacy()` reads `admin/allowlist` (console only; clients can't read or write it) instead of two emails in `firestore.rules`. No behaviour change; the check now ignores letter case. Tests: allowlist cases in `sources.rules.test.js` (+5), 3 new mutations (37/37); every emulator suite seeds the fictional placeholder list (`tests/rules/allowlist.js`).
-- **Note for pass 4:** pass 1 changed `index.html` without bumping the `sw.js` cache name; the discharge change bumps it (v43 → v44), which covers both.
+- **Note for pass 4 (resolved by P4-03):** pass 1 changed `index.html` without bumping the `sw.js` cache name; the discharge change bumps it (v43 → v44), which covers both.
 
 ## 3. Verification record (one block per pass)
 **Pass 1 (Nov 17, 2026):**
@@ -103,16 +116,24 @@ Baseline: `1faf892`. Scope: the `<style>` block and inline styles in `index.html
 - **`sw.js`:** cache v45 → v46.
 - **Data, calculations, rules, Store:** unchanged.
 
+**Pass 4 (Nov 19, 2026):**
+- **Suites run (tests and tooling changed):** new `a11y.test.js` 12/12 (and failing on a reverted P3-01 fix); new `cache-check.js` (and failing on an un-bumped shell change); `store.test.js` 53 → 54 (stub parity check). Every suite runs once in pass 5 before the merge.
+- **No test removed**, so no redundancy proof is needed (P4-01).
+- **App, rules, Store, data:** unchanged.
+
 ## 4. Test changes and redundancy proofs
 | Test (file : name) | Change | Why | Redundancy proof or approved removal |
 |---|---|---|---|
+| `tests/a11y.test.js` (new, 12) | Added | P4-04 | — |
+| `tests/cache-check.js` (new) | Added | P4-03 | — |
+| `tests/rules/store.test.js` : stub parity | Added | P4-05 | — |
 
 ## 5. Outstanding issues carried forward
 | ID | Issue | Why not fixed in Phase 2.5 | Target |
 |---|---|---|---|
 | CF-01 | VoiceOver / screen-reader testing not done | Needs a real iOS device | Release readiness |
 | CF-02 | Real-device validation outstanding for Phases 1, 2 and 2b | Needs the product owner's devices | Release readiness |
-| CF-03 | Journey timeline performance with months of data not measured | Needs long-running data | Pass 4, or release readiness |
+| CF-03 | Journey timeline performance with months of data not measured | Needs long-running data; not a test-tooling item, so pass 4 left it | Release readiness |
 | CF-04 | Journey timeline sits low on the Journey tab | Placement approved as is; revisit after real use | Product decision |
 | CF-05 | An old-app last-member account deletion leaves `config/sources` behind (inaccessible family) | Found in the 2b security review | Pass 2 |
 | CF-06 | `slotFeed` takes the first feed within the stray window; the milk-source `feedAt` takes the nearest. They can disagree when two off-schedule feeds fall in one window. | Logic, not architecture | Pass 2 |

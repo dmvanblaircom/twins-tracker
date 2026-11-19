@@ -15,7 +15,7 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 - `firebase-store.js` — implements `window.Store` on Firebase (see below). Fires `store-ready`.
 - `firebase-config.js` — Firebase web config (not secret).
 - `firestore.rules` — family membership and data rules (see Families, Data model). The original family `households/main` can also be claimed by the emails in the Firestore document `admin/allowlist` → `{emails: [...]}` (lowercase; created and edited only in the Firebase console; no client can read or write it). The rules file holds no emails, so it is published exactly as committed. The emulator tests seed fictional placeholder emails (`tests/rules/allowlist.js`). Tested in `tests/rules/` against the emulator.
-- `sw.js` — app-shell cache, network-first. Bump `CACHE` name when shell files change.
+- `sw.js` — app-shell cache, network-first. Bump `CACHE` name when shell files change (`tests/cache-check.js` enforces it before a merge).
 - `fonts/inter-latin-var.woff2` — Inter variable font (latin, self-hosted, OFL; licence in `fonts/LICENSE-Inter.txt`). Cached with the shell for offline.
 - `manifest.webmanifest`, `icons/`.
 - `privacy.html` — privacy policy (linked from sign-in and Settings; points to More → Settings → Family). `SUPPORT_EMAIL` placeholder must be replaced before release.
@@ -159,11 +159,11 @@ Never put real names or data in tests. Needs Playwright + Chromium (preinstalled
 **What to run (product owner's decision, Nov 18, 2026 — run by what changed, not everything every time):**
 | What changed | Run | About |
 |---|---|---|
-| Screens or app logic (`index.html`, `milk-sources.js`) | `smoke.js` + the suite for that area (e.g. `sources.unit.js` for the engine, `discharge.test.js` for discharge) | 2–4 min |
-| `firestore.rules` | `rules.test.js`, `sources.rules.test.js`, `mutate.js` | ~8 min |
-| `firebase-store.js` | `store.test.js`, `sources.store.test.js` (+ `smoke.js` if the contract changed; keep the stub in step) | ~5 min |
+| Screens or app logic (`index.html`, `milk-sources.js`) | `smoke.js` + the suite for that area (e.g. `sources.unit.js` for the engine, `discharge.test.js` for discharge); `a11y.test.js` too when CSS or markup changes | 2–3 min |
+| `firestore.rules` | `rules.test.js`, `sources.rules.test.js`, `mutate.js` | ~3 min |
+| `firebase-store.js` | `store.test.js`, `sources.store.test.js` (+ `smoke.js` if the contract changed; keep the stub in step — `store.test.js` fails if their method names or `lists` differ) | ~1 min |
 | Docs only | nothing | — |
-| **Before any merge to `main`** | everything once: `cd tests && npm test` and `cd tests/rules && npm test` (incl. the two-phone app test and mutations) | 15–20 min |
+| **Before any merge to `main`** | `git fetch origin main`, then everything once: `cd tests && npm test` and `cd tests/rules && npm test` (incl. the two-phone app test and mutations) | ~8 min |
 Say in the report which suites ran and why; if a change touches more than one row, run each row's suites.
 - **Browser + Node** — `cd tests && npm install && npm test`:
   - `smoke.js` (221 checks): serves the repo, swaps `firebase-store.js` for `tests/stub-store.js` (in-memory Store, same contract), loads fictional babies (synthetic CSV), and walks every screen in headless Chromium (America/New_York, phone viewport, touch, fixed clock). Exits non-zero on any failure or page error. Screenshots land in `tests/shots/` (git-ignored).
@@ -171,6 +171,8 @@ Say in the report which suites ran and why; if a change touches more than one ro
   - `sources.test.js`: milk-source logic end to end in the browser.
   - `sources.ui.test.js`: every milk-source screen workflow, activation cases, themes and A++; screenshots in `tests/shots/b2/`.
   - `logic.test.js`: Phase 2.5 pass 2 fixes — one feed matcher (nearest, ties earlier), wording after a discharge, sources after going home, a baby named "A", Care after going home.
+  - `cache-check.js` (first in `npm test`): fails if an app-shell file in `sw.js` `SHELL` changed since `origin/main` without a new `CACHE` name.
+  - `a11y.test.js`: every tab, the milk-source and moment sheets and setup, in light / dark / night / A++: text contrast against its real background (≥4.5:1; 3:1 large), no text below 12 px, controls ≥44 px with a name, no sideways scroll.
   - `discharge.test.js`: one baby goes home — validation, Today, day sheet, Growth, Progress, Journey milestone, milk estimate on both paths, history kept, undo.
 - **Emulators** — `cd tests/rules && npm install && npm test`:
   - `rules.test.js`: security rules, incl. private subtree, removed-member cleanup and legacy revocation / re-invite / second removal.
