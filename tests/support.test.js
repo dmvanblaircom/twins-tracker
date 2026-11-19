@@ -127,6 +127,14 @@ async function main() {
     const pm = await p.evaluate(() => Object.values(__db.events).find(e => e.key === "asked-for-help"));
     check("a parent milestone saves with scope parent, i null and its key", pm && pm.scope === "parent" && pm.i === null && pm.kind === "milestone" && pm.title === "Asked for help");
 
+    // ---- family milestones (Phase 4) ----
+    await tab(p, "trends"); await p.click("#jAdd"); await wait(p); await p.click('#mWho button[data-v="family"]'); await wait(p, 150);
+    const fo = await p.$$eval("#mPick option", o => o.map(x => x.textContent));
+    check("'Our family' offers holding both plus the approved family milestones", ["First time holding both babies at once", "First family photo", "First time we were all together", "Big brother or sister's first visit", "First visit from friends", "Nursery ready", "Last day in the NICU", "First night all home together"].every(t => fo.includes(t)), fo.join(" / "));
+    await p.selectOption("#mPick", "nursery-ready"); await p.click("#mSave"); await wait(p, 300);
+    const fm = await p.evaluate(() => Object.values(__db.events).find(e => e.key === "nursery-ready"));
+    check("a family milestone saves with scope family, i null and its key", fm && fm.scope === "family" && fm.i === null && fm.kind === "milestone" && fm.title === "Nursery ready");
+
     // ---- leaving purges my check-ins; shared copies stay ----
     await support(p); await share(p);
     await p.evaluate(() => Store.leave()); await wait(p, 300);

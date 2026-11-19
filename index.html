@@ -1731,7 +1731,10 @@
     ["Everyday care",[["first-diaper","First diaper change"],["first-bath","First bath"],["first-outfit","First outfit"],["first-swaddle","First swaddle"],["first-story","First story read aloud"],["first-song","First song sung"]]],
     ["Family and visitors",[["meets-sibling","First meeting with big brother or sister"],["meets-grandparents","Met grandparents"]]],
     ["Along the way",[["breathing-own","Breathing without help"],["room-move","Moved to a new room"],["came-home","Came home"]]]];
-  const MS_FAMILY=[["holding-both","First time holding both babies at once"]];
+  const MS_FAMILY=[["holding-both","First time holding both babies at once"]];   // offered only when more than one baby is in the record
+  // Family milestones ("Our family"): approved Nov 19, 2026 (Phase 4, D8), offered for every family.
+  const MS_FAMILY2=[["family-photo","First family photo"],["all-together","First time we were all together"],["sibling-visit","Big brother or sister's first visit"],
+    ["friends-visit","First visit from friends"],["nursery-ready","Nursery ready"],["last-nicu-day","Last day in the NICU"],["all-home","First night all home together"]];
   // Parent milestones ("Me"): approved wording in docs/phase3-content.md (D8).
   const MS_PARENT=[["first-rounds","First time joining rounds"],["first-solo-care","First care time on my own"],["first-pump","First pumping session"],["met-nicu-parent","Met another NICU parent"],
     ["asked-for-help","Asked for help"],["first-full-night","First full night's sleep"],["time-for-me","Took time for myself"],["first-walk-out","First walk outside for me"]];   // offered only when more than one baby is in the record
@@ -1880,7 +1883,7 @@
   function mSetWho(v){ mState.who=v; [...$("mWho").children].forEach(b=>b.classList.toggle("on",b.dataset.v===v)); syncPressed("mWho"); mFillPick(); }
   function mSetKind(v){ mState.kind=v; [...$("mKind").children].forEach(b=>b.classList.toggle("on",b.dataset.v===v)); syncPressed("mKind"); mFillPick(); }
   function mFillPick(){
-    const isM=mState.kind==="milestone", w=mState.who, list = w==="0"||w==="1" ? MS_GROUPS : w==="parent" ? [["For me",MS_PARENT]] : w==="family" && TWINS.length>1 ? [["For the family",MS_FAMILY]] : [];
+    const isM=mState.kind==="milestone", w=mState.who, list = w==="0"||w==="1" ? MS_GROUPS : w==="parent" ? [["For me",MS_PARENT]] : w==="family" ? [["For the family",[...(TWINS.length>1?MS_FAMILY:[]),...MS_FAMILY2]]] : [];
     $("mPickL").hidden = !isM;
     const cur=$("mPick").value;
     $("mPick").innerHTML = `<option value="">Write your own</option>` + list.map(([g,items])=>`<optgroup label="${esc(g)}">${items.map(([k,t])=>`<option value="${k}">${esc(t)}</option>`).join("")}</optgroup>`).join("");
@@ -1917,7 +1920,7 @@
   function mBuild(){
     const w=mState.who, scope = w==="0"||w==="1" ? "baby" : w, i = scope==="baby" ? +w : null, isJ=mState.kind==="journal";
     const key = !isJ && $("mPick").value ? $("mPick").value : null;
-    const title0 = key ? ([...MS_GROUPS.flatMap(g=>g[1]),...MS_FAMILY,...MS_PARENT].find(([k])=>k===key)||[])[1] : $("mTitle").value.trim();
+    const title0 = key ? ([...MS_GROUPS.flatMap(g=>g[1]),...MS_FAMILY,...MS_FAMILY2,...MS_PARENT].find(([k])=>k===key)||[])[1] : $("mTitle").value.trim();
     const note=$("mNote").value.trim().slice(0,2000), t=new Date($("mWhen").value).getTime();
     const title = isJ ? (title0 || (note.split("\n")[0].slice(0,60)) || "Journal") : title0;
     return {kind: isJ ? "journal" : key ? "milestone" : "moment", scope, i, key, t, title:(title||"").slice(0,120), note};

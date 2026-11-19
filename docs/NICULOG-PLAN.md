@@ -33,7 +33,8 @@ Last updated: Nov 19, 2026 (Phases 2.5 and 3 complete and merged; Phases 1–3 s
 | 2b — Feeding sources | **Complete and merged** to `main` at `3ce60b5` (Nov 17, 2026): Stage A design approved (`docs/phase2b-design.md`), B1 data/rules/calculation, B2 screens, and the backend-enforced activation gate. Milk-source rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
 | 2.5 — Repository stabilization | **Complete** (Nov 19, 2026). Five passes; findings, decisions and verification in `docs/cleanup-ledger.md`. Approved exceptions: discharge (one baby went home); allowlist moved to a console-only document. |
 | 3 — Parent Support | **Complete and merged** (Nov 19, 2026): private check-ins, share / unshare, daily message, parent milestones, resources (US only), privacy policy. All wording approved (`docs/phase3-content.md`). No rules change. **Smoke tested on real devices** (Nov 19, 2026). |
-| 4–6 | Planned. Not started. |
+| 4 — Family Support | **Complete and merged** (Nov 19, 2026): family milestones only. The needs list was dropped by the product owner (Nov 19, 2026); `needs` stays a dormant, backed-up collection. |
+| 5–6 | Planned. Phase 5 next. |
 
 ---
 
@@ -294,8 +295,8 @@ A stabilization effort, **not a redesign or feature-development phase**. Its goa
 7. Tests, `CLAUDE.md`, cache bump, report. **Stop for approval.**
 
 ### Phase 4 — Family Support (deliberately small)
-- `needs` list: text, optional date, `claimBy`, done. Meals, rides, pumping supplies, sibling pickup. Claim conflicts use the `otherTook` pattern.
-- Shared family milestones (events, scope `family`). No supporter role (D7).
+- ~~`needs` list~~ — **dropped by the product owner (Nov 19, 2026):** with no supporter role (D7) it would only be shared between the two parents, who already coordinate directly. The `needs` collection stays as dormant groundwork (watched and backed up; no screen, no writer).
+- Shared family milestones (events, scope `family`), **approved Nov 19, 2026:** First family photo · First time we were all together · Big brother or sister's first visit · First visit from friends · Nursery ready · Last day in the NICU · First night all home together (plus the existing "First time holding both babies at once"). No supporter role (D7).
 
 ### Phase 5 — Photos (in Firestore, D3/D4)
 - **Data model:**
