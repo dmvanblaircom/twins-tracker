@@ -15,8 +15,8 @@ Governed by `docs/NICULOG-PLAN.md` (D18, Phase 2.5). The goal is to clean up eve
 | 1 | Architecture | Nov 17, 2026 (baseline `3ce60b5`) | 16 | 6 fix · 3 remove · 3 defer · 4 reject (all per recommendation, approved Nov 17) | Yes (see 3) | Approved Nov 17, 2026; merged to `main` |
 | 2 | Rules and logic | Nov 17, 2026 (baseline `dd1ec15`) | 11 | 7 fix · 1 remove · 1 defer · 2 reject (all per recommendation, approved Nov 17) | Yes (see 3) | Approved Nov 17, 2026; merged to `main`; rules published (incl. `admin/allowlist`, confirmed Nov 18) |
 | 3 | UI and CSS | Nov 18, 2026 (baseline `1faf892`) | 9 | 4 fix · 1 remove · 1 fix + remove · 1 reject · 2 defer (all per recommendation, approved Nov 18) | Yes (see 3) | Approved Nov 19, 2026 (merges with the end of 2.5) |
-| 4 | Tests and tooling | Nov 19, 2026 (baseline `1f91c86`) | 7 | 4 fix · 3 reject; no test removed (recommendations applied under the Nov 19 process) | Yes (see 3) | Reported Nov 19, 2026 |
-| 5 | Independent final audit | | | | | |
+| 4 | Tests and tooling | Nov 19, 2026 (baseline `1f91c86`) | 7 | 4 fix · 3 reject; no test removed (recommendations applied under the Nov 19 process) | Yes (see 3) | Closed with 2.5 (Nov 19, 2026) |
+| 5 | Independent final audit | Nov 19, 2026 (baseline `0e485f7`) | 0 | — | Yes (see 3) | Phase 2.5 closed Nov 19, 2026 under the Nov 19 process |
 
 **Severity:** High = could lose or expose data, break security, or produce wrong care numbers · Med = a real defect or maintenance risk with no data or security impact · Low = clarity, duplication or style.
 
@@ -120,6 +120,12 @@ Baseline: `1f91c86`. Scope: the two test packages, their run times, overlap betw
 - **Suites run (tests and tooling changed):** new `a11y.test.js` 12/12 (and failing on a reverted P3-01 fix); new `cache-check.js` (and failing on an un-bumped shell change); `store.test.js` 53 → 54 (stub parity check). Every suite runs once in pass 5 before the merge.
 - **No test removed**, so no redundancy proof is needed (P4-01).
 - **App, rules, Store, data:** unchanged.
+
+**Pass 5 — independent final audit (Nov 19, 2026), fresh-eyes checklist:**
+- **Diff since the start of 2.5** (`3ce60b5` → `0e485f7`, 22 files): every function, rule and test name that disappeared was traced. Removed or renamed: `wtSub` (P1-03), `phoneList` → `memberList` and `phoneReady` → `accountReady` (P1-08 / P2-02), the in-file allowlist (approved exception), `docs/STATUS-2026-11-15.md` (P1-11), the `main` fallback (P2-10), dead CSS and the tab-bar shadow (P3-03, P3-06). **Nothing was removed without approval.** No test check was removed (test names: none dropped).
+- **Stored data and old backups:** a full backup made by the app as it was at the start of 2.5 (feeds, weights, drop-off, a Journey moment, usual milk, a schedule period, profile, diet and a private check-in) restored into the current app: 131 documents checked, **0 lost or changed**, no page errors. `Store.lists` and the backup format are unchanged; removals stopped no collection from being read or written.
+- **Every suite, once:** cache check ✓ · smoke 221 · engine unit 111 · sources logic 61 · sources screens 83 · discharge 19 · logic 14 · accessibility 12 · rules 56 · real Store 54 · sources rules 104 · sources store 25 · two-phone app 14 · mutations 37/37 — all passing.
+- **Acceptance criteria (plan, Phase 2.5):** all five passes recorded with decisions and verification (1, 2); test counts never dropped (3); before/after screenshots for the UI pass show only approved changes (4); behaviour changed only by approved fixes and removals, plus the approved discharge exception (5); this audit (6). **Phase 2.5 complete.**
 
 ## 4. Test changes and redundancy proofs
 | Test (file : name) | Change | Why | Redundancy proof or approved removal |
