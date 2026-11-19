@@ -18,7 +18,7 @@ fs.writeFileSync(path.join(out, "index.html"), html);
 fs.copyFileSync(path.join(here, "node_modules/chart.js/dist/chart.umd.js"), path.join(out, "vendor/chart.umd.js"));
 
 let store = fs.readFileSync(path.join(root, "firebase-store.js"), "utf8");
-for (const m of ["app", "auth", "firestore"]) {
+for (const m of ["app", "auth", "firestore", "app-check"]) {
   store = must(store, `https://www.gstatic.com/firebasejs/${FB}/firebase-${m}.js`, `./vendor/firebase-${m}.js`);
   let lib = fs.readFileSync(path.join(here, `node_modules/firebase/firebase-${m}.js`), "utf8");
   if (m !== "app") lib = must(lib, `https://www.gstatic.com/firebasejs/${FB}/firebase-app.js`, "./firebase-app.js");

@@ -1,6 +1,6 @@
 {
-  "appId": "com.example.twinstracker",
-  "appName": "Twins Tracker",
+  "appId": "app.niculog.ios",
+  "appName": "NICUlog",
   "webDir": "www",
   "backgroundColor": "#F3F6F9",
   "ios": {

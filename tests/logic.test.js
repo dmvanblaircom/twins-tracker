@@ -75,6 +75,18 @@ async function main() {
     await sp.evaluate(() => { const keep = __db.config.profile; delete __db.config.profile; __fireCfg("profile"); __db.config.profile = keep; }); await wait(sp, 300);
     check("a stale 'missing profile' reading after load keeps the app open (no jump back to setup)", await sp.isVisible("#main") && !(await sp.isVisible("#setup")));
     await sp.context().close();
+
+    // ===== Phase 6: in the iOS app, Save full backup writes a file and opens the share sheet =====
+    const ip = await newPage(browser, base, { now: NOW, init: () => { window.__capLog = []; window.Capacitor = { isNativePlatform: () => true, Plugins: {
+      Filesystem: { writeFile: async o => { __capLog.push(["write", o.path, o.directory, o.encoding, JSON.parse(o.data).app]); return { uri: "file:///cache/" + o.path }; } },
+      Share: { share: async o => { __capLog.push(["share", o.url, o.title]); } } } }; } });
+    await importData(ip); await ip.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
+    await ip.click("#bkGo"); await wait(ip, 400);
+    const log = await ip.evaluate(() => __capLog), day = await ip.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; });
+    check("in the iOS app, the backup is written to a file and handed to the share sheet", log.length === 2 && log[0][0] === "write" && log[0][1] === `niculog-backup-${day}.json` && log[0][2] === "CACHE" && log[0][4] === "twins-tracker"
+      && log[1][0] === "share" && log[1][1] === `file:///cache/niculog-backup-${day}.json` && log[1][2] === "NICUlog backup", JSON.stringify(log));
+    check("…and reports it ready", (await ip.textContent("#bkMsg")).startsWith("Backup ready"));
+    await ip.context().close();
   } catch (e) { fails.push("crashed: " + e.message); console.error(e); }
   await browser.close(); srv.close();
   console.log(`\n${pass} passed, ${fails.length} failed`);

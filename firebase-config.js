@@ -8,3 +8,6 @@ export const firebaseConfig = {
   messagingSenderId: "3681359541",
   appId: "1:3681359541:web:054a70a3c640d2a300d0fc"
 };
+// Firebase App Check: off until a key is set (see docs/app-store-readiness.md). Web: a reCAPTCHA v3 site key.
+// The iOS app uses App Attest through a native plugin instead (added once there is an Apple developer account).
+export const appCheck = null;   // e.g. { siteKey: "…" }

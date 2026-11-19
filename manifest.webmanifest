@@ -1,6 +1,6 @@
 {
-  "name": "Twins Tracker",
-  "short_name": "Twins",
+  "name": "NICUlog",
+  "short_name": "NICUlog",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -11,10 +11,23 @@ import {
   collection, doc, onSnapshot, setDoc, deleteDoc, getDoc, getDocs, updateDoc, getDocFromServer, getDocsFromServer, connectFirestoreEmulator,
   Bytes, writeBatch, query, where, deleteField, getAggregateFromServer, count, sum
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+import * as CFG from "./firebase-config.js";
+const { firebaseConfig } = CFG;
 
 if (!window.Store) {
   const app = initializeApp(firebaseConfig);
+  // App Check (dormant until firebase-config.js sets `appCheck`): proves requests come from this app. Loaded only when
+  // configured, before any database use. Web: reCAPTCHA v3. iOS app: App Attest via the FirebaseAppCheck native plugin.
+  if (CFG.appCheck && !window.__FIREBASE_EMULATORS__) {
+    try {
+      const AC = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js");
+      const cap = window.Capacitor, native = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
+      const plugin = native && cap.Plugins && cap.Plugins.FirebaseAppCheck;
+      const provider = plugin ? new AC.CustomProvider({ getToken: async () => { const r = await plugin.getToken({ forceRefresh: false }); return { token: r.token, expireTimeMillis: r.expireTimeMillis }; } })
+        : native ? null : new AC.ReCaptchaV3Provider(CFG.appCheck.siteKey);
+      if (provider) AC.initializeAppCheck(app, { provider, isTokenAutoRefreshEnabled: true });
+    } catch (e) { console.warn("App Check not started", e); }
+  }
   // initializeAuth (not getAuth): email/password only, no popup/redirect iframe, which also lets it run inside the iOS app's web view.
   const auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence] });
   // Offline cache: the app opens and accepts entries with no signal; writes sync later.

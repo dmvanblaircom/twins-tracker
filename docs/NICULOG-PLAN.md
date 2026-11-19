@@ -35,7 +35,7 @@ Last updated: Nov 19, 2026 (Phases 2.5 and 3 complete and merged; Phases 1–3 s
 | 3 — Parent Support | **Complete and merged** (Nov 19, 2026): private check-ins, share / unshare, daily message, parent milestones, resources (US only), privacy policy. All wording approved (`docs/phase3-content.md`). No rules change. **Smoke tested on real devices** (Nov 19, 2026). |
 | 4 — Family Support | **Complete and merged** (Nov 19, 2026): family milestones only. The needs list was dropped by the product owner (Nov 19, 2026); `needs` stays a dormant, backed-up collection. |
 | 5 — Photos | **Complete and merged** (Nov 20, 2026), moments only (product owner's scope, Nov 19): up to 6 photos per moment, timeline thumbnails, viewer, delete with Undo, offline, usage in Settings, backup lists photo metadata; photo rules published by the product owner; privacy text approved. Check-in photos and the ZIP backup are deferred. |
-| 6 | Planned. |
+| 6 — Rebrand, iOS, privacy | **Ready except the Apple account** (Nov 20, 2026): renamed to NICUlog, bundle ID `app.niculog.ios`, iOS backup sharing, App Check wired but off, listing / privacy labels / reviewer notes and the account-day checklist in `docs/app-store-readiness.md`. Not published (product owner). Waiting on: Apple Developer account, support email, Firebase sign-up, free-plan decision before other families join. |
 
 ---
 
@@ -332,5 +332,6 @@ A stabilization effort, **not a redesign or feature-development phase**. Its goa
   - **It will affect:** conditional milestones (`holding-both`); which babies appear in Today, Growth, the timeline and firsts; the setup screen; milk-need maths; the backup format.
   - **Not scheduled yet.** Phase 2 keeps the two-baby model and writes `holding-both` as a real "more than one baby in the record" check, so the later change is contained.
 - **Market decision:** US-only, or more countries? This determines crisis resources and country handling in Phase 3.
-- **Name availability for "NICUlog"** (trademark, App Store) before Phase 6.
-- **`SUPPORT_EMAIL` placeholder** in `privacy.html`.
+- **Name availability for "NICUlog":** no app by that name found in a web search (Nov 19, 2026); the product owner chose to rename now (Nov 20). Trademark search and App Store name reservation happen with the developer account.
+- **`SUPPORT_EMAIL` placeholder** in `privacy.html`: the product owner is creating a dedicated address (Nov 20, 2026).
+- **Before other families join:** free-plan (Spark) capacity is shared by all families; photos fill the 1 GB first. Decide: stay small or move to pay-as-you-go (D2).
