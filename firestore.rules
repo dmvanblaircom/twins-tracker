@@ -35,6 +35,25 @@ service cloud.firestore {
     }
     // Journey events (Phase 2): the same shape the app enforces. `src` is a provenance marker only ("checkin" for a
     // Phase 3 shared check-in) and can never carry an id or any private data.
+    // Photos (Phase 5, D3/D4): metadata and a small thumbnail in photos/{id}; the full image in photoData/{id}, written in the
+    // same batch (existsAfter), attached to a moment that exists. Sizes stay well under Firestore's 1 MiB document limit.
+    // Accepted limit: "at most 6 photos per moment" can't be counted in rules; the app enforces it.
+    function validPhoto(hid, pid, d) {
+      return pid.matches('ph-[0-9]+-[a-z0-9]{4}')
+        && d.keys().hasOnly(['ev', 't', 'w', 'h', 'bytes', 'thumb', 'by'])
+        && d.keys().hasAll(['ev', 't', 'w', 'h', 'bytes', 'thumb', 'by'])
+        && d.ev is string && exists(/databases/$(database)/documents/households/$(hid)/events/$(d.ev))
+        && existsAfter(/databases/$(database)/documents/households/$(hid)/photoData/$(pid))
+        && d.t is number
+        && d.w is int && d.h is int && d.w > 0 && d.h > 0 && d.w <= 1600 && d.h <= 1600
+        && d.bytes is int && d.bytes > 0 && d.bytes <= 1024000
+        && d.thumb is bytes && d.thumb.size() > 0 && d.thumb.size() <= 102400
+        && d.by == request.auth.token.email.lower();
+    }
+    function validPhotoData(pid, d) {
+      return pid.matches('ph-[0-9]+-[a-z0-9]{4}') && d.keys().hasOnly(['full'])
+        && d.full is bytes && d.full.size() > 0 && d.full.size() <= 921600;
+    }
     function validEvent(d) {
       return d.keys().hasAll(['kind', 'scope', 'i', 't', 'title'])
         && d.keys().hasOnly(['kind', 'scope', 'i', 'key', 't', 'title', 'note', 'ref', 'src', 'by', 'createdT', 'editT', 'editBy'])
@@ -142,16 +161,28 @@ service cloud.firestore {
       }
 
       // All shared family data: feeds, weights, pumps, drops, checklist, plans, questions, needs.
-      // `members`, `private`, `revoked`, `events`, `slotMilk`, `milkUsual`, `schedPeriods`, `clients` and `config` are excluded here on purpose (each has its own rule below): Firestore rules are additive, so if this catch-all
+      // `members`, `private`, `revoked`, `photos`, `photoData`, `events`, `slotMilk`, `milkUsual`, `schedPeriods`, `clients` and `config` are excluded here on purpose (each has its own rule below): Firestore rules are additive, so if this catch-all
       // matched them, any family member could read another member's private subtree regardless of the rules below.
       match /{col}/{rest=**} {
-        allow read, write: if !(col in ['members', 'private', 'revoked', 'events', 'slotMilk', 'milkUsual', 'schedPeriods', 'clients', 'config']) && inFamily(hid);
+        allow read, write: if !(col in ['members', 'private', 'revoked', 'photos', 'photoData', 'events', 'slotMilk', 'milkUsual', 'schedPeriods', 'clients', 'config']) && inFamily(hid);
       }
 
       // Journey events: family members read and delete; every create/update must match the event shape.
       match /events/{eid} {
         allow read, delete: if inFamily(hid);
         allow create, update: if inFamily(hid) && validEvent(request.resource.data);
+      }
+      // Photos: create with a valid shape; the only change allowed is the soft-delete marker (set or cleared, for Undo).
+      match /photos/{pid} {
+        allow read, delete: if inFamily(hid);
+        allow create: if inFamily(hid) && validPhoto(hid, pid, request.resource.data);
+        allow update: if inFamily(hid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedT'])
+          && (!('deletedT' in request.resource.data) || request.resource.data.deletedT is number);
+      }
+      // Full images: create once, read when opened, delete; never edited.
+      match /photoData/{pid} {
+        allow read, delete: if inFamily(hid);
+        allow create: if inFamily(hid) && validPhotoData(pid, request.resource.data);
       }
 
       // Milk-source allocations: create only when absent; every change must carry rev = stored rev + 1, so an edit made

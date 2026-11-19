@@ -130,6 +130,32 @@ const alloc = (o = {}) => ({ i: 0, t: T0, state: "set", mL10: { mom: 300, donor:
     await admin(d => deleteDoc(doc(d, `households/${hd}/config/sources`)));
     const r = await tryAct(D); return !r.ok && r.code === "offline"; });
   await D.context().setOffline(false);
+  // ---- photos (Phase 5) ----
+  const EVP = "e-1771000000000-ph01", PH = "ph-1771000000001-ab01";
+  await S(A, id => Store.put("events", id, { kind: "journal", scope: "family", i: null, key: null, t: 1, title: "Photo day", note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "ann@example.net" }), EVP);
+  await t("Store.lists names the photo collections (media)", () => S(A, () => Store.lists.media.join() === "photos,photoData" && !Store.lists.shared.includes("photos")));
+  const seenB = S(B, ev => new Promise(res => { const u = Store.watchPhotos([ev], l => { if (l.length) { u(); res(l); } }); }), EVP);
+  await S(A, ([id, ev]) => Store.putPhoto(id, { ev, t: 1771000000001, w: 1600, h: 1200, bytes: 30200, thumb: new Uint8Array(200).fill(3) }, new Uint8Array(30000).fill(9)), [PH, EVP]);
+  await t("putPhoto writes the metadata (stamped with the author) and the full image", async () => { const m = await get(`${H}/photos/${PH}`), f = await get(`${H}/photoData/${PH}`);
+    return m && m.by === "ann@example.net" && m.thumb.toUint8Array().length === 200 && f && f.full.toUint8Array().length === 30000; });
+  await t("the other parent's watchPhotos sees it with its thumbnail as bytes", async () => { const l = await seenB; return l.length === 1 && l[0][0] === PH && l[0][1].thumb instanceof Object && l[0][1].thumb.length === 200; });
+  await t("watchPhotos only returns photos of the moments asked for", () => S(B, () => new Promise(res => { const u = Store.watchPhotos(["e-1-other"], l => { u(); res(l.length === 0); }); })));
+  await t("photoFull reads the full image on demand", () => S(B, id => Store.photoFull(id).then(b => b && b.length === 30000 && b[0] === 9), PH));
+  await t("photoUsage counts the family's photos and their bytes", () => S(A, () => Store.photoUsage().then(u => u.n === 1 && u.bytes === 30200)));
+  await S(B, id => Store.markPhoto(id, 12345), PH);
+  await t("markPhoto sets the delete marker", async () => (await get(`${H}/photos/${PH}`)).deletedT === 12345);
+  await S(B, id => Store.markPhoto(id, null), PH);
+  await t("…and Undo clears it", async () => !("deletedT" in (await get(`${H}/photos/${PH}`))));
+  const PH2 = "ph-1771000000002-ab02";
+  await S(A, ([id, ev]) => Store.putPhoto(id, { ev, t: 1771000000002, w: 800, h: 600, bytes: 1100, thumb: new Uint8Array(100).fill(1) }, new Uint8Array(1000).fill(2)), [PH2, EVP]);
+  await S(A, id => Store.purgePhoto(id), PH2);
+  await t("purgePhoto removes the full image and the metadata", async () => !(await get(`${H}/photos/${PH2}`)) && !(await get(`${H}/photoData/${PH2}`)));
+  await A.context().setOffline(true);
+  const PH3 = "ph-1771000000003-ab03";
+  await S(A, ([id, ev]) => Store.putPhoto(id, { ev, t: 1771000000003, w: 800, h: 600, bytes: 1100, thumb: new Uint8Array(100).fill(1) }, new Uint8Array(1000).fill(2)), [PH3, EVP]);
+  await t("offline, putPhoto returns and the photo is queued (not on the server yet)", async () => !(await get(`${H}/photos/${PH3}`)));
+  await A.context().setOffline(false);
+  await t("back online, the queued photo and its image both arrive", () => until(async () => !!(await get(`${H}/photos/${PH3}`)) && !!(await get(`${H}/photoData/${PH3}`)), 15000));
   // ---- lifecycle: the last member out deletes everything, including phone markers ----
   await refused(A, () => Store.create("schedPeriods", "s-0-ab12", { from: 0, everyH: 3, startH: 8, dayH: 7, slotMin: [0, 30], full10: [490, 530], src: "first-use" }));
   await t("leaving removes your own phone marker", async () => { await S(B, () => Store.leave()); return !(await get(`${H}/clients/${ub}`)); });
@@ -138,9 +164,9 @@ const alloc = (o = {}) => ({ i: 0, t: T0, state: "set", mL10: { mom: 300, donor:
     const r = await S(A, async () => { try { await Store.deleteAccount("pw-ann-1"); return "ok"; } catch (e) { return e.code; } });
     await S(A, () => { window.__FIREBASE_EMULATORS__.fail = []; });
     return r === "injected" && (await count(`${H}/slotMilk`)) === 1 && (await count(`${H}/milkUsual`)) === 1 && (await count(`${H}/schedPeriods`)) === 1; });
-  await t("the last member's account deletion removes allocations, history and phone markers", async () => {
+  await t("the last member's account deletion removes allocations, history, photos and phone markers", async () => {
     await S(A, () => Store.deleteAccount("pw-ann-1"));
-    return (await count(`${H}/slotMilk`)) + (await count(`${H}/milkUsual`)) + (await count(`${H}/schedPeriods`)) + (await count(`${H}/clients`)) === 0 && !(await get(ACT)); });
+    return (await count(`${H}/slotMilk`)) + (await count(`${H}/milkUsual`)) + (await count(`${H}/schedPeriods`)) + (await count(`${H}/clients`)) + (await count(`${H}/photos`)) + (await count(`${H}/photoData`)) === 0 && !(await get(ACT)); });
   // ---- Phase 2.5 P2-10: a refusal on users/ is reported, never treated as "old rules" (which used to open `main`) ----
   const E = await open(); await S(E, () => Store.signUp("eli@example.net", "pw-eli-1")); await S(E, () => Store.createFamily());
   const RULES = fs.readFileSync(path.join(ROOT, "firestore.rules"), "utf8"), USERS_READ = "allow read, delete: if signedIn() && request.auth.uid == uid;";

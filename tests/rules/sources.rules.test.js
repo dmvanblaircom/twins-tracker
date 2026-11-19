@@ -3,7 +3,7 @@
 //   runs inside `npm test` (firebase emulators:exec). RULES_FILE=<path> tests another rules file (mutate.js uses this).
 const fs = require("fs"), path = require("path");
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require("@firebase/rules-unit-testing");
-const { doc, getDoc, setDoc, deleteDoc } = require("firebase/firestore");
+const { doc, getDoc, setDoc, deleteDoc, updateDoc, deleteField, writeBatch, Bytes } = require("firebase/firestore");
 const FX = require("../sources.fixtures.js");
 
 const QUIET = !!process.env.QUIET;
@@ -159,9 +159,39 @@ const t = async (name, fn) => { try { await fn(); pass++; QUIET || console.log("
     await assertSucceeds(getDoc(doc(as("mem", "mem@example.net"), "households/main/config/profile")));
     await require("./allowlist.js").seedAllowlist(env); await admin(x => deleteDoc(doc(x, "households/main/members/mem"))); });
 
+  // ---- photos (Phase 5): metadata + thumbnail and the full image, written together, on an existing moment ----
+  const EVP = `${H}/events/e-1771000000000-ph01`;
+  await seed(EVP, { kind: "journal", scope: "family", i: null, key: null, t: 1, title: "Photo day", note: "", ref: null, src: null, by: FX.E, createdT: 1, editT: 1, editBy: FX.E });
+  const B = n => Bytes.fromUint8Array(new Uint8Array(n).fill(7));
+  const pmeta = (o = {}) => ({ ev: "e-1771000000000-ph01", t: 1771000000000, w: 1600, h: 1200, bytes: 300000, thumb: B(20000), by: FX.E, ...o });
+  let pn = 0; const pid = () => `ph-177100000000${pn}-ab${String(pn++).padStart(2, "0")}`;
+  const putPh = (db, id, meta, full = B(280000)) => { const b = writeBatch(db); b.set(doc(db, `${H}/photoData/${id}`), { full }); b.set(doc(db, `${H}/photos/${id}`), meta); return b.commit(); };
+  await t("a member adds a photo (metadata and full image in one batch)", () => assertSucceeds(putPh(ann, pid(), pmeta())));
+  await t("a photo's metadata without its full image is refused", () => assertFails(setDoc(doc(ann, `${H}/photos/${pid()}`), pmeta())));
+  await t("a photo on a moment that doesn't exist is refused", () => assertFails(putPh(ann, pid(), pmeta({ ev: "e-1-none" }))));
+  await t("a photo with extra fields is refused", () => assertFails(putPh(ann, pid(), pmeta({ gps: "x" }))));
+  await t("a photo missing a field is refused", () => { const m = pmeta(); delete m.h; return assertFails(putPh(ann, pid(), m)); });
+  await t("a photo larger than 1600 px is refused", () => assertFails(putPh(ann, pid(), pmeta({ w: 4032 }))));
+  await t("a photo whose size isn't a positive whole number is refused", () => assertFails(putPh(ann, pid(), pmeta({ bytes: 0 }))));
+  await t("a thumbnail over 100 KB is refused", () => assertFails(putPh(ann, pid(), pmeta({ thumb: B(102401) }))));
+  await t("a full image over 900 KB is refused", () => assertFails(putPh(ann, pid(), pmeta(), B(921601))));
+  await t("a photo written in someone else's name is refused", () => assertFails(putPh(ann, pid(), pmeta({ by: "parent2@example.com" }))));
+  await t("a photo id in the wrong form is refused", () => assertFails(putPh(ann, "junk", pmeta())));
+  await t("full-image documents carry only the image", () => { const b = writeBatch(ann), id = pid(); b.set(doc(ann, `${H}/photoData/${id}`), { full: B(1000), note: "x" }); b.set(doc(ann, `${H}/photos/${id}`), pmeta()); return assertFails(b.commit()); });
+  await t("a stranger can't add, read or delete photos", async () => { const id = pid(); await putPh(ann, id, pmeta());
+    await assertFails(putPh(zed, pid(), pmeta({ by: "zed@example.net" }))); await assertFails(getDoc(doc(zed, `${H}/photos/${id}`))); await assertFails(getDoc(doc(zed, `${H}/photoData/${id}`)));
+    await assertFails(deleteDoc(doc(zed, `${H}/photoData/${id}`))); });
+  await t("the other parent reads both, and can soft-delete, undo and purge", async () => { const id = pid(); await putPh(ann, id, pmeta());
+    await assertSucceeds(getDoc(doc(ben, `${H}/photoData/${id}`))); await assertSucceeds(updateDoc(doc(ben, `${H}/photos/${id}`), { deletedT: 5 }));
+    await assertSucceeds(updateDoc(doc(ben, `${H}/photos/${id}`), { deletedT: deleteField() }));
+    await assertSucceeds(deleteDoc(doc(ben, `${H}/photoData/${id}`))); await assertSucceeds(deleteDoc(doc(ben, `${H}/photos/${id}`))); });
+  await t("a photo can't be edited apart from the delete marker", async () => { const id = pid(); await putPh(ann, id, pmeta());
+    await assertFails(updateDoc(doc(ann, `${H}/photos/${id}`), { ev: "e-1771000000000-ph01", w: 10 })); await assertFails(updateDoc(doc(ann, `${H}/photos/${id}`), { deletedT: "soon" }));
+    await assertFails(setDoc(doc(ann, `${H}/photoData/${id}`), { full: B(10) })); });
+
   // ---- the catch-all no longer reaches these collections ----
   await t("an arbitrary document in slotMilk / milkUsual / schedPeriods / clients is refused", async () => {
-    for (const c of ["slotMilk", "milkUsual", "schedPeriods"]) await assertFails(setDoc(doc(ann, `${H}/${c}/junk`), { anything: 1 }));
+    for (const c of ["slotMilk", "milkUsual", "schedPeriods", "photos", "photoData"]) await assertFails(setDoc(doc(ann, `${H}/${c}/junk`), { anything: 1 }));
     await assertFails(setDoc(doc(ann, `${C}/ann`), { anything: 1 })); });
   await t("other shared collections still work for members", () => assertSucceeds(setDoc(doc(ann, `${H}/feeds/b0-1`), { v: 30 })));
 

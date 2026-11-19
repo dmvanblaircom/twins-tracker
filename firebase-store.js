@@ -8,7 +8,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-  collection, doc, onSnapshot, setDoc, deleteDoc, getDoc, getDocs, updateDoc, getDocFromServer, getDocsFromServer, connectFirestoreEmulator
+  collection, doc, onSnapshot, setDoc, deleteDoc, getDoc, getDocs, updateDoc, getDocFromServer, getDocsFromServer, connectFirestoreEmulator,
+  Bytes, writeBatch, query, where, deleteField, getAggregateFromServer, count, sum
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
@@ -34,6 +35,7 @@ if (!window.Store) {
   // deletion, cleanup and backup (index.html reads Store.lists) all follow.
   const SHARED = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions", "events", "needs",
     "slotMilk", "milkUsual", "schedPeriods"];         // milk sources (Phase 2b): allocations, usual-milk and schedule history
+  const MEDIA = ["photos", "photoData"];         // Phase 5: photo metadata + thumbnail, and the full image (read only when opened)
   const META = ["clients"];                      // per-phone app version markers: deleted with the family, never backed up
   const PRIVATE = ["checkins"];                  // households/{hid}/private/{uid}/{name}: owner-only (see firestore.rules)
   const CONFIG = ["profile", "diet", "people", "milk", "sources"];   // sources: milk-source tracking switched on (never backed up)
@@ -216,7 +218,7 @@ if (!window.Store) {
       const info = await familyStrict(), others = info.members.filter(m => m.uid !== u.uid);
       if (!others.length) {
         fault("purge"); await purgePrivate(HID, u.uid);
-        fault("shared"); for (const c of [...SHARED, ...META]) { const s = await getDocsFromServer(collection(db, H, c)); for (const d of s.docs) await deleteDoc(d.ref); }
+        fault("shared"); for (const c of [...SHARED, ...MEDIA, ...META]) { const s = await getDocsFromServer(collection(db, H, c)); for (const d of s.docs) await deleteDoc(d.ref); }
         fault("config"); for (const k of CONFIG) await deleteDoc(doc(db, H, "config", k));
         if (info.code) { fault("invite"); await deleteInvite(info.code); }
         if (info.exists) {   // the original family may never have had a family record
@@ -241,7 +243,7 @@ if (!window.Store) {
     signOut: () => signOut(auth),
     reset: e => sendPasswordResetEmail(auth, e),
     family, createFamily, joinFamily, familyInfo, newInvite, removeMember, leave, deleteAccount,
-    lists: Object.freeze({ shared: SHARED.slice(), private: PRIVATE.slice(), config: CONFIG.slice(), meta: META.slice() }),
+    lists: Object.freeze({ shared: SHARED.slice(), private: PRIVATE.slice(), config: CONFIG.slice(), meta: META.slice(), media: MEDIA.slice() }),
     watchWeights: (cb, err) => watchCol("weights", cb, err),
     watchFeeds: (cb, err) => watchCol("feeds", cb, err),
     watchDiet: (cb, err) => onSnapshot(doc(db, H, "config", "diet"), d => cb(d.exists() ? d.data().text : null), err),
@@ -298,7 +300,29 @@ if (!window.Store) {
         snap => cb(snap.docs.map(d => [d.id, d.data()]), { fromCache: snap.metadata.fromCache, pending: snap.metadata.hasPendingWrites }), err);
     },
     putPrivate: (name, id, rec) => w(setDoc(doc(priv(name), id), { by: email(), ...rec })),
-    removePrivate: (name, id) => w(deleteDoc(doc(priv(name), id)))
+    removePrivate: (name, id) => w(deleteDoc(doc(priv(name), id))),
+    // Photos (Phase 5, D3/D4). Bytes cross this boundary as Uint8Array. The full image and its metadata are written in one
+    // batch (one offline-queued commit, so neither lands without the other).
+    putPhoto: (id, meta, full) => { const b = writeBatch(db);
+      b.set(doc(db, H, "photoData", id), { full: Bytes.fromUint8Array(full) });
+      b.set(doc(db, H, "photos", id), { ...meta, thumb: Bytes.fromUint8Array(meta.thumb), by: email() });
+      return w(b.commit()); },
+    // Metadata + thumbnails for the given moments only (never the whole collection), live, at most 30 ids per listener.
+    watchPhotos: (evIds, cb, err) => {
+      const ids = [...new Set(evIds)].filter(Boolean); if (!ids.length || !HID) { setTimeout(() => cb([])); return () => {}; }
+      const parts = {}, subs = [];
+      const emit = () => cb(Object.values(parts).flat());
+      for (let k = 0; k < ids.length; k += 30) { const key = k;
+        subs.push(onSnapshot(query(collection(db, H, "photos"), where("ev", "in", ids.slice(k, k + 30))),
+          snap => { parts[key] = snap.docs.map(d => { const x = d.data(); return [d.id, { ...x, thumb: x.thumb && x.thumb.toUint8Array ? x.thumb.toUint8Array() : null }]; }); emit(); }, err)); }
+      return () => subs.forEach(u => u()); },
+    // The full image, read only when a photo is opened. null when it isn't here (removed, or offline and never loaded).
+    photoFull: async id => { try { const s = await getDoc(doc(db, H, "photoData", id)); return s.exists() ? s.data().full.toUint8Array() : null; } catch { return null; } },
+    // Soft delete (Undo clears it), then purge: the full image first, the metadata last.
+    markPhoto: (id, deletedT) => w(updateDoc(doc(db, H, "photos", id), { deletedT: deletedT || deleteField() })),
+    purgePhoto: async id => { await w(deleteDoc(doc(db, H, "photoData", id))); await w(deleteDoc(doc(db, H, "photos", id))); },
+    // How many photos and how many bytes the family stores (server aggregate; needs a connection).
+    photoUsage: async () => { const a = await getAggregateFromServer(collection(db, H, "photos"), { n: count(), bytes: sum("bytes") }); const d = a.data(); return { n: d.n || 0, bytes: d.bytes || 0 }; }
   };
   window.dispatchEvent(new Event("store-ready"));
 }

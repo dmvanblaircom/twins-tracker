@@ -43,6 +43,18 @@ const M = [
   ["allowlist: no client reads it", "match /admin/{doc} {\n      allow read, write: if false;", "match /admin/{doc} {\n      allow read: if true;\n      allow write: if false;"],
   ["allowlist: no client writes it", "match /admin/{doc} {\n      allow read, write: if false;", "match /admin/{doc} {\n      allow read: if false;\n      allow write: if true;"],
   // Not listed: dropping exists(list) is an equivalent mutant (get() of a missing document fails, which denies).
+  ["photos: the full image is written with the metadata", "        && existsAfter(/databases/$(database)/documents/households/$(hid)/photoData/$(pid))\n", ""],
+  ["photos: the moment must exist", "&& d.ev is string && exists(/databases/$(database)/documents/households/$(hid)/events/$(d.ev))", "&& d.ev is string"],
+  ["photos: exact fields", "&& d.keys().hasOnly(['ev', 't', 'w', 'h', 'bytes', 'thumb', 'by'])", ""],
+  ["photos: at most 1600 px", "&& d.w <= 1600 && d.h <= 1600", ""],
+  ["photos: thumbnail ≤ 100 KB", "&& d.thumb.size() <= 102400", ""],
+  ["photos: full image ≤ 900 KB", "&& d.full.size() <= 921600", ""],
+  ["photos: by = the signer", "&& d.thumb.size() > 0 && d.thumb.size() <= 102400\n        && d.by == request.auth.token.email.lower();", "&& d.thumb.size() > 0 && d.thumb.size() <= 102400;"],
+  ["photos: only the delete marker changes", "request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletedT'])", "true"],
+  ["photos: members only", "match /photos/{pid} {\n        allow read, delete: if inFamily(hid);", "match /photos/{pid} {\n        allow read, delete: if true;"],
+  ["photo data: members only", "match /photoData/{pid} {\n        allow read, delete: if inFamily(hid);", "match /photoData/{pid} {\n        allow read, delete: if true;"],
+  ["photo data: never edited", "allow create: if inFamily(hid) && validPhotoData(pid, request.resource.data);", "allow create, update: if inFamily(hid) && validPhotoData(pid, request.resource.data);"],
+  ["catch-all excludes photos", "'revoked', 'photos', 'photoData', 'events',", "'revoked', 'events',"],
   ["other config stays members-only", "match /config/{cfg} {\n        allow read: if inFamily(hid);", "match /config/{cfg} {\n        allow read: if true;"]
 ];
 const run = file => { const r = spawnSync(process.execPath, [path.join(__dirname, "sources.rules.test.js")], { env: { ...process.env, ...(file ? { RULES_FILE: file } : {}), QUIET: "1" }, encoding: "utf8" });

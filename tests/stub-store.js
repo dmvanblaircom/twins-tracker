@@ -23,7 +23,7 @@
   if (window.__TEST_PROFILE) db.config.profile = copy(window.__TEST_PROFILE);
   // Same collection lists as firebase-store.js (Store.lists).
   const SHARED = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions", "events", "needs", "slotMilk", "milkUsual", "schedPeriods"],
-    PRIVATE = ["checkins"], CONFIG = ["profile", "diet", "people", "milk", "sources"], META = ["clients"];
+    PRIVATE = ["checkins"], CONFIG = ["profile", "diet", "people", "milk", "sources"], META = ["clients"], MEDIA = ["photos", "photoData"];
   // Milk sources: the stub refuses what firestore.rules refuses (same validators as the app), so the browser tests
   // can't pass with data the real backend would reject. __TEST_WRITES logs every write attempt for the tests.
   const deny = (msg, extra) => { const e = Object.assign(new Error(msg), { code: "permission-denied", ...extra }); window.dispatchEvent(new CustomEvent("store-error", { detail: e })); return e; };
@@ -31,6 +31,9 @@
   const canon = v => Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.keys(v).sort().reduce((o, k) => (o[k] = canon(v[k]), o), {}) : v;
   const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
   window.__TEST_WRITES = [];
+  let phSubs = [];
+  const phOut = p => ({ ...p, thumb: new Uint8Array(p.thumb) });
+  const firePh = only => (only ? [only] : phSubs).forEach(s => s.cb(Object.entries(db.photos || {}).filter(([, p]) => s.ids.has(p.ev)).map(([id, p]) => [id, phOut(p)])));
   // Private data is per user: db.private[uid][name][id]. The signed-in user is always "u1"; tests seed "u2" directly
   // (window.__db.private.u2...) to prove one parent never sees the other's.
   db.private = { u1: {}, u2: {} };
@@ -70,7 +73,15 @@
     setDiet: text => setConfig("diet", { text }),
     watchProfile: cb => watchConfig("profile", cb), setProfile: p => setConfig("profile", p),
     watch, put, remove, watchConfig, setConfig,
-    lists: Object.freeze({ shared: SHARED.slice(), private: PRIVATE.slice(), config: CONFIG.slice(), meta: META.slice() }),
+    lists: Object.freeze({ shared: SHARED.slice(), private: PRIVATE.slice(), config: CONFIG.slice(), meta: META.slice(), media: MEDIA.slice() }),
+    // Photos: bytes are kept as Uint8Array copies (never through JSON). __TEST_PHOTO_OFFLINE makes photoFull find nothing.
+    putPhoto: async (id, meta, full) => { db.photoData = db.photoData || {}; db.photos = db.photos || {};
+      db.photoData[id] = { full: new Uint8Array(full) }; db.photos[id] = { ...meta, thumb: new Uint8Array(meta.thumb), by: me }; window.__TEST_WRITES.push(["photos", id]); firePh(); },
+    watchPhotos: (evIds, cb) => { const ids = new Set(evIds); const sub = { ids, cb }; phSubs.push(sub); setTimeout(() => firePh(sub)); return () => { phSubs = phSubs.filter(x => x !== sub); }; },
+    photoFull: async id => window.__TEST_PHOTO_OFFLINE ? null : (db.photoData && db.photoData[id] ? new Uint8Array(db.photoData[id].full) : null),
+    markPhoto: async (id, deletedT) => { const p = db.photos && db.photos[id]; if (!p) throw Object.assign(new Error("missing"), { code: "not-found" }); if (deletedT) p.deletedT = deletedT; else delete p.deletedT; firePh(); },
+    purgePhoto: async id => { if (db.photoData) delete db.photoData[id]; if (db.photos) delete db.photos[id]; firePh(); },
+    photoUsage: async () => { const l = Object.values(db.photos || {}); return { n: l.length, bytes: l.reduce((a, p) => a + (p.bytes || 0), 0) }; },
     patch: async (n, id, fields) => { const cur = col(n)[id]; if (!cur) { const e = Object.assign(new Error("No document to update"), { code: "not-found" }); window.dispatchEvent(new CustomEvent("store-error", { detail: e })); return; }
       const { by, ...f } = copy(fields) || {}; col(n)[id] = { ...cur, ...f }; fire(n); },
     create: (n, id, rec) => put(n, id, rec),
