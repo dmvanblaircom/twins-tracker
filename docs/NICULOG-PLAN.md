@@ -34,7 +34,7 @@ Last updated: Nov 19, 2026 (Phases 2.5 and 3 complete and merged; Phases 1–3 s
 | 2.5 — Repository stabilization | **Complete** (Nov 19, 2026). Five passes; findings, decisions and verification in `docs/cleanup-ledger.md`. Approved exceptions: discharge (one baby went home); allowlist moved to a console-only document. |
 | 3 — Parent Support | **Complete and merged** (Nov 19, 2026): private check-ins, share / unshare, daily message, parent milestones, resources (US only), privacy policy. All wording approved (`docs/phase3-content.md`). No rules change. **Smoke tested on real devices** (Nov 19, 2026). |
 | 4 — Family Support | **Complete and merged** (Nov 19, 2026): family milestones only. The needs list was dropped by the product owner (Nov 19, 2026); `needs` stays a dormant, backed-up collection. |
-| 5 — Photos | **Built** on the working branch (Nov 20, 2026), moments only (product owner's scope, Nov 19): up to 6 photos per moment, timeline thumbnails, viewer, delete with Undo, offline, usage in Settings, backup lists photo metadata. Check-in photos and the ZIP backup are deferred. **Needs a rules publish before merge.** |
+| 5 — Photos | **Complete and merged** (Nov 20, 2026), moments only (product owner's scope, Nov 19): up to 6 photos per moment, timeline thumbnails, viewer, delete with Undo, offline, usage in Settings, backup lists photo metadata; photo rules published by the product owner; privacy text approved. Check-in photos and the ZIP backup are deferred. |
 | 6 | Planned. |
 
 ---
