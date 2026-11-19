@@ -330,6 +330,11 @@ A stabilization effort, **not a redesign or feature-development phase**. Its goa
 - **Not pursued:** embedding the feed in NICUlog (camera portals typically forbid framing, and iPhone Safari blocks third-party logins in frames; unverified for the family's hospital); importing nurses' messages or media (no public interface).
 - **Later (iOS app):** open the link in an in-app browser sheet (`@capacitor/browser`) — added to `docs/app-store-readiness.md`.
 
+### MyChart exploration (product owner, Nov 20, 2026) — not started
+- The twins' records are in **Nationwide Children's** MyChart (Epic). Epic's public directory lists an NCH R4 patient-access base URL (`hkc.nationwidechildrens.org/FHIR/MYCHART/api/FHIR/R4`); unverified, the listing may be stale.
+- Proposed approach, if pursued: patient-authorized SMART on FHIR, read-only, **display-only on the phone that connected** (nothing from MyChart written to family data), labelled "From MyChart · not checked by NICUlog". First step is a prototype against Epic's public sandbox (fictional patients).
+- Needs from the product owner: confirm both parents have proxy access to both babies; register a free developer account at fhir.epic.com and create a patient-facing app (non-production client ID). Production enablement by NCH is unknown.
+
 ## Open items
 - **Original family owner:** check in the Firebase console whether `households/main` exists and who its `owner` is. Whoever first taps "New code" or "Remove" becomes the owner.
 - **Account sign-up:** confirm it's enabled in Firebase Authentication if new families should be able to join.
