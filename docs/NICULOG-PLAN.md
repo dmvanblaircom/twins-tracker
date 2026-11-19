@@ -16,6 +16,12 @@ Last updated: Nov 17, 2026 (Phase 2b complete: merged at `3ce60b5`, milk-source 
 3. Claude implements the phase on its working branch and reports. No merge, deploy or rules publication without explicit approval.
 4. The product owner reviews and approves the phase before the next phase begins. Production Firebase rule changes are approved and published separately from code merges.
 
+5. **Faster process for the rest of Phase 2.5 and Phase 3 (product owner, Nov 19, 2026):**
+   - Claude applies its own recommendations straight after each audit and reports once at the end. Feature or code removals and any `firestore.rules` change still need the product owner's approval first.
+   - Pass 4 removes tests whose coverage is proven redundant, with the proof recorded in the ledger.
+   - Pass 5 is a fresh-eyes checklist in one session: diff from the start of 2.5, every removal checked against the ledger, an old backup restored, every suite run once.
+   - Claude merges to `main` (which deploys) once every suite passes. Publishing Firebase rules stays with the product owner.
+   - Phase 3 starts from this plan when 2.5 closes, without waiting for a separate implementation prompt.
 ---
 
 ## Status
@@ -25,7 +31,7 @@ Last updated: Nov 17, 2026 (Phase 2b complete: merged at `3ce60b5`, milk-source 
 | 1 — Foundations | **Functionally complete and merged** (`6f70a1e`); production rules published and verified. **Real-device validation outstanding**; other release-readiness checks are tracked in Open items and Phase 6. |
 | 2 — Moments and Journey | **Complete and merged** to `main` at `9be9957` (Nov 16, 2026); events rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
 | 2b — Feeding sources | **Complete and merged** to `main` at `3ce60b5` (Nov 17, 2026): Stage A design approved (`docs/phase2b-design.md`), B1 data/rules/calculation, B2 screens, and the backend-enforced activation gate. Milk-source rules published to production (product owner's confirmation). **Real-device validation outstanding.** |
-| 2.5 — Repository stabilization | **In progress.** Pass 1 (architecture) complete and approved (Nov 17, 2026); pass 2 (rules and logic) complete and approved Nov 17, 2026 (its rules change is published separately); pass 3 (UI and CSS) fixes done Nov 18, 2026, awaiting approval. Approved exception: discharge (one baby went home). Ledger: `docs/cleanup-ledger.md`. |
+| 2.5 — Repository stabilization | **In progress.** Pass 1 (architecture) complete and approved (Nov 17, 2026); pass 2 (rules and logic) complete and approved Nov 17, 2026 (its rules change is published separately); pass 3 (UI and CSS) complete and approved Nov 19, 2026; pass 4 (tests and tooling) in progress. Approved exception: discharge (one baby went home). Ledger: `docs/cleanup-ledger.md`. |
 | 3 — Parent Support | Scope approved below; starts only after Phase 2.5 is approved. |
 | 4–6 | Planned. Not started. |
 
