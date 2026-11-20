@@ -714,6 +714,13 @@
     </div>
     <div class="note">Only affects this phone. Weights are always entered in grams, as the NICU charts them.</div>
   </div>
+  <div class="card" id="mcCard" hidden>
+    <h2>MyChart (test)</h2>
+    <p class="note" style="margin-top:0">A test connection to Epic's sandbox with made-up patients. Read-only: nothing from MyChart is saved, and what it shows stays on this phone while this page is open.</p>
+    <div id="mcBody"></div>
+    <div class="row"><button class="btn" id="mcGo" type="button">Connect to MyChart (test)</button><button class="btn ghost" id="mcOff" type="button" hidden>Disconnect</button></div>
+    <div class="msg" id="mcMsg" role="status"></div>
+  </div>
   <div class="card" id="camCard">
     <h2>Baby cameras</h2>
     <div class="cams" id="camFields"></div>
@@ -803,6 +810,7 @@
 </div>
 
 <script src="milk-sources.js"></script>
+<script src="mychart.js"></script>
 <script>
 (() => {
   // ---------- fixed facts ----------
@@ -2881,6 +2889,74 @@
     try{ localStorage.setItem("camTipSeen","1"); }catch{}
     saveCams(next).then(()=>{ $("camMsg").textContent = v ? `Saved for your family. The camera button is on ${TWINS[+i]}'s card on Today, on both phones.` : "Removed for your family."; }).catch(failWrite);
   });
+  // ===================== MyChart (test): Epic sandbox, read-only, display-only =====================
+  // Hidden unless this phone opened the app once with ?mychart=sandbox (?mychart=off hides it again). Signs in with
+  // SMART on FHIR (standalone patient launch, PKCE, public client). The access token lives in sessionStorage (this tab);
+  // the patient and weights live in memory. Nothing from MyChart is written to the family's data.
+  const MC = window.MyChart;
+  let mcOn=false, mcData=null;
+  try{ const q=new URLSearchParams(location.search); if(q.get("mychart")==="sandbox") localStorage.setItem("mcMode","sandbox"); if(q.get("mychart")==="off") localStorage.removeItem("mcMode"); mcOn=!!MC && localStorage.getItem("mcMode")==="sandbox"; }catch{}
+  const mcRedirect = () => MC.redirectOf(location);
+  const mcTok = () => { try{ const t=JSON.parse(sessionStorage.getItem("mcTok")||"null"); return t && t.exp>Date.now() ? t : null; }catch{ return null; } };
+  async function mcEndpoints(){
+    const S=MC.SANDBOX;
+    try{ const r=await fetch(S.base+"/.well-known/smart-configuration",{headers:{Accept:"application/json"},cache:"no-store"}); if(r.ok){ const j=await r.json(); if(j.authorization_endpoint&&j.token_endpoint) return {authorize:j.authorization_endpoint, token:j.token_endpoint}; } }catch{}
+    return {authorize:S.authorize, token:S.token};
+  }
+  async function mcConnect(){
+    $("mcMsg").textContent="Opening MyChart…";
+    try{
+      const ep=await mcEndpoints(), k=await MC.pkce(crypto), state=MC.randomString(crypto,16);
+      sessionStorage.setItem("mcAuth", JSON.stringify({verifier:k.verifier, state, token:ep.token, t:Date.now()}));
+      location.assign(MC.authorizeUrl(ep.authorize,{clientId:MC.SANDBOX.clientId, redirect:mcRedirect(), state, base:MC.SANDBOX.base, challenge:k.challenge}));
+    }catch(err){ $("mcMsg").textContent="Couldn't open MyChart. Check your connection and try again."; }
+  }
+  async function mcFhir(path, tok){
+    const r=await fetch(MC.SANDBOX.base+path,{headers:{Authorization:"Bearer "+tok.access, Accept:"application/fhir+json"},cache:"no-store"});   // no copy kept by the browser
+    if(!r.ok) throw Object.assign(new Error("fhir "+r.status),{status:r.status});
+    return r.json();
+  }
+  async function mcLoad(){
+    const tok=mcTok(); if(!tok){ mcData=null; renderMc(); return; }
+    $("mcMsg").textContent="Reading from MyChart…";
+    try{
+      const [p,obs]=await Promise.all([mcFhir("/Patient/"+encodeURIComponent(tok.patient),tok), mcFhir("/Observation?patient="+encodeURIComponent(tok.patient)+"&category=vital-signs&code="+MC.WEIGHT,tok)]);
+      mcData={patient:MC.patientInfo(p), weights:MC.weights(obs)}; $("mcMsg").textContent="";
+    }catch(err){ mcData=null; $("mcMsg").textContent = err&&err.status===401 ? "MyChart sign-in has expired. Connect again." : "Couldn't read from MyChart. Try again."; if(err&&err.status===401) sessionStorage.removeItem("mcTok"); }
+    renderMc();
+  }
+  // Back from MyChart's sign-in page with ?code=…&state=…: check the state, swap the code for a token, clean the address.
+  async function mcReturn(){
+    const q=new URLSearchParams(location.search), code=q.get("code"), state=q.get("state"), err=q.get("error");
+    if(!code && !err) return false;
+    let auth=null; try{ auth=JSON.parse(sessionStorage.getItem("mcAuth")||"null"); }catch{}
+    if(!auth) return false;   // not ours
+    sessionStorage.removeItem("mcAuth"); history.replaceState(null,"",mcRedirect());
+    showTab("more"); showMoreSec("settings");
+    if(err){ $("mcMsg").textContent="MyChart sign-in was cancelled."; return true; }
+    if(state!==auth.state){ $("mcMsg").textContent="That MyChart sign-in didn't match this page. Try connecting again."; return true; }
+    try{
+      const r=await fetch(auth.token,{method:"POST",cache:"no-store",headers:{"Content-Type":"application/x-www-form-urlencoded",Accept:"application/json"},
+        body:MC.tokenBody({code, redirect:mcRedirect(), clientId:MC.SANDBOX.clientId, verifier:auth.verifier})});
+      const j=r.ok ? await r.json() : null;
+      if(!j||!j.access_token||!j.patient) throw new Error("token");
+      sessionStorage.setItem("mcTok", JSON.stringify({access:j.access_token, patient:j.patient, exp:Date.now()+Math.max(60,+j.expires_in||3600)*1000}));
+    }catch{ $("mcMsg").textContent="Couldn't finish the MyChart sign-in. Try connecting again."; return true; }
+    await mcLoad(); setTimeout(()=>$("mcCard").scrollIntoView({block:"start"}),60);
+    return true;
+  }
+  function renderMc(){
+    const card=$("mcCard"); if(!card) return; card.hidden=!mcOn; if(!mcOn) return;
+    const tok=mcTok(); $("mcGo").hidden=!!tok; $("mcOff").hidden=!tok;
+    if(!tok || !mcData){ $("mcBody").innerHTML=""; return; }
+    const d=mcData, born=d.patient.birthDate?` · born ${esc(mdD(keyDate(d.patient.birthDate)))}`:"";
+    $("mcBody").innerHTML=`<p class="slead"><b>${esc(d.patient.name||"Patient")}</b>${born}</p><div class="sec-h"><span>Weights · From MyChart · not checked by NICUlog</span></div>`
+      + (d.weights.length ? `<ul class="cis">${d.weights.slice(0,10).map(w=>`<li><div class="when">${esc(longD(new Date(w.t)))} · ${esc(hm(w.t))}</div><div class="ciw">${fmtG(w.g)} g</div></li>`).join("")}</ul>`
+        : `<p class="note">No weights in this record.</p>`);
+  }
+  $("mcGo").addEventListener("click",mcConnect);
+  $("mcOff").addEventListener("click",()=>{ try{ sessionStorage.removeItem("mcTok"); sessionStorage.removeItem("mcAuth"); }catch{} mcData=null; $("mcMsg").textContent="Disconnected. Nothing from MyChart was kept."; renderMc(); });
+  if(mcOn){ renderMc(); mcReturn().then(back=>{ if(!back && mcTok()) mcLoad(); }); }
   async function renderFamily(){
     if(!Store.familyInfo) { $("famCard").style.display="none"; return; }
     try{ famInfo=await Store.familyInfo(); }catch{ return; }
