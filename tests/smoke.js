@@ -99,7 +99,7 @@ async function main() {
     check("each baby card names her and says Baby A/B", (await p.textContent(`${A} .bh`)).includes("Ada Rose") && (await p.textContent(`${A} .bh-sub`)) === "Baby A" && (await p.textContent('.nx[data-tw="Bea Joy"] .bh-sub')) === "Baby B");
     check("Full / tube / skipped are one tap each, side by side", (await p.$$(`${A} .quick [data-act]`)).length === 3);
     check("note chips hidden until + Note", await p.$eval(`${A} .tags`, e => e.hidden));
-    check("Both view is compact (no mini charts)", (await p.$$(`${A} .spk`)).length === 0);
+    check("Both view is compact (no intake metrics)", (await p.$$(`${A} .metrics`)).length === 0);
     check("feed count is out of the full day (of 8)", / of 8 feeds/.test(await p.textContent(`${A} .tsum`)), await p.textContent(`${A} .tsum`));
     await p.fill(`${A} .box input`, "40"); await p.click(`${A} [data-act=save]`); await p.waitForTimeout(200);
     const slot2 = new Date("2026-02-11T02:00:00-05:00").getTime();
@@ -143,7 +143,7 @@ async function main() {
 
     // ---- single-baby view: full card, weight, plan ----
     await p.click(`${A} [data-act=detail]`); await p.waitForTimeout(300);
-    check("Details opens the single-baby view", (await p.$$(".nx")).length === 1 && (await p.$$(`${A} .spk`)).length === 1);
+    check("Details opens the single-baby view", (await p.$$(".nx")).length === 1 && (await p.$$(`${A} .metrics .m`)).length === 3);
     p.answers = ["Try ad lib tomorrow"];
     await p.click(`#planToday [data-tw="Ada Rose"] [data-plan-day]`); await p.waitForTimeout(200);
     check("plan from rounds saves (Today's plan card)", (await p.textContent(`#planToday [data-tw="Ada Rose"]`)).includes("Try ad lib tomorrow") && (await p.textContent(`#planToday [data-tw="Ada Rose"] [data-plan-day]`)).trim() === "Edit");
@@ -151,14 +151,16 @@ async function main() {
     await p.click(`#planToday [data-tw="Ada Rose"] [data-plan-day]`); await p.waitForTimeout(200);
     check("editing today's plan replaces it: still one plan for the day", (await p.textContent(`#planToday [data-tw="Ada Rose"]`)).includes("recheck weight") && (await p.evaluate(() => Object.keys(__db.plans || {}).filter(k => k.startsWith("0-")).length)) === 1);
     check("single-baby view: context names the baby", (await p.textContent("#ctxLabel")).endsWith("Ada Rose"), await p.textContent("#ctxLabel"));
-    check("single-baby view shows intake metrics, rounds and 7-day trends", (await p.$$(`${A} .metrics .m`)).length === 3 && (await p.$$(`${A} .spk svg`)).length === 2);
-    await p.click(`${A} [data-act=gohome]`); await p.waitForTimeout(250);
+    check("single-baby card: intake, Yesterday and weight only (rounds and trends live elsewhere)", (await p.$$(`${A} .metrics .m`)).length === 3 && !!(await p.$(`${A} [data-act=yday]`)) && !(await p.$(`${A} .spk`)) && !(await p.$(`${A} [data-act=gohome]`)));
+    check("Rounds card: questions first, then today's plan, then the checklist", await p.evaluate(() => { const r = document.querySelector("#roundsCard"), q = r.querySelector("#qCard"), pl = r.querySelector("#planCard"), c = r.querySelector("#ckToday [data-ckgo]"); return !!(q && pl && c) && !!(q.compareDocumentPosition(pl) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(pl.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING); }));
+    check("Today has no milk summary (it's on the Milk tab)", !(await p.$("#todayMilk")));
+    await p.click("#ckToday [data-ckgo]"); await p.waitForTimeout(250);
     check("checklist link opens Progress", await p.$eval("#tabbar .on", b => b.dataset.tab) === "trends");
     await p.click('#tabbar button[data-tab=feed]'); await p.waitForTimeout(250);
     await p.fill(`${A} .wIn`, "2560"); await p.click(`${A} [data-act=wsave]`); await p.waitForTimeout(900);
     check("tonight's weight saves to the feed day", await db(p, () => __db.weights["b0-2026-02-10"]?.v) === 2560);
     check("mL/kg/day shows", /\d+ mL\/kg\/day/.test(await p.textContent(`${A} .tsum`)), await p.textContent(`${A} .tsum`));
-    await p.screenshot({ path: path.join(SHOTS, "today-single.png") });
+    await p.screenshot({ path: path.join(SHOTS, "today-single.png"), fullPage: true });
     await p.click("#view button:nth-child(3)"); await p.waitForTimeout(200);
     await p.screenshot({ path: path.join(SHOTS, "today-both.png") });
 
@@ -167,9 +169,6 @@ async function main() {
     p.answers = ["Monday"]; await p.click("#qList [data-q]"); await p.waitForTimeout(200);
     check("question added and answered", (await p.innerText("#qList")).includes("→ Monday"));
     await p.evaluate(() => Store.put("pumps", "p-t", { t: Date.now() - 3600e3, v: 120 })); await p.waitForTimeout(200);
-    await p.click("#todayMilk"); await p.waitForTimeout(250);
-    check("milk summary on Today opens Milk", await p.$eval("#tabbar .on", b => b.dataset.tab) === "milk");
-    await p.click('#tabbar button[data-tab=feed]'); await p.waitForTimeout(250);
 
     // ---- milk ----
     await tab(p, "milk");
@@ -249,16 +248,16 @@ async function main() {
     check("checklist counts: marked done / open / not needed", /1 marked done/.test(await p.textContent("#ckBabies .ckmeta")) && /6 open/.test(await p.textContent("#ckBabies .ckmeta")) && /1 not needed/.test(await p.textContent("#ckBabies .ckmeta")), await p.textContent("#ckBabies .ckmeta"));
     await p.click('[data-ck="f-cpr"]'); await p.waitForTimeout(150);
     check("family checklist updates", await db(p, () => __db.checklist["f-cpr"]?.s === "done") && /1\/6/.test(await p.textContent("#famList h2")));
-    await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); b.scrollIntoView({ block: "center" }); window.__ck = { b, y: scrollY, ch: Chart.getChart("cDaily") }; });
+    await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); b.scrollIntoView({ block: "center" }); window.__ck = { b, y: scrollY, ch: Chart.getChart("cFeed") }; });
     await p.click('[data-ck="b1-hearing"]'); await p.waitForTimeout(200);
-    const still = await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); return { same: b === __ck.b, dy: Math.abs(scrollY - __ck.y), chart: Chart.getChart("cDaily") === __ck.ch, on: b.getAttribute("aria-pressed") }; });
+    const still = await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); return { same: b === __ck.b, dy: Math.abs(scrollY - __ck.y), chart: Chart.getChart("cFeed") === __ck.ch, on: b.getAttribute("aria-pressed") }; });
     check("checklist tap keeps the screen still (same button, no scroll, no chart redraw)", still.same && still.dy < 2 && still.chart && still.on === "true", JSON.stringify(still));
     await db(p, () => Store.put("checklist", "b1-cchd", { s: "done", d: "2026-02-10", by: "parent2@example.com" })); await p.waitForTimeout(200);
     check("the other parent's checklist mark updates in place, with counts", await p.evaluate(() => document.querySelector('[data-ck="b1-hearing"]') === __ck.b) && (await p.$$eval("#ckBabies .cl h4 .ckn", x => x[1].textContent)) === "2/8" && /P|parent2/.test(await p.textContent('[data-ck="b1-cchd"] .dt')), await p.$$eval("#ckBabies .cl h4 .ckn", x => x.map(e => e.textContent).join(",")));
     await db(p, () => { Store.remove("checklist", "b1-hearing"); Store.remove("checklist", "b1-cchd"); }); await p.waitForTimeout(200);
-    await p.evaluate(() => document.querySelector("#cDaily").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
-    const box = await p.$eval("#cDaily", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .4, y: r.y + r.height * .6 }; });
-    const tip = () => p.evaluate(() => Chart.getChart("cDaily").tooltip.getActiveElements().length);
+    await p.evaluate(() => document.querySelector("#cFeed").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
+    const box = await p.$eval("#cFeed", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .4, y: r.y + r.height * .6 }; });
+    const tip = () => p.evaluate(() => Chart.getChart("cFeed").tooltip.getActiveElements().length);
     await p.touchscreen.tap(box.x, box.y); await p.waitForTimeout(200); const opened = await tip();
     await p.touchscreen.tap(20, 300); await p.waitForTimeout(200);
     check("chart callout opens on tap and closes on a tap elsewhere", opened > 0 && (await tip()) === 0);
@@ -418,7 +417,7 @@ async function main() {
         if (title != null) await J.fill("#mTitle", title); if (note != null) await J.fill("#mNote", note);
         await J.click("#mSave"); await J.waitForTimeout(200); };
       await tab(J, "trends");
-      check("Journey timeline sits below the existing Progress content", await J.evaluate(() => !!(document.querySelector("#cDaily").compareDocumentPosition(document.querySelector("#jCard")) & Node.DOCUMENT_POSITION_FOLLOWING)));
+      check("Journey timeline sits below the existing Progress content", await J.evaluate(() => !!(document.querySelector("#cFeed").compareDocumentPosition(document.querySelector("#jCard")) & Node.DOCUMENT_POSITION_FOLLOWING)));
       check("checklist label reads 'Open crib, maintaining temperature' (id unchanged)", (await J.textContent('[data-ck="b0-crib"] .lb')) === "Open crib, maintaining temperature");
       // add one of each scope
       await sheet("0", "milestone", "first-hold", null, "Forty minutes");

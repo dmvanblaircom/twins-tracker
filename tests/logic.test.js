@@ -43,8 +43,6 @@ async function main() {
     const st2 = await q.textContent("#mkStats"), inv2 = await q.textContent("#mkInv");
     check("Milk: with both babies home, it says so (not 'no mother's milk planned')", st2.includes("both babies are home") && inv2.includes("Both babies are home") && !inv2.includes("usual milk"), inv2.slice(0, 200));
     check("…and no Infinity / NaN anywhere", !/Infinity|NaN/.test(await q.evaluate(() => document.body.innerText)));
-    await tab(q, "feed");
-    check("Today's milk row says both babies are home", (await q.textContent("#todayMilk")).includes("both babies are home"));
     // milk sources on, a source set for after Ada went home
     await setHome(q, 1, null); await setHome(q, 0, null); await wait(q, 300);
     await q.evaluate(() => Store.put("clients", "u2", { v: MilkSources.CLIENT_V, t: 1 }));
@@ -95,10 +93,10 @@ async function main() {
     await yp.evaluate(() => { const start = new Date("2026-02-10T07:00:00-05:00").getTime();
       Object.entries(__db.feeds || {}).forEach(([id, f]) => { if ((f.i === 0 || f.twin === "Ada Rose") && f.t >= start) Store.delFeed(id); }); });
     await wait(yp, 500);
-    const shown = await yp.evaluate(() => { const b = [...document.querySelectorAll(".spk b")][0]; return b ? b.textContent.trim() : null; });
+    const shown = await yp.evaluate(() => { const b = document.querySelector('.nx [data-act="yday"]'); const r = b && b.textContent.match(/(\d+)%/); return r ? r[1] + "%" : null; });
     await yp.click("#dPrev"); await wait(yp, 300);
     const sheet = await yp.evaluate(() => { const m = (document.querySelector("#sheet .tws") || {}).textContent || ""; const r = m.match(/(\d+)%/); return r ? r[1] + "%" : null; });
-    check("the 7-day trend's 'yesterday' is yesterday's total even when nothing is logged yet today (matches the day sheet)", !!shown && shown === sheet, `trend ${shown} · sheet ${sheet}`);
+    check("Today's 'yesterday' figure is yesterday's total even when nothing is logged yet today (matches the day sheet)", !!shown && shown === sheet, `trend ${shown} · sheet ${sheet}`);
     await yp.context().close();
 
     // ===== Plans from rounds: Today card (both views), one per baby per day, editable from Care =====
@@ -121,7 +119,10 @@ async function main() {
     const yl = await newPage(browser, base, { now: NOW }); await importData(yl);
     await tab(yl, "feed"); await yl.click(`#viewbar button[data-v="${ADA}"], .viewbar button:has-text("${ADA}")`).catch(() => {}); await wait(yl, 300);
     const yTxt = await yl.evaluate(() => { const b = document.querySelector('.nx [data-act="yday"]'); return b ? b.textContent.trim() : null; });
-    check("single view: a Yesterday line on the card", !!yTxt && /^Yesterday: \d+ \/ \d+ mL · \d+% · \d+ of \d+ feeds/.test(yTxt), yTxt);
+    check("single view: a Yesterday line on the card", !!yTxt && /^Yesterday: \d+ \/ \d+ mL · \d+% · [+−-]?\d+ mL vs Feb 8 · \d+ of \d+ feeds/.test(yTxt), yTxt);
+    const dayTot = d => yl.evaluate(d => { const s = new Date(d + "T07:00:00-05:00").getTime(); return Object.values(__db.feeds).filter(f => f.i === 0 && f.t >= s && f.t < s + 864e5).reduce((a, f) => a + f.v, 0); }, d);
+    const want = Math.round(await dayTot("2026-02-09")) - Math.round(await dayTot("2026-02-08"));
+    check("…its change is yesterday's by-mouth total minus the day before's", (yTxt || "").replace("−", "-").includes(`${want > 0 ? "+" : ""}${want} mL vs Feb 8`), `${yTxt} · expected ${want}`);
     await yl.click('.nx [data-act="yday"]'); await wait(yl, 300);
     const ySheet = await yl.evaluate(() => (document.querySelector("#sheet .tws") || {}).textContent || "");
     const pctOf = t => (t.match(/(\d+)%/) || [])[1];

@@ -275,13 +275,6 @@
   .tgo{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:44px;margin-top:var(--sp-2);padding:8px 12px;
     border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2);color:var(--text);font:inherit;font-size:var(--fs-sm);text-align:left;cursor:pointer}
   .tgo b{color:var(--title)} .tgo .chev{color:var(--primary);font-weight:700;font-size:18px}
-  .spk{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)}
-  .spk div{font-size:var(--fs-xs);color:var(--text2)} .spk b{color:var(--title);font-size:var(--fs-md)}
-  .spk svg{display:block;width:100%;height:40px;margin-top:4px}
-  .tmilk{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-2);width:100%;text-align:left;margin:0 0 var(--sp-3);padding:12px var(--sp-4);
-    border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow-1);color:var(--text);font:inherit;font-size:var(--fs-sm);cursor:pointer;min-height:48px}
-  .tmilk b{color:var(--title)} .tmilk .chev{color:var(--primary);font-weight:700;font-size:18px}
-  .tmilk:empty{display:none}
   /* large text (A+/A++) narrows cards: stack entry controls */
   @container (max-width: 300px){
     .feed{grid-template-columns:minmax(0,1fr)}
@@ -342,6 +335,9 @@
   .mcbaby + .mcbaby{margin-top:var(--sp-4)} .mcbaby h3{margin:0 0 var(--sp-1);font-size:var(--fs-lg);color:var(--title)}
   .mcline{margin-top:var(--sp-3);padding-top:var(--sp-2);border-top:1px solid var(--grid);font-size:var(--fs-sm);color:var(--text2)} .mcline b{color:var(--title)}
   .wg .d.mcd{color:var(--muted)}
+  .rh{font-size:var(--fs-xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:var(--sp-4) 0 var(--sp-2)}
+  #roundsCard h2 + div .rh{margin-top:var(--sp-2)}
+  .rh #qCount{text-transform:none;letter-spacing:0;font-weight:400}
   .plist{list-style:none;margin:0;padding:0}
   .plist li{display:grid;grid-template-columns:1fr auto;gap:var(--sp-2) var(--sp-3);align-items:start;padding:var(--sp-3) 0;border-top:1px solid var(--grid)}
   .plist li:first-child{border-top:0;padding-top:0}
@@ -549,14 +545,15 @@
     <div id="camTip"></div>
     <div id="next"></div>
   </section>
-  <div class="card" id="planCard"><h2>Today's plan from rounds</h2>
-    <ul class="plist" id="planToday"></ul>
-    <p class="note">One plan per baby per day, written down by your family after rounds. Editing replaces that day's plan.</p>
+  <div class="card" id="roundsCard"><h2>Rounds</h2>
+    <div id="qCard"><h3 class="rh">Questions <span id="qCount"></span></h3>
+      <ul class="qs" id="qList"></ul>
+      <div class="qadd"><input id="qText" type="text" maxlength="200" placeholder="Add a question…" aria-label="New question for rounds"><button class="btn ghost" id="qGo">Add</button></div></div>
+    <div id="planCard"><h3 class="rh">Today's plan</h3>
+      <ul class="plist" id="planToday"></ul>
+      <p class="note">One plan per baby per day, written down by your family after rounds. Editing replaces that day's plan.</p></div>
+    <div id="ckToday"></div>
   </div>
-  <div class="card" id="qCard"><h2>Questions for rounds <span class="muted" id="qCount" style="font-weight:400;font-size:13px"></span></h2>
-    <ul class="qs" id="qList"></ul>
-    <div class="qadd"><input id="qText" type="text" maxlength="200" placeholder="Add a question…" aria-label="New question for rounds"><button class="btn ghost" id="qGo">Add</button></div></div>
-  <button class="tmilk" id="todayMilk" type="button"></button>
   <!-- FEED SHEET -->
   <div class="card">
     <h2>Feed sheet</h2>
@@ -580,6 +577,12 @@
     <div class="chartbox tall"><canvas id="cWeight" aria-label="Nightly weights over time" role="img"></canvas></div>
     <div class="legend"><span><span class="dot" style="background:var(--t0)"></span><span class="nm0"></span></span><span><span class="dot" style="background:var(--t1)"></span><span class="nm1"></span></span><span>● recorded</span><span>○ estimated (dashed)</span></div>
     <div class="note">Tap the chart to see each baby's weight that night.</div>
+  </div>
+  <!-- DAILY PO -->
+  <div class="card">
+    <h2>By mouth per day <span class="muted" style="font-size:var(--fs-xs);font-weight:600">% of configured target</span></h2>
+    <div class="chartbox"><canvas id="cDaily" aria-label="Daily total by mouth as a percent of the full-feed target" role="img"></canvas></div>
+    <div class="note">Target = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
   </div>
   <!-- WEIGHT GRID -->
   <div class="card">
@@ -631,12 +634,6 @@
     <div class="chartbox"><canvas id="cFeed" aria-label="mL taken by mouth at each feed" role="img"></canvas></div>
     <div class="legend"><span>● each feed (mL)</span><span>— 24-hour average</span><span id="fullLegend"></span></div>
     <div class="note">Tap the chart to see that feed.</div>
-  </div>
-  <!-- DAILY PO -->
-  <div class="card">
-    <h2>By mouth per day <span class="muted" style="font-size:var(--fs-xs);font-weight:600">% of configured target</span></h2>
-    <div class="chartbox"><canvas id="cDaily" aria-label="Daily total by mouth as a percent of the full-feed target" role="img"></canvas></div>
-    <div class="note">Target = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
   </div>
   <!-- JOURNEY TIMELINE -->
   <div class="card" id="jCard">
@@ -1324,7 +1321,7 @@
   function renderNext(){
     if(!profileReady() || nextBusy>0 || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
     const C=COLORS(), now=new Date();
-    $("nextClock").textContent = hm(now.getTime()); renderCtx(); renderTodayMilk();
+    $("nextClock").textContent = hm(now.getTime()); renderCtx();
     $("next").innerHTML = focusOrder(shown()).map(tw=>{
       if(!inNicu(tw)) return state.view==="both"
         ? `<section class="nx gone mini" style="--c:${C[tw]}" aria-label="${esc(tw)}"><span class="slead">${homeShort(tw)}</span>${viewBabyBtn(tw)}</section>`
@@ -1364,14 +1361,6 @@
     $("ageLine").textContent = ageLine();
   }
   // ---------- Today: totals, tonight's weight, 7-day mini trends ----------
-  function spark(vals,{bar=false,color,max,min,lastFaded=false}={}){
-    const W_=140,H_=38,n=vals.length; if(!n) return "";
-    const ok=vals.filter(v=>v!=null); if(!ok.length) return `<svg viewBox="0 0 ${W_} ${H_}" aria-hidden="true"></svg>`;
-    const hi=max??Math.max(...ok), lo=bar?0:(min??Math.min(...ok)), span=(hi-lo)||1, y=v=>H_-3-(v-lo)/span*(H_-6);
-    if(bar){ const bw=W_/n; return `<svg viewBox="0 0 ${W_} ${H_}" aria-hidden="true">${vals.map((v,k)=>v==null?"":`<rect x="${k*bw+2}" y="${y(Math.min(v,hi))}" width="${bw-4}" height="${H_-3-y(Math.min(v,hi))}" rx="2" fill="${color}" opacity="${lastFaded&&k===n-1?.45:1}"/>`).join("")}<line x1="0" x2="${W_}" y1="${y(100)}" y2="${y(100)}" stroke="var(--muted)" stroke-dasharray="3 3"/></svg>`; }
-    const pts=vals.map((v,k)=>v==null?null:`${(k/(n-1||1))*(W_-6)+3},${y(v)}`).filter(Boolean);
-    return `<svg viewBox="0 0 ${W_} ${H_}" aria-hidden="true"><polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>${pts.length?`<circle cx="${pts[pts.length-1].split(",")[0]}" cy="${pts[pts.length-1].split(",")[1]}" r="3.5" fill="${color}"/>`:""}</svg>`;
-  }
   function poPerKg(tw,hours=24){ const w=wSeries(tw).pop(); if(!w) return null; const now=Date.now();
     const s=F.filter(f=>f.twin===tw && f.t<=now && f.t>now-hours*3600e3).reduce((a,f)=>a+f.v,0); return Math.round(s/(hours/24)/(w.v/1000)); }
   // Yesterday's feed day (same 7 AM–7 AM day and slot matching as the day sheet, so the numbers always agree)
@@ -1381,7 +1370,10 @@
     let tot=0, n=0; SLOT_H.forEach((_,i)=>{ const f=slotFeed(tw,y,i); if(f){ tot+=f.v; n++; } });
     const goal=FULL[tw]*FEEDS_PER_DAY, w=W[tw+"|"+y], prev=w && wSeries(tw).filter(x=>x.date<y).pop();
     if(!n && !w) return "";
-    return `<button class="tgo yday" data-act="yday" data-day="${y}" aria-label="Open ${esc(tw)}'s feeds for yesterday, ${md(y)}"><span>Yesterday: <b>${Math.round(tot)}</b> / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b> · ${n} of ${SLOT_H.length} feeds${w?` · ${wtMain(w.v)}${prev?` (${sgn(w.v-prev.v)} g)`:""}`:""}</span><span class="chev" aria-hidden="true">›</span></button>`;
+    const d2=keyDate(y); d2.setDate(d2.getDate()-1); const y2=dKey(d2);   // the day before yesterday, for the change in volume
+    let tot2=0, n2=0; if(n && y2>=dKey(FIRST_NIGHT) && inNicu(tw, d2.getTime()+DAY_START_H*36e5)) SLOT_H.forEach((_,i)=>{ const f=slotFeed(tw,y2,i); if(f){ tot2+=f.v; n2++; } });
+    const chg = n && n2 ? ` · ${sgn(Math.round(tot)-Math.round(tot2))} mL vs ${md(y2)}` : "";
+    return `<button class="tgo yday" data-act="yday" data-day="${y}" aria-label="Open ${esc(tw)}'s feeds for yesterday, ${md(y)}"><span>Yesterday: <b>${Math.round(tot)}</b> / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b>${chg} · ${n} of ${SLOT_H.length} feeds${w?` · ${wtMain(w.v)}${prev?` (${sgn(w.v-prev.v)} g)`:""}`:""}</span><span class="chev" aria-hidden="true">›</span></button>`;
   }
   function todayBlock(tw){
     const C=COLORS(), day=feedDay(Date.now()), full=FULL[tw], goal=full*FEEDS_PER_DAY;
@@ -1407,9 +1399,6 @@
           <div class="feedsline split"><span>${feedsTxt}</span><button class="link" data-act="detail" aria-label="Open ${esc(tw)}'s full day">Full day ›</button></div>${yestLine(tw)}</div>
         <div class="sec twt inline">${wInline}</div>`;
     }
-    const days=[...Array(7)].map((_,i)=>{ const d=keyDate(day); d.setDate(d.getDate()-6+i); return dKey(d); });
-    const pcts=days.map(x=>{ const s=F.filter(f=>f.twin===tw && feedDay(f.t)===x); return s.length?Math.round(s.reduce((a,f)=>a+f.v,0)/goal*100):null; });
-    const ws=wSeries(tw).slice(-7), lw=ws[ws.length-1], fw=ws[0], ck=ckSummary(tw), p=latestPlan(tw);
     return `<div class="sec tsum">
         <div class="sec-h"><span>Intake today</span><span>${md(day)}</span></div>
         <div class="metrics">
@@ -1421,16 +1410,7 @@
         <div class="feedsline">${feedsTxt}</div>
         <div class="last">${lastTxt}</div>${yestLine(tw)}
       </div>
-      <div class="sec twt">${wRow}</div>
-      <div class="sec">
-        <div class="sec-h"><span>Rounds</span></div>
-        <button class="tgo" data-act="gohome"><span>Checklist: <b>${ck.done} of ${ck.need}</b> done${ck.next?` · next: ${esc(ck.next)}`:""}</span><span class="chev" aria-hidden="true">›</span></button>
-      </div>
-      <div class="sec">
-        <div class="sec-h"><span>7-day trends</span></div>
-        <div class="spk"><div>By mouth (% of target)<br><b>${pcts[5]??"—"}${pcts[5]==null?"":"%"}</b> yesterday${spark(pcts,{bar:true,color:C[tw],max:120,lastFaded:true})}</div>
-          <div>Weight, ${ws.length} nights<br><b>${lw?wtMain(lw.v):"—"}</b> ${lw&&fw&&ws.length>1?`<span class="muted">${sgn(lw.v-fw.v)} g</span>`:""}${spark(ws.map(x=>x.v),{color:C[tw]})}</div></div>
-      </div>`;
+      <div class="sec twt">${wRow}</div>`;
   }
   function ageLine(){
     if(!profile) return "";
@@ -1438,14 +1418,6 @@
     const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""); if(!m) return `Day ${dol+1} of life`;   // display: the birth date is Day 1
     const pma=(+m[1])*7+(+(m[2]||0))+dol; return `Day ${dol+1} · ${Math.floor(pma/7)}w${pma%7}d PMA`;
   }
-  function renderTodayMilk(){
-    const el=$("todayMilk"); if(!profileReady() || !P.length && !D.length && !milkCfg){ el.textContent=""; return; }
-    const now=Date.now(), n=need(), tot=P.filter(x=>x.t>now-DAY).reduce((a,x)=>a+x.v,0), st=stock(), last=[...P].sort((a,b)=>b.t-a.t)[0];
-    el.innerHTML = n>0
-      ? `<span><b>Milk</b> · pumped ${Math.round(tot)} / ${Math.round(n)} mL (24 h)${st!=null?` · NICU ≈ ${(st/n).toFixed(1)} days`:""}${last?` · last pump ${ago(last.t)} ago`:""}</span><span class="chev" aria-hidden="true">›</span>`
-      : `<span><b>Milk</b> · pumped ${Math.round(tot)} mL (24 h) · ${TWINS.some(tw=>inNicu(tw))?"no mother's milk planned":"both babies are home"}${st!=null?` · NICU ≈ ${fmtG(st)} mL`:""}${last?` · last pump ${ago(last.t)} ago`:""}</span><span class="chev" aria-hidden="true">›</span>`;
-  }
-  $("todayMilk").addEventListener("click",()=>showTab("milk"));
   async function saveTodayWeight(row){
     const inp=row.querySelector(".wIn"); if(!inp) return; if(inp.value.trim()===""){ inp.focus(); return; }
     nextBusy++; row.dataset.busy="1"; const ok=await saveWeight(row.dataset.tw, inp.dataset.day, inp, row, "");
@@ -1476,7 +1448,6 @@
     if(act==="tag"){ b.setAttribute("aria-pressed", b.getAttribute("aria-pressed")==="true"?"false":"true"); return; }
     if(act==="wsave"){ saveTodayWeight(row); return; }
     if(act==="plan"){ editPlan(tw); return; }
-    if(act==="gohome"){ showTab("trends"); return; }
     if(act==="yday"){ state.day=b.dataset.day; sheetDirty=false; renderSheet(); $("dLabel").scrollIntoView({block:"start"}); return; }
     if(act==="src"){ openSrc(TWINS.indexOf(tw), slotT(tw,row.dataset.day,+row.dataset.i)); return; }
     if(act==="save") nextSave(row);
@@ -1547,7 +1518,7 @@
 
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
-  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); renderViewHome(); }
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); renderCkToday(); renderViewHome(); }
   function renderViewHome(){
     if(!profileReady()) return;
     [...$("view").children].forEach(b=>{ const d=b.dataset.v; if(d[0]!=="#") return; const tw=TWINS[+d[1]], gone=!inNicu(tw);
@@ -2251,9 +2222,14 @@
           : `<div class="pm">Nothing written yet today.${last?` Last plan ${md(last.day)}: ${esc(last.text)}`:""}</div>`}</div>
         <button class="btn ghost" type="button" data-plan-day="${i}|${day}" aria-label="${p?"Edit":"Add"} today's plan for ${esc(tw)}">${p?"Edit":"Add"}</button></li>`; }).join("");
   }
+  function renderCkToday(){
+    const el=$("ckToday"); if(!el||!profileReady()) return;
+    const list=shown().filter(tw=>inNicu(tw));
+    el.innerHTML = list.length ? `<h3 class="rh">Discharge checklist</h3>${list.map(tw=>{ const ck=ckSummary(tw);
+      return `<button class="tgo" type="button" data-ckgo aria-label="${esc(tw)}'s checklist: ${ck.done} of ${ck.need} done. Open Progress"><span>${list.length>1?`<b>${esc(tw)}</b> · `:""}<b>${ck.done} of ${ck.need}</b> done${ck.next?` · next: ${esc(ck.next)}`:""}</span><span class="chev" aria-hidden="true">›</span></button>`; }).join("")}` : "";
+  }
+  $("ckToday").addEventListener("click",e=>{ if(e.target.closest("[data-ckgo]")) showTab("trends"); });
   $("planToday").addEventListener("click",e=>{ const b=e.target.closest("[data-plan-day]"); if(!b) return; const [i,day]=b.dataset.planDay.split("|"); editPlan(TWINS[+i], day); });
-  function latestPlan(tw){ const i=twIdx(tw), day=feedDay(Date.now());
-    const mine=Object.values(PLANS).filter(p=>p.i===i).sort((a,b)=>a.day<b.day?1:-1); return {today:mine.find(p=>p.day===day), last:mine[0], day}; }
   async function editPlan(tw, forDay){
     const i=twIdx(tw), day=forDay||feedDay(Date.now()), id=`${i}-${day}`, today=PLANS[id];
     const r=prompt(`Plan from rounds for ${tw} (${md(day)})`, today?today.text:""); if(r==null) return;
@@ -2331,7 +2307,6 @@
   const ago = t => { const m=Math.max(0,Math.round((Date.now()-t)/60e3)); return m<60?`${m} min`:`${Math.floor(m/60)} h ${m%60} min`; };
   function renderMilk(){
     if(!profileReady()) return;
-    renderTodayMilk();   // the Today summary follows milk data even while a feed card is mid-entry
     const now=Date.now(), n=need(), p24=P.filter(x=>x.t>now-DAY), tot24=p24.reduce((a,x)=>a+x.v,0);
     const last=[...P].sort((a,b)=>b.t-a.t)[0], st=stock();
     const days7=[...Array(7)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-k-1); return dKey(d); });
@@ -2823,7 +2798,7 @@
     if(Store.watch){
       unsubs.push(Store.watch("pumps",list=>{ RAW.pumps=list; P=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
       unsubs.push(Store.watch("drops",list=>{ RAW.drops=list; D=list.map(([id,d])=>cleanM(id,d)).filter(Boolean); renderMilk(); }, ()=>{}));
-      unsubs.push(Store.watch("checklist",list=>{ RAW.checklist=list; CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); if(document.querySelector("#ckBabies [data-ck]")) patchChecklists(); else { renderFam(); renderBabyChecklists(); renderNext(); } }, ()=>{}));
+      unsubs.push(Store.watch("checklist",list=>{ RAW.checklist=list; CK={}; list.forEach(([id,d])=>{ if(d&&(d.s==="done"||d.s==="na")) CK[id]={s:d.s,d:typeof d.d==="string"?d.d:"",by:typeof d.by==="string"?d.by:""}; }); if(document.querySelector("#ckBabies [data-ck]")) patchChecklists(); else { renderFam(); renderBabyChecklists(); renderNext(); } renderCkToday(); }, ()=>{}));
       unsubs.push(Store.watch("plans",list=>{ RAW.plans=list; PLANS={}; list.forEach(([id,d])=>{ if(d&&typeof d.text==="string"&&/^\d{4}-\d\d-\d\d$/.test(d.day||"")) PLANS[id]={i:+d.i,day:d.day,text:d.text.slice(0,300),by:typeof d.by==="string"?d.by:""}; }); renderNext(); renderCare(); renderPlanToday(); }, ()=>{}));
       // The other shared collections: events (Journey), milk sources, and needs (no screen yet: watched only so backups carry it).
       bkCols().filter(c=>!["weights","feeds","pumps","drops","checklist","plans","questions"].includes(c)).forEach(c=>unsubs.push(Store.watch(c,list=>{ RAW[c]=list;

@@ -180,8 +180,7 @@ async function main() {
     check("zero need: the estimate says there's no days figure, in words", (await p.textContent("#mkInv")).includes("No mother's milk is planned"));
     check("zero need: Need / day 0 with 'no mother's milk planned', no % of need", (await p.textContent("#mkStats")).includes("no mother's milk planned") && !(await p.textContent("#mkStats")).includes("% of need"));
     await shot(p, "13-milk-zero-need", true);
-    await tab(p, "feed");
-    check("zero need: Today's milk row says so instead of a days figure", (await p.textContent("#todayMilk")).includes("no mother's milk planned") && !/Infinity|NaN/.test(await bodyText(p)));
+    check("zero need: no Infinity / NaN anywhere", !/Infinity|NaN/.test(await bodyText(p)));
     await p.evaluate(async () => { await __nicu.src.setUsual(0, { mom: 60, donor: 40, formula: 0 }); await __nicu.src.setUsual(1, { mom: 0, donor: 100, formula: 0 }); }); await wait(p);
 
     // ===== 9. schedule change: stranded upcoming sources =====

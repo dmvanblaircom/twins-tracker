@@ -13,7 +13,7 @@ const at = s => new Date(s).getTime();
 const DROP = at("2026-02-05T08:00:00-05:00");
 const T = h => at(`2026-02-10T${h}:00-05:00`);                    // Ada's feed times on Feb 10 (her offset is 0)
 const snap = p => p.evaluate(() => ({ inv: document.querySelector("#mkInv").textContent, stats: document.querySelector("#mkStats").textContent,
-  today: document.querySelector("#todayMilk").textContent, parts: (({ src, ...r }) => r)(__nicu.src.parts() || {}), need: __nicu.src.need(), next: __nicu.src.nextUse() }));
+  parts: (({ src, ...r }) => r)(__nicu.src.parts() || {}), need: __nicu.src.need(), next: __nicu.src.nextUse() }));
 const sameSnap = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const ff = (p, ms) => p.context().clock.fastForward(ms);
 const sheetSave = async (p, tw, i, v) => { const sel = `#sheet input[data-tw="${tw}"][data-i="${i}"]`; await p.fill(sel, String(v)); await p.press(sel, "Tab"); await p.waitForTimeout(250); };
@@ -68,7 +68,7 @@ async function main() {
     check("first use writes exactly one first-use period (from 0, today's schedule)", await p.evaluate(() => { const ps = Object.values(__db.schedPeriods); return ps.length === 1 && ps[0].from === 0 && ps[0].src === "first-use" && ps[0].everyH === 3; }));
     check("sources are now on", await p.evaluate(() => __nicu.src.on()));
     const S1 = await snap(p);
-    const num = x => JSON.stringify([x.parts, x.need, x.next, x.today]);
+    const num = x => JSON.stringify([x.parts, x.need, x.next]);
     check("first use: every number (estimate, used, feeds, need, next draw) and the Today milk row are identical to before", num(S1) === num(S0), JSON.stringify([S0.parts, S1.parts]));
     check("first use: the Milk tab now shows the working by source, with the same used total", S1.inv.includes("Mother's milk used by scheduled feeds since (" + S0.parts.nFeeds + ")") && S1.inv.includes("Not recorded"), S1.inv.slice(0, 300));
     check("0 / 0 / 100 is accepted", !(await p.evaluate(() => __nicu.src.setUsual(1, { mom: 0, donor: 0, formula: 100 }))).error);
