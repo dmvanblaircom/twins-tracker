@@ -292,7 +292,7 @@
   .gm .s,.inv .s{font-size:var(--fs-sm);color:var(--text2);margin-top:2px}
   .chartbox.tall{height:300px}
   .wg tr.tonight td{background:color-mix(in srgb,var(--accent) 7%,transparent)}
-  .wg td:first-child{white-space:nowrap;font-size:var(--fs-sm);color:var(--text2)} .wg td:first-child b{color:var(--title);display:block;font-size:var(--fs-sm)}
+  .wg td:first-child{white-space:nowrap;font-size:var(--fs-sm);color:var(--text2)} .wg td:first-child b{color:var(--title);display:block;font-size:var(--fs-sm);line-height:1.15}
   .wg .tn{display:inline-block;margin-top:2px;padding:0 6px;border-radius:var(--r-pill);background:var(--accent);color:var(--on-accent);font-size:var(--fs-xs);font-weight:700;letter-spacing:.03em;text-transform:uppercase}
   .wg .d .est{color:var(--warning-ink);font-weight:650}
   .inv{container-type:inline-size}
@@ -338,6 +338,7 @@
   .rh{font-size:var(--fs-xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:var(--sp-4) 0 var(--sp-2)}
   #roundsCard h2 + div .rh{margin-top:var(--sp-2)}
   .rh #qCount{text-transform:none;letter-spacing:0;font-weight:400}
+  .gline{margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--grid);font-size:var(--fs-sm);color:var(--text2)} .gline b{color:var(--title)}
   .plist{list-style:none;margin:0;padding:0}
   .plist li{display:grid;grid-template-columns:1fr auto;gap:var(--sp-2) var(--sp-3);align-items:start;padding:var(--sp-3) 0;border-top:1px solid var(--grid)}
   .plist li:first-child{border-top:0;padding-top:0}
@@ -460,6 +461,13 @@
   td.num,th.num{text-align:right}
   .wg input{width:100%;min-width:64px;max-width:100px;padding:9px 8px;font-size:18px;text-align:right}
   .wg input.approx{color:var(--muted);font-style:italic}
+  .wg td{padding-top:2px;padding-bottom:2px}
+  .wg button.wv{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:0;width:100%;min-height:44px;line-height:1.15;padding:2px 4px;border:0;border-radius:var(--r-sm);background:none;color:var(--text);font:inherit;font-size:var(--fs-md);font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;text-align:right}
+  .wg button.wv small{font-size:var(--fs-xs);font-weight:500;color:var(--muted)}
+  .wg button.wv .wn .est{font-size:var(--fs-xs);font-style:normal;color:var(--warning-ink);font-weight:650} .wg button.wv .dl{font-size:var(--fs-xs);font-weight:500;color:var(--muted)} .wg button.wv .dl .est{color:var(--warning-ink);font-weight:650}
+  .wg button.wv.approx{font-style:italic;color:var(--text2)} .wg button.wv.missing{color:var(--muted)}
+  .wg button.wv:hover{background:var(--surface-2)}
+  #wMore{width:100%;margin-top:var(--sp-2)}
   .wg input.missing{border-style:dashed}
   .wg .d{font-size:var(--fs-xs);color:var(--muted);display:block;text-align:right;margin-top:2px;min-height:14px}
   .wg td.saving input{opacity:.5}
@@ -578,18 +586,20 @@
     <div class="legend"><span><span class="dot" style="background:var(--t0)"></span><span class="nm0"></span></span><span><span class="dot" style="background:var(--t1)"></span><span class="nm1"></span></span><span>● recorded</span><span>○ estimated (dashed)</span></div>
     <div class="note">Tap the chart to see each baby's weight that night.</div>
   </div>
-  <!-- DAILY PO -->
-  <div class="card">
-    <h2>By mouth per day <span class="muted" style="font-size:var(--fs-xs);font-weight:600">% of configured target</span></h2>
-    <div class="chartbox"><canvas id="cDaily" aria-label="Daily total by mouth as a percent of the full-feed target" role="img"></canvas></div>
-    <div class="note">Target = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
-  </div>
-  <!-- PO CHART -->
-  <div class="card">
-    <h2>By mouth per feed <span class="muted" style="font-size:var(--fs-xs);font-weight:600">mL</span></h2>
-    <div class="chartbox"><canvas id="cFeed" aria-label="mL taken by mouth at each feed" role="img"></canvas></div>
-    <div class="legend"><span>● each feed (mL)</span><span>— 24-hour average</span><span id="fullLegend"></span></div>
-    <div class="note">Tap the chart to see that feed.</div>
+  <!-- BY MOUTH: per day (% of target) or per feed (mL) -->
+  <div class="card" id="poCard">
+    <h2>By mouth
+      <div class="seg small" id="poMode"><button data-v="day" class="on">Per day</button><button data-v="feed">Per feed</button></div>
+    </h2>
+    <div id="poDay">
+      <div class="chartbox"><canvas id="cDaily" aria-label="Daily total by mouth as a percent of the full-feed target" role="img"></canvas></div>
+      <div class="note">% of target. Target = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
+    </div>
+    <div id="poFeed" hidden>
+      <div class="chartbox"><canvas id="cFeed" aria-label="mL taken by mouth at each feed" role="img"></canvas></div>
+      <div class="legend"><span>● each feed (mL)</span><span>— 24-hour average</span><span id="fullLegend"></span></div>
+      <div class="note">Tap the chart to see that feed.</div>
+    </div>
   </div>
   <!-- WEIGHT GRID -->
   <div class="card">
@@ -598,7 +608,8 @@
       <thead><tr id="wHead"></tr></thead>
       <tbody id="wBody"></tbody>
     </table></div>
-    <div class="note">Tap a cell to enter or correct a weight in grams. <i>Italic</i> with “est.” = estimated from the printed graph; dashed = no weight yet. Typing over a value replaces it (Undo appears); clearing a cell deletes it.</div>
+    <button class="btn ghost" id="wMore" type="button" hidden></button>
+    <div class="note">Tap a night to enter or correct a weight in grams. <i>Italic</i> with “est.” = estimated from the printed graph; — = no weight yet. Typing over a value replaces it (Undo appears); clearing it deletes it.</div>
   </div>
   </section>
 
@@ -928,6 +939,10 @@
     const xs=pts.map(p=>p.x/DAY), ys=pts.map(p=>p.y), mx=xs.reduce((a,b)=>a+b)/xs.length, my=ys.reduce((a,b)=>a+b)/ys.length;
     let n=0,d=0; xs.forEach((x,i)=>{n+=(x-mx)*(ys[i]-my); d+=(x-mx)**2}); return d? n/d : null;
   }
+  // Weight gain in g/kg/day over the last `nights` nights (slope of the nightly weights ÷ her current weight); null with fewer than 2 nights
+  function gainKg(tw, nights=7){ const w=wSeries(tw); if(w.length<2) return null; const cur=w[w.length-1];
+    const pts=w.map(x=>({x:nightT(x.date),y:x.v})).filter(p=>p.x>=nightT(cur.date)-nights*DAY); if(pts.length<2) return null;
+    const g=slope(pts); return g==null?null:{v:g/(cur.v/1000), n:pts.length}; }
   function metrics(tw){
     const m={}, w=wSeries(tw), b=BIRTH[tw];
     if(w.length){
@@ -1014,7 +1029,7 @@
           <div class="m"><div class="k">Previous</div><div class="v">${prev?`${fmtG(prev.v)}<small> g</small>`:"—"}</div><div class="s">${prev?`${md(prev.date)}${prev.approx?" · est.":""}`:"none yet"}</div></div>
           <div class="m"><div class="k">Change</div><div class="v">${prev?`${sgn(cur.v-prev.v)}<small> g</small>`:"—"}</div><div class="s">${prev?`since ${md(prev.date)}`:""}</div></div>
           <div class="m"><div class="k">Since birth</div><div class="v">${sgn(cur.v-b.g)}<small> g</small></div><div class="s">birth ${fmtG(b.g)} g</div></div>
-        </div>${mcL}</section>`;
+        </div>${(g=>g?`<div class="gline">Gain <b>${g.v>=0?"+":"−"}${Math.abs(g.v).toFixed(1)} g/kg/day</b> · last ${g.n} nights</div>`:`<div class="gline">Gain per day needs 2 or more nights</div>`)(gainKg(tw))}${mcL}</section>`;
     }).join("");
   }
   function renderWeight(){
@@ -1078,23 +1093,31 @@
   }
 
   // ---------- weight grid ----------
+  function gridInput(tw,k){   // the entry box for one baby's night (tonight, or a past night being edited)
+    const w=W[tw+"|"+k], d=gridDelta(tw,k);
+    return `<input inputmode="numeric" type="number" aria-label="${esc(tw)} weight in grams, night of ${md(k)}${w&&w.approx?" (estimated)":""}" ${canWrite?"":"disabled"} data-k="${esc(tw)}|${k}" data-had="${wSig(w)}" value="${w?w.v:""}" class="${w?(w.approx?"approx":""):"missing"}" placeholder="—"><span class="d">${d}</span>${(()=>{ const m=mcWeights(TWINS.indexOf(tw)).find(x=>feedDay(x.t)===k); return m?`<span class="d mcd">MyChart ${fmtG(m.g)} g</span>`:""; })()}`;
+  }
+  function gridDelta(tw,k){ const w=W[tw+"|"+k]; const pd=keyDate(k); pd.setDate(pd.getDate()-1); const prevK=dKey(pd);
+    const p=W[tw+"|"+prevK]; const base = k===dKey(FIRST_NIGHT) ? BIRTH[tw].g : (p?p.v:null);
+    return (w && base!=null ? `${sgn(w.v-base)} g${k===dKey(FIRST_NIGHT)?" vs birth":""}` : "") + (w&&w.approx?` <span class="est">est.</span>`:""); }
+  const gridMc = (tw,k) => { const m=mcWeights(TWINS.indexOf(tw)).find(x=>feedDay(x.t)===k); return m?`<span class="d mcd">MyChart ${fmtG(m.g)} g</span>`:""; };
   function renderGrid(){
     if($("wBody").contains(document.activeElement)){ gridDirty=true; return; }
     gridDirty=false;
-    const ns=nights().reverse(), C=COLORS();
+    const all=nights().reverse(), ns=state.gridAll?all:all.slice(0,14), C=COLORS();
     $("wHead").innerHTML = `<th>Night</th>`+shown().map(tw=>`<th class="num"><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</th>`).join("");
     const tonight=feedDay(Date.now());
-    $("wBody").innerHTML = ns.map(k=>`<tr class="${k===tonight?"tonight":""}"><td><b>${md(k)}</b>${WK[keyDate(k).getDay()]}${k===tonight?'<br><span class="tn">Tonight</span>':""}</td>${shown().map(tw=>{
+    $("wBody").innerHTML = ns.map(k=>`<tr class="${k===tonight?"tonight":""}"><td><b>${md(k)}</b> ${WK[keyDate(k).getDay()]}${k===tonight?'<br><span class="tn">Tonight</span>':""}</td>${shown().map(tw=>{
       const w=W[tw+"|"+k];
       if(!w && !inNicu(tw,nightT(k))) return `<td class="num muted">Home</td>`;
-      const pd=keyDate(k); pd.setDate(pd.getDate()-1); const prevK=dKey(pd);
-      const p=W[tw+"|"+prevK]; const base = k===dKey(FIRST_NIGHT) ? BIRTH[tw].g : (p?p.v:null);
-      const d = (w && base!=null ? `${sgn(w.v-base)} g${k===dKey(FIRST_NIGHT)?" vs birth":""}` : "") + (w&&w.approx?` <span class="est">est.</span>`:"");
-      return `<td class="num"><input inputmode="numeric" type="number" aria-label="${esc(tw)} weight in grams, night of ${md(k)}${w&&w.approx?" (estimated)":""}" ${canWrite?"":"disabled"} data-k="${esc(tw)}|${k}" data-had="${wSig(w)}" value="${w?w.v:""}" class="${w?(w.approx?"approx":""):"missing"}" placeholder="—"><span class="d">${d}</span>${(()=>{ const m=mcWeights(TWINS.indexOf(tw)).find(x=>feedDay(x.t)===k); return m?`<span class="d mcd">MyChart ${fmtG(m.g)} g</span>`:""; })()}</td>`;
+      if(k===tonight) return `<td class="num">${gridInput(tw,k)}</td>`;
+      const d=gridDelta(tw,k).replace(/ ?<span class="est">est\.<\/span>/,"");   // "est." sits next to the weight, so the row stays two short lines
+      return `<td class="num"><button type="button" class="wv${w&&w.approx?" approx":""}${w?"":" missing"}" data-edit="${esc(tw)}|${k}" ${canWrite?"":"disabled"} aria-label="${esc(tw)}, night of ${md(k)}: ${w?`${fmtG(w.v)} g${w.approx?" (estimated)":""}`:"no weight"}. Tap to ${w?"correct":"enter"} it"><span class="wn">${w?`${fmtG(w.v)}<small>&nbsp;g</small>${w.approx?' <span class="est">est.</span>':""}`:"—"}</span>${d?`<span class="dl">${d}</span>`:""}</button>${gridMc(tw,k)}</td>`;
     }).join("")}</tr>`).join("");
+    const more=$("wMore"); more.hidden = all.length<=14; more.textContent = state.gridAll ? "Show the last 14 nights" : `Show all ${all.length} nights`;
   }
   let gridDirty=false;
-  $("wBody").addEventListener("focusout",()=>setTimeout(()=>{ if(gridDirty && !$("wBody").contains(document.activeElement)) renderGrid(); },0));
+  $("wBody").addEventListener("focusout",()=>setTimeout(()=>{ if(!$("wBody").contains(document.activeElement)) renderGrid(); },0));
   async function saveWeight(tw,date,inp,cell,had){ // returns true when saved
     const k=tw+"|"+date, raw=inp.value.trim(), v=parseFloat(raw), old=W[k];
     if(old && !otherTook(old, had, wSig(old), `${tw}'s weight for ${md(date)} (${fmtG(old.v)} g)`)){ inp.value=had===""?"":old.v; return false; }
@@ -1111,6 +1134,9 @@
     }catch(err){ failWrite(err); inp.value = old?.v ?? ""; return false; }
     finally{ cell.classList.remove("saving"); }
   }
+  $("wBody").addEventListener("click", e=>{ const b=e.target.closest("button[data-edit]"); if(!b) return;
+    const [tw,k]=b.dataset.edit.split("|"), td=b.parentElement; td.innerHTML=gridInput(tw,k); const inp=td.querySelector("input"); inp.focus(); inp.select&&inp.select(); });
+  $("wMore").addEventListener("click",()=>{ state.gridAll=!state.gridAll; renderGrid(); });
   $("wBody").addEventListener("change", e=>{
     const inp=e.target.closest("input"); if(!inp) return;
     const [tw,date]=inp.dataset.k.split("|"); saveWeight(tw,date,inp,inp.parentElement,inp.dataset.had);
@@ -1539,6 +1565,12 @@
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
   function seg(id,key,after){ syncPressed(id); $(id).addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; [...$(id).children].forEach(x=>x.classList.toggle("on",x===b)); syncPressed(id); const v=b.dataset.v; state[key]=v[0]==="#"?TWINS[+v[1]]:v; after&&after();}); }
   seg("wMode","wMode",renderWeight);
+  // By mouth chart: Per day / Per feed, remembered per phone (a chart only draws while visible, so draw after showing it)
+  function applyPoMode(){ const m=state.poMode==="feed"?"feed":"day"; $("poDay").hidden=m!=="day"; $("poFeed").hidden=m!=="feed";
+    [...$("poMode").children].forEach(b=>b.classList.toggle("on",b.dataset.v===m)); syncPressed("poMode"); }
+  try{ state.poMode=localStorage.getItem("poMode")||"day"; }catch{ state.poMode="day"; }
+  applyPoMode();
+  seg("poMode","poMode",()=>{ try{ localStorage.setItem("poMode",state.poMode); }catch{} applyPoMode(); if(profileReady()){ renderFeed(); renderDaily(); } });
   seg("view","view",()=>{ sheetDirty=false; gridDirty=false; renderAll(); try{ localStorage.setItem("view",state.view); }catch{} });
   function restoreView(){ // remembered per device; falls back to Both if the names changed
     let v=null; try{ v=localStorage.getItem("view"); }catch{}

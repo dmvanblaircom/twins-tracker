@@ -211,15 +211,19 @@ async function main() {
     check("Growth: latest weight is the headline, in grams, with its night", /Latest weight\s*2,560 g/.test(gA) && /night of \w{3}, \w{3} \d+, 8 PM/.test(gA), gA.replace(/\s+/g, " "));
     check("Growth: previous, change and since-birth shown", /Previous\s*[\d,]+ g/.test(gA) && /Change\s*[+−±]\d+ g/.test(gA) && /Since birth\s*[+−±]\d+ g/.test(gA), gA.replace(/\s+/g, " "));
     check("Growth: both babies have summary cards in Both view", (await p.$$("#grSum .bcard")).length === 2);
-    check("Growth grid marks estimated weights", (await p.innerText("#wBody")).includes("est.") && await p.$$eval("#wBody input.approx", x => x.length) > 0);
+    check("Growth grid marks estimated weights", (await p.innerText("#wBody")).includes("est.") && await p.$$eval("#wBody .wv.approx", x => x.length) > 0);
+    check("Growth grid is compact: past nights are one line of text, only tonight has an entry box, 14 nights then Show all", await p.evaluate(() => {
+      const rows = [...document.querySelectorAll("#wBody tr")], past = rows.filter(r => !r.classList.contains("tonight"));
+      return rows.length <= 14 && past.every(r => !r.querySelector("input") && r.getBoundingClientRect().height <= 60) && !!document.querySelector("#wBody tr.tonight input"); }), await p.evaluate(() => JSON.stringify([...document.querySelectorAll("#wBody tr")].map(r => [Math.round(r.getBoundingClientRect().height), r.innerText.replace(/\s+/g, " ")]))));
     check("Growth grid marks tonight", (await p.textContent("#wBody tr.tonight")).includes("Tonight"));
-    const cell = '#wBody input[data-k="Bea Joy|2026-02-08"]';
+    const cell = '#wBody input[data-k="Bea Joy|2026-02-08"]', open8 = () => p.click('#wBody [data-edit="Bea Joy|2026-02-08"]');
+    await open8(); check("tapping a past night opens its entry box, focused", await p.evaluate(() => document.activeElement && document.activeElement.dataset.k === "Bea Joy|2026-02-08"));
     await p.fill(cell, "2712"); await p.press(cell, "Tab"); await p.waitForTimeout(300);
     check("Growth grid edit saves (and clears the estimate flag)", await db(p, () => { const w = __db.weights["b1-2026-02-08"]; return w && w.v === 2712 && !w.approx; }));
     await p.click("#toast button"); await p.waitForTimeout(300);
     check("Undo restores the previous weight", await db(p, () => __db.weights["b1-2026-02-08"].v) === 2700);
     const wOrig = await db(p, () => ({ ...__db.weights["b1-2026-02-08"] }));
-    await p.focus(cell); await p.fill(cell, "2730");
+    await open8(); await p.fill(cell, "2730");
     await db(p, () => Store.setWeight("b1-2026-02-08", { twin: "Bea Joy", date: "2026-02-08", v: 2720, approx: false, by: "parent2@example.com" }));
     p.answers = [false]; await p.press(cell, "Tab"); await p.waitForTimeout(300);
     check("weight grid asks before replacing the other parent's new weight", p.dialogs.some(d => d.includes("weight for") && d.includes("was just logged by")) && await db(p, () => __db.weights["b1-2026-02-08"].v) === 2720);
@@ -257,6 +261,16 @@ async function main() {
     await db(p, () => { Store.remove("checklist", "b1-hearing"); Store.remove("checklist", "b1-cchd"); }); await p.waitForTimeout(200);
     await p.click('#tabbar button[data-tab=weight]'); await p.waitForTimeout(300);
     check("Growth holds all three charts: weight, by mouth per day, by mouth per feed (Journey has none)", await p.evaluate(() => ["cWeight", "cDaily", "cFeed"].every(id => document.getElementById(id).closest('.tab[data-tab="weight"]')) && !document.querySelector('.tab[data-tab="trends"] canvas')));
+    check("By mouth: one card, Per day shown first, Per feed hidden", !(await p.$eval("#poDay", e => e.hidden)) && await p.$eval("#poFeed", e => e.hidden) && (await p.$$("#poCard canvas")).length === 2);
+    await p.click('#poMode button[data-v="feed"]'); await p.waitForTimeout(300);
+    check("By mouth: Per feed swaps the chart and is remembered on this phone", await p.$eval("#poDay", e => e.hidden) && !(await p.$eval("#poFeed", e => e.hidden)) && await p.evaluate(() => localStorage.getItem("poMode") === "feed" && !!Chart.getChart("cFeed")));
+    const gl = await p.$$eval("#grSum .gline", x => x.map(e => e.textContent.trim()));
+    const wantG = await p.evaluate(() => [0, 1].map(i => { const w = Object.values(__db.weights).filter(x => x.i === i).sort((a, b) => a.date < b.date ? -1 : 1), cur = w[w.length - 1];
+      const t = d => new Date(d + "T20:00:00").getTime(), pts = w.filter(x => t(x.date) >= t(cur.date) - 7 * 864e5).map(x => ({ x: t(x.date) / 864e5, y: x.v }));
+      const n = pts.length, mx = pts.reduce((a, q) => a + q.x, 0) / n, my = pts.reduce((a, q) => a + q.y, 0) / n;
+      const g = pts.reduce((a, q) => a + (q.x - mx) * (q.y - my), 0) / pts.reduce((a, q) => a + (q.x - mx) ** 2, 0);
+      const v = g / (cur.v / 1000); return `Gain ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)} g/kg/day · last ${n} nights`; }));
+    check("Growth: each summary card shows weight gain per day over the last 7 nights", gl.length === 2 && gl[0] === wantG[0] && gl[1] === wantG[1], `${gl.join(" | ")} vs ${wantG.join(" | ")}`);
     await p.evaluate(() => document.querySelector("#cFeed").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
     const box = await p.$eval("#cFeed", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .4, y: r.y + r.height * .6 }; });
     const tip = () => p.evaluate(() => Chart.getChart("cFeed").tooltip.getActiveElements().length);
@@ -403,8 +417,9 @@ async function main() {
       check(`A++ text: no sideways overflow on ${t}`, over === 0, `${over} elements`);
     }
     await tab(q, "weight"); const gw = await q.$eval("table.wg", e => e.parentElement.scrollWidth <= e.parentElement.clientWidth + 1);
+    const gwWhy = await q.$eval("table.wg", e => JSON.stringify({ sw: e.parentElement.scrollWidth, cw: e.parentElement.clientWidth, cells: [...e.querySelectorAll("tr:nth-child(-n+3) td, thead th")].map(c => [Math.round(c.getBoundingClientRect().width), c.innerText.replace(/\s+/g, " ").slice(0, 30), [...c.children].map(k => k.tagName + "." + k.className + ":" + Math.round(k.getBoundingClientRect().width) + "/" + getComputedStyle(k).minWidth)]) }));
     await tab(q, "more"); await q.click('#moreNav button[data-v="records"]'); await q.waitForTimeout(150);
-    check("A++ text: growth grid and records need no sideways scroll", gw && await q.$eval("table.rec", e => e.parentElement.scrollWidth <= e.parentElement.clientWidth + 1));
+    check("A++ text: growth grid and records need no sideways scroll", gw && await q.$eval("table.rec", e => e.parentElement.scrollWidth <= e.parentElement.clientWidth + 1), gwWhy);
     await q.screenshot({ path: path.join(SHOTS, "large-text.png") });
     check("no page errors with prefs", q.errors.length === 0, q.errors.join(" | "));
     await q.context().close();
