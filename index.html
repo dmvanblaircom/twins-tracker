@@ -1360,6 +1360,15 @@
   }
   function poPerKg(tw,hours=24){ const w=wSeries(tw).pop(); if(!w) return null; const now=Date.now();
     const s=F.filter(f=>f.twin===tw && f.t<=now && f.t>now-hours*3600e3).reduce((a,f)=>a+f.v,0); return Math.round(s/(hours/24)/(w.v/1000)); }
+  // Yesterday's feed day (same 7 AM–7 AM day and slot matching as the day sheet, so the numbers always agree)
+  function yestLine(tw){
+    const d=keyDate(feedDay(Date.now())); d.setDate(d.getDate()-1); const y=dKey(d);
+    if(y<dKey(FIRST_NIGHT) || !inNicu(tw, d.getTime()+DAY_START_H*36e5)) return "";
+    let tot=0, n=0; SLOT_H.forEach((_,i)=>{ const f=slotFeed(tw,y,i); if(f){ tot+=f.v; n++; } });
+    const goal=FULL[tw]*FEEDS_PER_DAY, w=W[tw+"|"+y], prev=w && wSeries(tw).filter(x=>x.date<y).pop();
+    if(!n && !w) return "";
+    return `<button class="tgo yday" data-act="yday" data-day="${y}" aria-label="Open ${esc(tw)}'s feeds for yesterday, ${md(y)}"><span>Yesterday: <b>${Math.round(tot)}</b> / ${goal} mL · <b>${Math.round(tot/goal*100)}%</b> · ${n} of ${SLOT_H.length} feeds${w?` · ${wtMain(w.v)}${prev?` (${sgn(w.v-prev.v)} g)`:""}`:""}</span><span class="chev" aria-hidden="true">›</span></button>`;
+  }
   function todayBlock(tw){
     const C=COLORS(), day=feedDay(Date.now()), full=FULL[tw], goal=full*FEEDS_PER_DAY;
     const fd=F.filter(f=>f.twin===tw && feedDay(f.t)===day), po=fd.reduce((a,f)=>a+f.v,0), pct=Math.round(po/goal*100);
@@ -1381,7 +1390,7 @@
       return `<div class="sec tsum compact">
           <div class="row1"><b>${Math.round(po)}</b> / ${goal} mL by mouth · <b>${pct}%</b>${k!=null?` · ${k} mL/kg/day`:""}</div>
           <div class="bar" role="img" aria-label="${pct}% of today's ${goal} mL target"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div>
-          <div class="feedsline split"><span>${feedsTxt}</span><button class="link" data-act="detail" aria-label="Open ${esc(tw)}'s full day">Full day ›</button></div></div>
+          <div class="feedsline split"><span>${feedsTxt}</span><button class="link" data-act="detail" aria-label="Open ${esc(tw)}'s full day">Full day ›</button></div>${yestLine(tw)}</div>
         <div class="sec twt inline">${wInline}</div>`;
     }
     const days=[...Array(7)].map((_,i)=>{ const d=keyDate(day); d.setDate(d.getDate()-6+i); return dKey(d); });
@@ -1396,7 +1405,7 @@
         </div>
         <div class="bar" role="img" aria-label="${pct}% of today's ${goal} mL target"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div>
         <div class="feedsline">${feedsTxt}</div>
-        <div class="last">${lastTxt}</div>
+        <div class="last">${lastTxt}</div>${yestLine(tw)}
       </div>
       <div class="sec twt">${wRow}</div>
       <div class="sec">
@@ -1454,6 +1463,7 @@
     if(act==="wsave"){ saveTodayWeight(row); return; }
     if(act==="plan"){ editPlan(tw); return; }
     if(act==="gohome"){ showTab("trends"); return; }
+    if(act==="yday"){ state.day=b.dataset.day; sheetDirty=false; renderSheet(); $("dLabel").scrollIntoView({block:"start"}); return; }
     if(act==="src"){ openSrc(TWINS.indexOf(tw), slotT(tw,row.dataset.day,+row.dataset.i)); return; }
     if(act==="save") nextSave(row);
     else if(act==="full") nextSave(row,{v:FULL[tw],full:true});

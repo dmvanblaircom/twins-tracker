@@ -117,6 +117,21 @@ async function main() {
     check("no page errors (plans)", !pp.errors.length, pp.errors.join("; "));
     await pp.context().close();
 
+    // ===== Today: Yesterday line matches the day sheet and opens yesterday's sheet =====
+    const yl = await newPage(browser, base, { now: NOW }); await importData(yl);
+    await tab(yl, "feed"); await yl.click(`#viewbar button[data-v="${ADA}"], .viewbar button:has-text("${ADA}")`).catch(() => {}); await wait(yl, 300);
+    const yTxt = await yl.evaluate(() => { const b = document.querySelector('.nx [data-act="yday"]'); return b ? b.textContent.trim() : null; });
+    check("single view: a Yesterday line on the card", !!yTxt && /^Yesterday: \d+ \/ \d+ mL · \d+% · \d+ of \d+ feeds/.test(yTxt), yTxt);
+    await yl.click('.nx [data-act="yday"]'); await wait(yl, 300);
+    const ySheet = await yl.evaluate(() => (document.querySelector("#sheet .tws") || {}).textContent || "");
+    const pctOf = t => (t.match(/(\d+)%/) || [])[1];
+    const tot = (ySheet.match(/^\d+ \/ \d+ mL/) || [""])[0];
+    check("tapping it opens yesterday's day sheet, and the totals agree", (await yl.textContent("#dLabel")).includes("Feb 9") && !!tot && pctOf(yTxt || "") === pctOf(ySheet) && (yTxt || "").includes(tot), `${yTxt} · ${ySheet}`);
+    await yl.click('#view button[data-v="both"]').catch(() => {}); await wait(yl, 300);
+    check("Both view: a Yesterday line for each baby", (await yl.$$('.nx [data-act="yday"]')).length === 2);
+    check("no page errors (yesterday line)", !yl.errors.length, yl.errors.join("; "));
+    await yl.context().close();
+
     // ===== Bedside camera button (AngelEye etc.): a family link per baby (config/cams), opened from her Today card =====
     const URL1 = "https://nicu.example.org/view", URL2 = "https://nicu.example.org/view2";
     const cp = await newPage(browser, base, { now: NOW }); await importData(cp);
