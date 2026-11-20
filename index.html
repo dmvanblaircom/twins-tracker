@@ -127,6 +127,14 @@
   .srcbtn{background:none;border:0;color:var(--text2);font:inherit;font-size:var(--fs-xs);text-align:left;cursor:pointer;padding:4px 0;min-height:44px;text-decoration:underline dotted;text-underline-offset:3px}
   .srcwarn{margin:var(--sp-2) 0;padding:8px 12px;border-radius:var(--r-sm);background:var(--warning-tint);color:var(--warning-ink);font-size:var(--fs-sm)}
   .slead{margin:0 0 var(--sp-2);font-size:var(--fs-sm);color:var(--text)}
+  .gone.mini{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp-1) var(--sp-3);padding:var(--sp-2) var(--sp-4);box-shadow:none}
+  .gone.mini .slead{margin:0}
+  .gone .golinks{display:flex;gap:var(--sp-2);flex-wrap:wrap}
+  details.ckhome summary{cursor:pointer;min-height:44px;display:flex;align-items:center;margin:0}
+  .viewbar .seg button.home{flex:.85;display:grid;grid-template-columns:auto auto;column-gap:6px;align-content:center;font-size:var(--fs-sm)}
+  .viewbar .seg button.home .vh{grid-column:2}
+  .viewbar .seg button.home span:not(.dot){overflow-wrap:normal;text-align:left}
+  .viewbar .seg button .vh{font-size:var(--fs-xs);color:var(--muted);font-weight:600;line-height:1.1}
   .snow{margin:0 0 var(--sp-3);font-size:var(--fs-sm);color:var(--text2)}
   .smix .f{display:block;margin-top:var(--sp-2)}
   .stot{margin-top:var(--sp-2);font-size:var(--fs-sm);font-weight:600;color:var(--title)} .stot.bad{color:var(--danger-ink)}
@@ -899,6 +907,9 @@
   // leaves daily tracking (Today, the day sheet, new weights, Progress, the milk estimate); her history stays everywhere.
   const homeAt = tw => { const t=profile&&Array.isArray(profile.twins)&&profile.twins[TWINS.indexOf(tw)]; return t&&Number.isFinite(+t.home)&&+t.home>0?+t.home:null; };
   const inNicu = (tw,t=Date.now()) => { const h=homeAt(tw); return h==null || t<h; };
+  const focusOrder = list => [...list].sort((a,b)=>(inNicu(a)?0:1)-(inNicu(b)?0:1));   // babies still in the NICU first (stable)
+  const homeShort = tw => `<b>${esc(tw)}</b> · home since ${mdD(new Date(homeAt(tw)))}`;
+  const viewBabyBtn = tw => `<button class="link" type="button" data-viewbaby="${TWINS.indexOf(tw)}" aria-label="Show only ${esc(tw)}">View ${esc(tw)} ›</button>`;
   const wentHome = tw => { const h=homeAt(tw); return `<b>${esc(tw)}</b> went home on ${longD(new Date(h))} at ${hm(h)}. Her history stays in Records, Growth and Journey.`; };
   let W = {};        // weights: key "Twin|YYYY-MM-DD" -> {twin,date,v,approx,note}
   let F = [];        // feeds: {id,twin,t,v,note}
@@ -988,8 +999,9 @@
   function renderGrowth(){   // per-baby summary: latest weight dominates; changes stay neutral (no good/bad colouring)
     if(!profileReady()) return;
     const C=COLORS();
-    $("grSum").innerHTML = shown().map(tw=>{
+    $("grSum").innerHTML = focusOrder(shown()).map(tw=>{
       const ws=wSeries(tw), cur=ws[ws.length-1], prev=ws[ws.length-2], b=BIRTH[tw], letter=TWINS.indexOf(tw)?"B":"A";
+      if(!inNicu(tw) && state.view==="both") return `<section class="bcard gone mini" style="--c:${C[tw]}" data-tw="${esc(tw)}"><span class="slead">${homeShort(tw)}${cur?` · last ${fmtG(cur.v)} g, ${md(cur.date)}`:""}</span>${viewBabyBtn(tw)}</section>`;
       const nightLbl=k=>longD(keyDate(k));
       const head=`<header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
         <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div>
@@ -1313,8 +1325,10 @@
     if(!profileReady() || nextBusy>0 || (document.activeElement?.tagName==="INPUT" && $("next").contains(document.activeElement)) || [...$("next").querySelectorAll("input")].some(x=>x.value.trim()) || $("next").querySelector('.tags [aria-pressed="true"]')) return;
     const C=COLORS(), now=new Date();
     $("nextClock").textContent = hm(now.getTime()); renderCtx(); renderTodayMilk();
-    $("next").innerHTML = shown().map(tw=>{
-      if(!inNicu(tw)) return `<section class="nx gone" style="--c:${C[tw]}" aria-label="${esc(tw)}"><p class="slead">${wentHome(tw)}</p></section>`;
+    $("next").innerHTML = focusOrder(shown()).map(tw=>{
+      if(!inNicu(tw)) return state.view==="both"
+        ? `<section class="nx gone mini" style="--c:${C[tw]}" aria-label="${esc(tw)}"><span class="slead">${homeShort(tw)}</span>${viewBabyBtn(tw)}</section>`
+        : `<section class="nx gone" style="--c:${C[tw]}" aria-label="${esc(tw)}"><p class="slead">${wentHome(tw)}</p><div class="golinks"><button class="btn ghost" type="button" data-gotab="weight">Growth</button><button class="btn ghost" type="button" data-gotab="trends">Journey</button></div></section>`;
       let n=nextSlot(tw); if(!n) return "";
       const missed=n.missed, chosen=nextPick[tw] && missed.find(x=>x.day===nextPick[tw].day && x.i===nextPick[tw].i);
       if(chosen) n={...chosen, due:true, missed, chosen:true}; else delete nextPick[tw];
@@ -1533,7 +1547,18 @@
 
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
-  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); }
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); renderViewHome(); }
+  function renderViewHome(){
+    if(!profileReady()) return;
+    [...$("view").children].forEach(b=>{ const d=b.dataset.v; if(d[0]!=="#") return; const tw=TWINS[+d[1]], gone=!inNicu(tw);
+      b.classList.toggle("home",gone); let t=b.querySelector(".vh");
+      if(gone && !t){ t=document.createElement("small"); t.className="vh"; t.textContent="Home"; b.appendChild(t); }
+      if(!gone && t) t.remove(); });
+  }
+  document.addEventListener("click",e=>{
+    const v=e.target.closest("[data-viewbaby]"); if(v){ state.view=TWINS[+v.dataset.viewbaby]; try{ localStorage.setItem("view",state.view); }catch{} restoreView(); sheetDirty=gridDirty=false; renderAll(); scrollTo(0,0); return; }
+    const g=e.target.closest("[data-gotab]"); if(g) showTab(g.dataset.gotab);
+  });
 
   // ---------- feed form ----------
   const syncPressed=id=>[...$(id).children].forEach(x=>x.setAttribute("aria-pressed",x.classList.contains("on")?"true":"false"));
@@ -1722,8 +1747,9 @@
     const now=Date.now(), C=COLORS();
     const mk=(on)=>on?'<span class="mk on">Marker reached</span>':'<span class="mk">Not yet</span>';
     const row=(k,v,sub,on)=>`<div class="ind"><div class="k">${k}</div>${mk(on)}<div class="v">${v}</div><div class="s">${sub}</div></div>`;
-    $("home").innerHTML = shown().map(tw=>{
-      if(!inNicu(tw)) return `<div class="bcard gone" style="--c:${C[tw]}"><p class="slead">${wentHome(tw)}</p></div>`;
+    $("home").innerHTML = focusOrder(shown()).map(tw=>{
+      if(!inNicu(tw)) return state.view==="both" ? `<div class="bcard gone mini" style="--c:${C[tw]}"><span class="slead">${homeShort(tw)}</span>${viewBabyBtn(tw)}</div>`
+        : `<div class="bcard gone" style="--c:${C[tw]}"><p class="slead">${wentHome(tw)}</p></div>`;
       const f=fSeries(tw).filter(x=>x.t<=now), full=FULL[tw], letter=TWINS.indexOf(tw)?"B":"A";
       let streak=0; for(let k=f.length-1;k>=0 && f[k].v>=full;k--) streak++;
       const po=h=>{ const s=f.filter(x=>x.t>now-h*3600e3).reduce((a,x)=>a+x.v,0); return Math.round(s/(full*FEEDS_PER_DAY*h/24)*100); };
@@ -2173,7 +2199,8 @@
     return `<div class="cl" data-ids="${ids.join(" ")}"><h4><span>Checklist</span><span class="ckn">${n.done}/${n.need}</span></h4>${ckMeta(n)}${DIS_BABY.map(([k,l])=>ckRow(`b${i}-${k}`,l,c)).join("")}</div>`; }
   function renderBabyChecklists(){
     const C=COLORS();
-    $("ckBabies").innerHTML = shown().map(tw=>{ const letter=TWINS.indexOf(tw)?"B":"A";
+    $("ckBabies").innerHTML = focusOrder(shown()).map(tw=>{ const letter=TWINS.indexOf(tw)?"B":"A";
+      if(!inNicu(tw) && state.view==="both") return `<details class="bcard gone ckhome" style="--c:${C[tw]}"><summary class="slead">${homeShort(tw)} · her checklist</summary>${checklistHTML(tw)}</details>`;
       return `<section class="bcard" style="--c:${C[tw]}"><header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
         <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter} · checklist</div></div></header>${checklistHTML(tw)}
         <div class="note">Items are marked by your family. The NICU team confirms each step.</div></section>`; }).join("");

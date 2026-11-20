@@ -36,9 +36,14 @@ async function main() {
     check("saving stores when she went home on the babies' profile (no new collection)", await p.evaluate(h => __db.config.profile.twins[0].home === new Date(h).getTime() && !__db.config.profile.twins[1].home, HOME));
     await tab(p, "feed"); await p.evaluate(() => scrollTo(0, 0));
     const today = await p.textContent("#next");
-    check("Today: her card is replaced by when she went home", today.includes("Ada Rose went home on Tue, Feb 10 at 12p") && today.includes("Her history stays"), today.slice(0, 200));
+    check("Today (Both): her card shrinks to one line after her sister's, with a way to view her", today.includes("Ada Rose · home since Feb 10") && await p.evaluate(() => { const s = [...document.querySelectorAll("#next > section")]; return s.length === 2 && s[1].classList.contains("mini") && !!s[1].querySelector("[data-viewbaby='0']"); }), today.slice(0, 200));
+    check("selector: her chip is marked Home and is smaller", await p.evaluate(() => { const b = document.querySelector('#view button[data-v="#0"]'), c = document.querySelector('#view button[data-v="#1"]'); return b.classList.contains("home") && b.textContent.includes("Home") && b.getBoundingClientRect().width < c.getBoundingClientRect().width && b.getBoundingClientRect().height >= 44; }));
+    await p.click("#next [data-viewbaby='0']"); await wait(p, 300);
+    const solo = await p.textContent("#next");
+    check("View her: the full went-home note with links to her Growth and Journey", solo.includes("Ada Rose went home on Tue, Feb 10 at 12p") && solo.includes("Her history stays") && !!(await p.$('#next [data-gotab="weight"]')) && (await p.textContent("#ctxLabel")).includes(ADA));
+    await p.click('#view button[data-v="both"]'); await wait(p, 300);
     check("Today: no feed entry for her, her sister's card unchanged", !(await p.$(`.nx[data-tw="${ADA}"] input`)) && !!(await p.$(`.nx[data-tw="${BEA}"] input`)));
-    await p.screenshot({ path: path.join(SHOTS, "discharge-today.png") });
+    await p.screenshot({ path: path.join(SHOTS, "discharge-today.png"), fullPage: true });
     check("Today's day sheet still shows her for the day she left (feeds before she went home)", await p.$$eval("#sheet .tw", t => t.length) === 2);
     // ---- milk estimate ----
     const after = await parts(p);
@@ -51,9 +56,10 @@ async function main() {
     await tab(p, "weight"); await wait(p);
     const grid = await p.evaluate(tw => [...document.querySelectorAll("#wBody tr")][0].innerText, ADA);
     check("Growth: tonight shows 'Home' for her (no entry box), her sister still has one", grid.includes("Home") && await p.$$eval("#wBody tr:first-child input", x => x.length) === 1, grid);
-    check("Growth: her weight history and chart remain", (await p.textContent("#grSum")).includes(ADA));
+    check("Growth: her weight history and chart remain (summary shrinks to one line, last)", (await p.textContent("#grSum")).includes(ADA + " · home since") && await p.evaluate(() => document.querySelector("#grSum").lastElementChild.classList.contains("mini")));
+    await p.evaluate(() => scrollTo(0, 0)); await p.screenshot({ path: path.join(SHOTS, "discharge-growth.png") });
     await tab(p, "trends"); await wait(p, 300);
-    check("Progress: her card says she went home (no discharge-readiness markers for her)", (await p.textContent("#home")).includes("Ada Rose went home") && (await p.$$eval("#home .bcard:not(.gone) .ind", x => x.length)) === 5);
+    check("Progress: her card says she went home (no discharge-readiness markers for her)", (await p.textContent("#home")).includes("Ada Rose · home since") && (await p.$$eval("#home .bcard:not(.gone) .ind", x => x.length)) === 5);
     // suggestions are offered one at a time, oldest first: step past the earlier ones with "Not now"
     let seen = false; for (let k = 0; k < 12 && !seen; k++) { seen = (await p.textContent("#jCard")).includes("Came home"); if (!seen) { const d = await p.$('#jCard [data-sg="dismiss"]'); if (!d) break; await d.click(); await wait(p, 200); } }
     check("Journey: offers the 'Came home' milestone for her", seen);
