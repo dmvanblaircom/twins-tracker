@@ -584,6 +584,13 @@
     <div class="chartbox"><canvas id="cDaily" aria-label="Daily total by mouth as a percent of the full-feed target" role="img"></canvas></div>
     <div class="note">Target = <span id="goalFeeds">8</span> full feeds/day<span id="goalNote"></span>. Days run <span id="dayRun">8 AM–8 AM</span>; today's bar is partial.</div>
   </div>
+  <!-- PO CHART -->
+  <div class="card">
+    <h2>By mouth per feed <span class="muted" style="font-size:var(--fs-xs);font-weight:600">mL</span></h2>
+    <div class="chartbox"><canvas id="cFeed" aria-label="mL taken by mouth at each feed" role="img"></canvas></div>
+    <div class="legend"><span>● each feed (mL)</span><span>— 24-hour average</span><span id="fullLegend"></span></div>
+    <div class="note">Tap the chart to see that feed.</div>
+  </div>
   <!-- WEIGHT GRID -->
   <div class="card">
     <h2>Nightly weights <span class="muted" style="font-size:var(--fs-xs);font-weight:600">8 PM · grams</span></h2>
@@ -628,13 +635,6 @@
   <div id="home"></div>
   <div id="famList"></div>
   <div id="ckBabies"></div>
-  <!-- PO CHART -->
-  <div class="card">
-    <h2>By mouth per feed <span class="muted" style="font-size:var(--fs-xs);font-weight:600">mL</span></h2>
-    <div class="chartbox"><canvas id="cFeed" aria-label="mL taken by mouth at each feed" role="img"></canvas></div>
-    <div class="legend"><span>● each feed (mL)</span><span>— 24-hour average</span><span id="fullLegend"></span></div>
-    <div class="note">Tap the chart to see that feed.</div>
-  </div>
   <!-- JOURNEY TIMELINE -->
   <div class="card" id="jCard">
     <div class="jhead"><h2>Your journey</h2><button class="btn" id="jAdd" type="button">Add a moment</button></div>

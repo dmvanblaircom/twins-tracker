@@ -240,7 +240,7 @@ async function main() {
     check("no green check marks or 'Going home' wording on Progress", (await p.$$("[data-tab=trends] .y")).length === 0 && !(await p.textContent("[data-tab=trends]")).includes("Going home"));
     check("each baby shows all five indicators with explicit periods", await p.$$eval('#home .bcard[data-tw="Ada Rose"] .ind', x => x.length) === 5 && /last 48 h: \d+%/.test(await p.textContent("#home")) && /over the last 3 nights/.test(await p.textContent("#home")));
     check("indicator states are neutral words", await p.$$eval("#home .ind .mk", x => x.every(e => ["Marker reached", "Not yet"].includes(e.textContent))));
-    check("order: indicators, family checklist, baby checklists, charts", await p.evaluate(() => { const a = [...document.querySelectorAll("#home,#famList,#ckBabies,#cFeed")].map(e => e.getBoundingClientRect().top); return a[0] < a[1] && a[1] < a[2] && a[2] < a[3]; }));
+    check("order: indicators, family checklist, baby checklists, then the timeline", await p.evaluate(() => { const a = [...document.querySelectorAll("#home,#famList,#ckBabies,#jCard")].map(e => e.getBoundingClientRect().top); return a.length === 4 && a[0] < a[1] && a[1] < a[2] && a[2] < a[3]; }));
     await p.click('[data-ck="b0-hearing"]'); await p.waitForTimeout(150); await p.click('[data-na="b0-rsv"]'); await p.waitForTimeout(150);
     check("checklist check + n/a", (await p.$$eval("#ckBabies .cl h4", x => x[0].textContent)).includes("1/7"));
     check("checklist marks persist to the database (ids unchanged)", await db(p, () => __db.checklist["b0-hearing"]?.s === "done" && __db.checklist["b0-rsv"]?.s === "na"));
@@ -248,13 +248,15 @@ async function main() {
     check("checklist counts: marked done / open / not needed", /1 marked done/.test(await p.textContent("#ckBabies .ckmeta")) && /6 open/.test(await p.textContent("#ckBabies .ckmeta")) && /1 not needed/.test(await p.textContent("#ckBabies .ckmeta")), await p.textContent("#ckBabies .ckmeta"));
     await p.click('[data-ck="f-cpr"]'); await p.waitForTimeout(150);
     check("family checklist updates", await db(p, () => __db.checklist["f-cpr"]?.s === "done") && /1\/6/.test(await p.textContent("#famList h2")));
-    await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); b.scrollIntoView({ block: "center" }); window.__ck = { b, y: scrollY, ch: Chart.getChart("cFeed") }; });
+    await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); b.scrollIntoView({ block: "center" }); window.__ck = { b, y: scrollY }; });
     await p.click('[data-ck="b1-hearing"]'); await p.waitForTimeout(200);
-    const still = await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); return { same: b === __ck.b, dy: Math.abs(scrollY - __ck.y), chart: Chart.getChart("cFeed") === __ck.ch, on: b.getAttribute("aria-pressed") }; });
-    check("checklist tap keeps the screen still (same button, no scroll, no chart redraw)", still.same && still.dy < 2 && still.chart && still.on === "true", JSON.stringify(still));
+    const still = await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); return { same: b === __ck.b, dy: Math.abs(scrollY - __ck.y), on: b.getAttribute("aria-pressed") }; });
+    check("checklist tap keeps the screen still (same button, no scroll)", still.same && still.dy < 2 && still.on === "true", JSON.stringify(still));
     await db(p, () => Store.put("checklist", "b1-cchd", { s: "done", d: "2026-02-10", by: "parent2@example.com" })); await p.waitForTimeout(200);
     check("the other parent's checklist mark updates in place, with counts", await p.evaluate(() => document.querySelector('[data-ck="b1-hearing"]') === __ck.b) && (await p.$$eval("#ckBabies .cl h4 .ckn", x => x[1].textContent)) === "2/8" && /P|parent2/.test(await p.textContent('[data-ck="b1-cchd"] .dt')), await p.$$eval("#ckBabies .cl h4 .ckn", x => x.map(e => e.textContent).join(",")));
     await db(p, () => { Store.remove("checklist", "b1-hearing"); Store.remove("checklist", "b1-cchd"); }); await p.waitForTimeout(200);
+    await p.click('#tabbar button[data-tab=weight]'); await p.waitForTimeout(300);
+    check("Growth holds all three charts: weight, by mouth per day, by mouth per feed (Journey has none)", await p.evaluate(() => ["cWeight", "cDaily", "cFeed"].every(id => document.getElementById(id).closest('.tab[data-tab="weight"]')) && !document.querySelector('.tab[data-tab="trends"] canvas')));
     await p.evaluate(() => document.querySelector("#cFeed").scrollIntoView({ block: "center" })); await p.waitForTimeout(250);
     const box = await p.$eval("#cFeed", c => { const r = c.getBoundingClientRect(); return { x: r.x + r.width * .4, y: r.y + r.height * .6 }; });
     const tip = () => p.evaluate(() => Chart.getChart("cFeed").tooltip.getActiveElements().length);
@@ -417,7 +419,7 @@ async function main() {
         if (title != null) await J.fill("#mTitle", title); if (note != null) await J.fill("#mNote", note);
         await J.click("#mSave"); await J.waitForTimeout(200); };
       await tab(J, "trends");
-      check("Journey timeline sits below the existing Progress content", await J.evaluate(() => !!(document.querySelector("#cFeed").compareDocumentPosition(document.querySelector("#jCard")) & Node.DOCUMENT_POSITION_FOLLOWING)));
+      check("Journey timeline sits below the existing Progress content", await J.evaluate(() => !!(document.querySelector("#ckBabies").compareDocumentPosition(document.querySelector("#jCard")) & Node.DOCUMENT_POSITION_FOLLOWING)));
       check("checklist label reads 'Open crib, maintaining temperature' (id unchanged)", (await J.textContent('[data-ck="b0-crib"] .lb')) === "Open crib, maintaining temperature");
       // add one of each scope
       await sheet("0", "milestone", "first-hold", null, "Forty minutes");
