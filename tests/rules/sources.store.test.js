@@ -134,11 +134,14 @@ const alloc = (o = {}) => ({ i: 0, t: T0, state: "set", mL10: { mom: 300, donor:
   const EVP = "e-1771000000000-ph01", PH = "ph-1771000000001-ab01";
   await S(A, id => Store.put("events", id, { kind: "journal", scope: "family", i: null, key: null, t: 1, title: "Photo day", note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "ann@example.net" }), EVP);
   await t("Store.lists names the photo collections (media)", () => S(A, () => Store.lists.media.join() === "photos,photoData" && !Store.lists.shared.includes("photos")));
-  const seenB = S(B, ev => new Promise(res => { const u = Store.watchPhotos([ev], l => { if (l.length) { u(); res(l); } }); }), EVP);
+  // waits for the photo (B was offline earlier, and Firestore can back off up to 60 s before reconnecting),
+  // but reports a listener error or a 90 s timeout instead of hanging the suite
+  const seenB = S(B, ev => new Promise(res => { const tm = setTimeout(() => res({ timeout: true }), 90000);
+    const u = Store.watchPhotos([ev], l => { if (l.length) { clearTimeout(tm); u(); res(l); } }, e => { clearTimeout(tm); res({ error: e && (e.code || e.message) }); }); }), EVP);
   await S(A, ([id, ev]) => Store.putPhoto(id, { ev, t: 1771000000001, w: 1600, h: 1200, bytes: 30200, thumb: new Uint8Array(200).fill(3) }, new Uint8Array(30000).fill(9)), [PH, EVP]);
   await t("putPhoto writes the metadata (stamped with the author) and the full image", async () => { const m = await get(`${H}/photos/${PH}`), f = await get(`${H}/photoData/${PH}`);
     return m && m.by === "ann@example.net" && m.thumb.toUint8Array().length === 200 && f && f.full.toUint8Array().length === 30000; });
-  await t("the other parent's watchPhotos sees it with its thumbnail as bytes", async () => { const l = await seenB; return l.length === 1 && l[0][0] === PH && l[0][1].thumb instanceof Object && l[0][1].thumb.length === 200; });
+  await t("the other parent's watchPhotos sees it with its thumbnail as bytes", async () => { const l = await seenB; if (!Array.isArray(l)) throw new Error(JSON.stringify(l)); return l.length === 1 && l[0][0] === PH && l[0][1].thumb instanceof Object && l[0][1].thumb.length === 200; });
   await t("watchPhotos only returns photos of the moments asked for", () => S(B, () => new Promise(res => { const u = Store.watchPhotos(["e-1-other"], l => { u(); res(l.length === 0); }); })));
   await t("photoFull reads the full image on demand", () => S(B, id => Store.photoFull(id).then(b => b && b.length === 30000 && b[0] === 9), PH));
   await t("photoUsage counts the family's photos and their bytes", () => S(A, () => Store.photoUsage().then(u => u.n === 1 && u.bytes === 30200)));
