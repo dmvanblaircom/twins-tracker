@@ -1554,6 +1554,9 @@
       b.classList.toggle("home",gone); let t=b.querySelector(".vh");
       if(gone && !t){ t=document.createElement("small"); t.className="vh"; t.textContent="Home"; b.appendChild(t); }
       if(!gone && t) t.remove(); });
+    // babies still in the NICU on the left (real order, so screen readers and keyboards follow it too), then Both
+    const v=$("view"), bs=[...v.children], babies=bs.filter(b=>b.dataset.v[0]==="#").sort((a,b)=>(a.classList.contains("home")-b.classList.contains("home"))||(a.dataset.v<b.dataset.v?-1:1));
+    [...babies, bs.find(b=>b.dataset.v==="both")].forEach((b,k)=>{ if(v.children[k]!==b) v.appendChild(b); });
   }
   document.addEventListener("click",e=>{
     const v=e.target.closest("[data-viewbaby]"); if(v){ state.view=TWINS[+v.dataset.viewbaby]; try{ localStorage.setItem("view",state.view); }catch{} restoreView(); sheetDirty=gridDirty=false; renderAll(); scrollTo(0,0); return; }

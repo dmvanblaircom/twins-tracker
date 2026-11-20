@@ -38,6 +38,7 @@ async function main() {
     const today = await p.textContent("#next");
     check("Today (Both): her card shrinks to one line after her sister's, with a way to view her", today.includes("Ada Rose · home since Feb 10") && await p.evaluate(() => { const s = [...document.querySelectorAll("#next > section")]; return s.length === 2 && s[1].classList.contains("mini") && !!s[1].querySelector("[data-viewbaby='0']"); }), today.slice(0, 200));
     check("selector: her chip is marked Home and is smaller", await p.evaluate(() => { const b = document.querySelector('#view button[data-v="#0"]'), c = document.querySelector('#view button[data-v="#1"]'); return b.classList.contains("home") && b.textContent.includes("Home") && b.getBoundingClientRect().width < c.getBoundingClientRect().width && b.getBoundingClientRect().height >= 44; }));
+    check("selector: her sister (still in the NICU) is on the left, then her, then Both", await p.evaluate(() => { const x = s => document.querySelector(`#view button[data-v="${s}"]`).getBoundingClientRect().left; return x("#1") < x("#0") && x("#0") < x("both"); }));
     await p.click("#next [data-viewbaby='0']"); await wait(p, 300);
     const solo = await p.textContent("#next");
     check("View her: the full went-home note with links to her Growth and Journey", solo.includes("Ada Rose went home on Tue, Feb 10 at 12p") && solo.includes("Her history stays") && !!(await p.$('#next [data-gotab="weight"]')) && (await p.textContent("#ctxLabel")).includes(ADA));
