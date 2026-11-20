@@ -130,6 +130,12 @@ async function main() {
     check("tapping it opens yesterday's day sheet, and the totals agree", (await yl.textContent("#dLabel")).includes("Feb 9") && !!tot && pctOf(yTxt || "") === pctOf(ySheet) && (yTxt || "").includes(tot), `${yTxt} · ${ySheet}`);
     await yl.click('#view button[data-v="both"]').catch(() => {}); await wait(yl, 300);
     check("Both view: a Yesterday line for each baby", (await yl.$$('.nx [data-act="yday"]')).length === 2);
+    // mL/kg/day: last 24 h by mouth ÷ BIRTH weight (the NICU's goal is 150 mL/kg of birth weight), not the latest weight
+    await yl.click(`#viewbar button[data-v="${ADA}"], .viewbar button:has-text("${ADA}")`).catch(() => {}); await wait(yl, 300);
+    const kg = await yl.evaluate(() => { const v = [...document.querySelectorAll(".nx .metrics .m")].find(m => m.textContent.includes("mL/kg/day")); return v ? +v.querySelector(".v").textContent : null; });
+    const wantKg = await yl.evaluate(() => { const now = Date.now(), b = __db.config.profile.twins[0].birthG;
+      const s = Object.values(__db.feeds).filter(f => f.i === 0 && f.t <= now && f.t > now - 864e5).reduce((a, f) => a + f.v, 0); return Math.round(s / (b / 1000)); });
+    check("Today's mL/kg/day uses her birth weight (not her latest weight)", kg === wantKg, `shown ${kg} · expected ${wantKg}`);
     check("no page errors (yesterday line)", !yl.errors.length, yl.errors.join("; "));
     await yl.context().close();
 

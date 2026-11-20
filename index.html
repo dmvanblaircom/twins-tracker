@@ -1361,7 +1361,8 @@
     $("ageLine").textContent = ageLine();
   }
   // ---------- Today: totals, tonight's weight, 7-day mini trends ----------
-  function poPerKg(tw,hours=24){ const w=wSeries(tw).pop(); if(!w) return null; const now=Date.now();
+  // mL/kg/day by mouth against her BIRTH weight — the NICU's goal is 150 mL/kg of birth weight (product owner, Nov 20, 2026)
+  function poPerKg(tw,hours=24){ const w=BIRTH[tw]&&{v:BIRTH[tw].g}; if(!w||!w.v) return null; const now=Date.now();
     const s=F.filter(f=>f.twin===tw && f.t<=now && f.t>now-hours*3600e3).reduce((a,f)=>a+f.v,0); return Math.round(s/(hours/24)/(w.v/1000)); }
   // Yesterday's feed day (same 7 AM–7 AM day and slot matching as the day sheet, so the numbers always agree)
   function yestLine(tw){
@@ -1404,7 +1405,7 @@
         <div class="metrics">
           <div class="m"><div class="k">By mouth</div><div class="v">${Math.round(po)}<small> mL</small></div><div class="s">today</div></div>
           <div class="m"><div class="k">Of target</div><div class="v">${pct}<small>%</small></div><div class="s">${goal} mL (${FEEDS_PER_DAY} × ${full})</div></div>
-          <div class="m"><div class="k">Last 24 h</div><div class="v">${k??"—"}</div> <div class="s">${k!=null?"mL/kg/day by mouth":"needs a weight"}</div></div>
+          <div class="m"><div class="k">Last 24 h</div><div class="v">${k??"—"}</div> <div class="s">${k!=null?"mL/kg/day by mouth (birth weight)":"needs her birth weight"}</div></div>
         </div>
         <div class="bar" role="img" aria-label="${pct}% of today's ${goal} mL target"><i style="width:${Math.min(100,pct)}%;background:${C[tw]}"></i></div>
         <div class="feedsline">${feedsTxt}</div>
@@ -1736,7 +1737,7 @@
           <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div><span class="mk">Logged</span></header>
         <div class="sec-h"><span>Feeding · by mouth</span></div>
         ${row("Full feeds in a row", `${streak}`, `each ≥ ${full} mL · family marker: ${FEEDS_PER_DAY} in a row`, streak>=FEEDS_PER_DAY)}
-        ${row("By mouth, last 24 h", `${p24}%`, `of the configured target · last 48 h: ${p48}%${k!=null?` · ${k} mL/kg/day (24 h, at ${fmtG(m.cur.v)} g)`:""} · family marker: 100% over 24 h`, p24>=100)}
+        ${row("By mouth, last 24 h", `${p24}%`, `of the configured target · last 48 h: ${p48}%${k!=null?` · ${k} mL/kg/day (24 h, birth weight ${fmtG(BIRTH[tw].g)} g)`:""} · family marker: 100% over 24 h`, p24>=100)}
         <div class="sec-h" style="margin-top:var(--sp-3)"><span>Weight</span></div>
         ${row("Weight gain trend", gkg==null?"—":`${gkg>=0?"+":"−"}${Math.abs(gkg).toFixed(1)} g/kg/day`, gkg==null?"needs 2 or more nights":"over the last 3 nights · family marker: 10 g/kg/day", gkg!=null&&gkg>=10)}
         ${row("Birth weight", m.cur?(m.cur.v>=BIRTH[tw].g?"Back to birth weight":`${fmtG(BIRTH[tw].g-m.cur.v)} g to go`):"—", m.cur?`birth ${fmtG(BIRTH[tw].g)} g · latest ${fmtG(m.cur.v)} g (${md(m.cur.date)})`:"no weights yet", !!(m.cur&&m.cur.v>=BIRTH[tw].g))}
