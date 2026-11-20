@@ -16,7 +16,7 @@ Status: **ready to submit except for the steps that need an Apple Developer acco
 | Privacy policy covers accounts, family data, check-ins, support resources and photos. | `privacy.html` |
 
 ## 2. Still needs you (before submitting)
-1. **Support email.** `privacy.html` still says `SUPPORT_EMAIL`. Send me the dedicated address and I'll put it in; it is public.
+1. **Support email:** done — niculog.app@gmail.com is on the privacy and terms pages.
 2. **Apple Developer Program enrollment** (Apple's annual fee). Choose carefully:
    - **Individual:** fastest. The App Store shows **your legal name** as the seller.
    - **Organization** (e.g. an LLC): the store shows the organization's name; needs a D-U-N-S number, which takes longer.
