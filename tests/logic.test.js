@@ -88,6 +88,19 @@ async function main() {
     check("…and reports it ready", (await ip.textContent("#bkMsg")).startsWith("Backup ready"));
     await ip.context().close();
 
+    // ===== Today's 7-day trend: "yesterday" is yesterday's feed day, even before anything is logged today =====
+    const yp = await newPage(browser, base, { now: NOW }); await importData(yp);
+    await tab(yp, "feed"); await yp.click('#view button[data-v="#0"]'); await wait(yp, 300);
+    // remove every Ada feed logged on today's feed day (the day runs 7 AM–7 AM; NOW is 3:10 PM)
+    await yp.evaluate(() => { const start = new Date("2026-02-10T07:00:00-05:00").getTime();
+      Object.entries(__db.feeds || {}).forEach(([id, f]) => { if ((f.i === 0 || f.twin === "Ada Rose") && f.t >= start) Store.delFeed(id); }); });
+    await wait(yp, 500);
+    const shown = await yp.evaluate(() => { const b = [...document.querySelectorAll(".spk b")][0]; return b ? b.textContent.trim() : null; });
+    await yp.click("#dPrev"); await wait(yp, 300);
+    const sheet = await yp.evaluate(() => { const m = (document.querySelector("#sheet .tws") || {}).textContent || ""; const r = m.match(/(\d+)%/); return r ? r[1] + "%" : null; });
+    check("the 7-day trend's 'yesterday' is yesterday's total even when nothing is logged yet today (matches the day sheet)", !!shown && shown === sheet, `trend ${shown} · sheet ${sheet}`);
+    await yp.context().close();
+
     // ===== Bedside camera button (AngelEye etc.): a family link per baby (config/cams), opened from her Today card =====
     const URL1 = "https://nicu.example.org/view", URL2 = "https://nicu.example.org/view2";
     const cp = await newPage(browser, base, { now: NOW }); await importData(cp);

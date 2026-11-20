@@ -1398,7 +1398,7 @@
       </div>
       <div class="sec">
         <div class="sec-h"><span>7-day trends</span></div>
-        <div class="spk"><div>By mouth (% of target)<br><b>${pcts.filter(x=>x!=null).slice(-2,-1)[0]??"—"}%</b> yesterday${spark(pcts,{bar:true,color:C[tw],max:120,lastFaded:true})}</div>
+        <div class="spk"><div>By mouth (% of target)<br><b>${pcts[5]??"—"}${pcts[5]==null?"":"%"}</b> yesterday${spark(pcts,{bar:true,color:C[tw],max:120,lastFaded:true})}</div>
           <div>Weight, ${ws.length} nights<br><b>${lw?wtMain(lw.v):"—"}</b> ${lw&&fw&&ws.length>1?`<span class="muted">${sgn(lw.v-fw.v)} g</span>`:""}${spark(ws.map(x=>x.v),{color:C[tw]})}</div></div>
       </div>`;
   }
