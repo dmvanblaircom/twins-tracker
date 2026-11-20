@@ -101,6 +101,22 @@ async function main() {
     check("the 7-day trend's 'yesterday' is yesterday's total even when nothing is logged yet today (matches the day sheet)", !!shown && shown === sheet, `trend ${shown} · sheet ${sheet}`);
     await yp.context().close();
 
+    // ===== Plans from rounds: Today card (both views), one per baby per day, editable from Care =====
+    const pp = await newPage(browser, base, { now: NOW }); await importData(pp);
+    await pp.evaluate(() => { Store.put("plans", "0-2026-02-08", { i: 0, day: "2026-02-08", text: "Old plan" }); }); await wait(pp, 300);
+    await tab(pp, "feed"); await pp.click('#view button[data-v="both"]').catch(() => {}); await wait(pp, 300);
+    check("Today shows a plan card in the Both view, one row per baby", (await pp.$$("#planToday li")).length === 2 && (await pp.textContent("#planToday")).includes("Nothing written yet today") && (await pp.textContent("#planToday")).includes("Last plan Feb 8: Old plan"));
+    await tab(pp, "more"); await pp.click('#moreNav button[data-v="care"]'); await wait(pp);
+    pp.answers = ["Old plan, corrected"];
+    await pp.click('#careP [data-plan-edit="0|2026-02-08"]'); await wait(pp, 300);
+    check("Care: Edit on a past day's plan replaces that day's plan (same entry, nothing added)", await pp.evaluate(() => __db.plans["0-2026-02-08"].text === "Old plan, corrected" && Object.keys(__db.plans).length === 1));
+    check("Care: the bottom buttons say Add when there's no plan today", (await pp.textContent("#careP")).includes("Add today's plan"));
+    await pp.evaluate(() => { const pr = JSON.parse(JSON.stringify(__db.config.profile)); pr.twins[1].home = Date.now() - 3600e3; return Store.setProfile(pr); }); await wait(pp, 400);
+    await tab(pp, "feed"); await wait(pp, 300);
+    check("a baby who went home has no plan row on Today", (await pp.$$("#planToday li")).length === 1 && !(await pp.textContent("#planToday")).includes(BEA));
+    check("no page errors (plans)", !pp.errors.length, pp.errors.join("; "));
+    await pp.context().close();
+
     // ===== Bedside camera button (AngelEye etc.): a family link per baby (config/cams), opened from her Today card =====
     const URL1 = "https://nicu.example.org/view", URL2 = "https://nicu.example.org/view2";
     const cp = await newPage(browser, base, { now: NOW }); await importData(cp);

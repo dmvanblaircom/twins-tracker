@@ -145,8 +145,11 @@ async function main() {
     await p.click(`${A} [data-act=detail]`); await p.waitForTimeout(300);
     check("Details opens the single-baby view", (await p.$$(".nx")).length === 1 && (await p.$$(`${A} .spk`)).length === 1);
     p.answers = ["Try ad lib tomorrow"];
-    await p.click(`${A} [data-act=plan]`); await p.waitForTimeout(200);
-    check("plan from rounds saves", (await p.textContent(`${A} .tplan`)).includes("Try ad lib tomorrow"));
+    await p.click(`#planToday [data-tw="Ada Rose"] [data-plan-day]`); await p.waitForTimeout(200);
+    check("plan from rounds saves (Today's plan card)", (await p.textContent(`#planToday [data-tw="Ada Rose"]`)).includes("Try ad lib tomorrow") && (await p.textContent(`#planToday [data-tw="Ada Rose"] [data-plan-day]`)).trim() === "Edit");
+    p.answers = ["Try ad lib tomorrow; recheck weight"];
+    await p.click(`#planToday [data-tw="Ada Rose"] [data-plan-day]`); await p.waitForTimeout(200);
+    check("editing today's plan replaces it: still one plan for the day", (await p.textContent(`#planToday [data-tw="Ada Rose"]`)).includes("recheck weight") && (await p.evaluate(() => Object.keys(__db.plans || {}).filter(k => k.startsWith("0-")).length)) === 1);
     check("single-baby view: context names the baby", (await p.textContent("#ctxLabel")).endsWith("Ada Rose"), await p.textContent("#ctxLabel"));
     check("single-baby view shows intake metrics, rounds and 7-day trends", (await p.$$(`${A} .metrics .m`)).length === 3 && (await p.$$(`${A} .spk svg`)).length === 2);
     await p.click(`${A} [data-act=gohome]`); await p.waitForTimeout(250);
