@@ -24,7 +24,7 @@
   if (window.__TEST_PROFILE) db.config.profile = copy(window.__TEST_PROFILE);
   // Same collection lists as firebase-store.js (Store.lists).
   const SHARED = ["weights", "feeds", "pumps", "drops", "checklist", "plans", "questions", "events", "needs", "slotMilk", "milkUsual", "schedPeriods"],
-    PRIVATE = ["checkins"], CONFIG = ["profile", "diet", "people", "milk", "sources", "cams"], META = ["clients"], MEDIA = ["photos", "photoData"];
+    PRIVATE = ["checkins"], CONFIG = ["profile", "diet", "people", "milk", "sources", "cams", "contacts"], META = ["clients"], MEDIA = ["photos", "photoData"];
   // Milk sources: the stub refuses what firestore.rules refuses (same validators as the app), so the browser tests
   // can't pass with data the real backend would reject. __TEST_WRITES logs every write attempt for the tests.
   const deny = (msg, extra) => { const e = Object.assign(new Error(msg), { code: "permission-denied", ...extra }); window.dispatchEvent(new CustomEvent("store-error", { detail: e })); return e; };

@@ -51,7 +51,7 @@ if (!window.Store) {
   const MEDIA = ["photos", "photoData"];         // Phase 5: photo metadata + thumbnail, and the full image (read only when opened)
   const META = ["clients"];                      // per-phone app version markers: deleted with the family, never backed up
   const PRIVATE = ["checkins"];                  // households/{hid}/private/{uid}/{name}: owner-only (see firestore.rules)
-  const CONFIG = ["profile", "diet", "people", "milk", "sources", "cams"];   // sources: milk-source tracking switched on (never backed up)
+  const CONFIG = ["profile", "diet", "people", "milk", "sources", "cams", "contacts"];   // sources: milk-source tracking switched on (never backed up)
   const notReady = () => Object.assign(new Error("Not signed in to a family yet."), { code: "no-family" });
   // Private collection of the signed-in person. The uid always comes from Firebase Auth, never from the caller.
   const priv = name => { const u = me(); if (!u || !HID) throw notReady(); return collection(db, "households", HID, "private", u.uid, name); };

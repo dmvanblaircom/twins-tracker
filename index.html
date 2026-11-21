@@ -343,6 +343,7 @@
   .mkwhen summary span{color:var(--text2);font-weight:500;margin-left:4px}
   .mkline{font-size:var(--fs-md);margin-bottom:var(--sp-2)} .mkline b{color:var(--title)} .mksub{margin-top:var(--sp-2)}
   #mkRecs{margin-top:var(--sp-3)}
+  #swBox{margin-top:var(--sp-2)} .swcard .swn{font-weight:650;color:var(--title)} .swform{display:grid;gap:var(--sp-2)}
   .plist{list-style:none;margin:0;padding:0}
   .plist li{display:grid;grid-template-columns:1fr auto;gap:var(--sp-2) var(--sp-3);align-items:start;padding:var(--sp-3) 0;border-top:1px solid var(--grid)}
   .plist li:first-child{border-top:0;padding-top:0}
@@ -694,7 +695,8 @@
         <div class="row"><a class="btn ghost" href="tel:18009444773">Call</a><a class="btn ghost" href="sms:18009444773">Text</a><a class="btn ghost" href="https://www.postpartum.net" target="_blank" rel="noopener">postpartum.net</a></div></li>
       <li><b>Hand to Hold</b> — free peer mentors (parents who've been through the NICU) and support groups, in English and Spanish.
         <div class="row"><a class="btn ghost" href="https://handtohold.org" target="_blank" rel="noopener">handtohold.org</a></div></li>
-      <li><b>Your NICU's social worker</b> — every NICU has one. Ask your baby's nurse to connect you; they can help with stress, money, lodging and getting home.</li>
+      <li id="swItem"><b>Your NICU's social worker</b> — every NICU has one. Ask your baby's nurse to connect you; they can help with stress, money, lodging and getting home.
+        <div id="swBox"></div></li>
     </ul>
     <p class="note">These are independent services, not part of this app. This app doesn't read or send anything about your check-ins.</p>
   </div>
@@ -897,6 +899,34 @@
   const camLink = i => { const u=CAMS[i]; return typeof u==="string" && CAM_OK.test(u) ? u : ""; };
   const cleanCams = c => { const o={}; const l=c&&c.links; if(l&&typeof l==="object") for(const i of ["0","1"]) if(typeof l[i]==="string"&&CAM_OK.test(l[i])&&l[i].length<=2000) o[i]=l[i]; return o; };
   const saveCams = next => Store.setConfig("cams", {links:next});
+  // NICU social worker's contact details, saved for the family: config/contacts → {sw:{name, phone, email}} (product owner, Nov 21, 2026)
+  let SW={name:"",phone:"",email:""}, swEditing=false;
+  const EMAIL_OK = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
+  const cleanSW = c => { const s=c&&c.sw&&typeof c.sw==="object"?c.sw:{}; const t=(v,n)=>typeof v==="string"?v.trim().slice(0,n):"";
+    const o={name:t(s.name,80), phone:t(s.phone,30), email:t(s.email,120)}; if(o.email && !EMAIL_OK.test(o.email)) o.email=""; return o; };
+  document.addEventListener("click", async e=>{ const b=e.target.closest("[data-sw]"); if(!b) return; const act=b.dataset.sw;
+    if(act==="edit"){ swEditing=true; renderSW(); const f=$("swName"); f&&f.focus(); return; }
+    if(act==="cancel"){ swEditing=false; renderSW(); return; }
+    if(act==="save"){ const next={name:$("swName").value.trim().slice(0,80), phone:$("swPhone").value.trim().slice(0,30), email:$("swEmail").value.trim().slice(0,120)};
+      if(next.email && !EMAIL_OK.test(next.email)){ flash("That email doesn't look complete (e.g. name@hospital.org)."); $("swEmail").focus(); return; }
+      if(next.phone && telOf(next.phone).replace("+","").length<7){ flash("That phone number looks too short."); $("swPhone").focus(); return; }
+      const prev=RAWC.contacts||null;
+      try{ await Store.setConfig("contacts", {...(prev&&typeof prev==="object"?prev:{}), sw:next}); swEditing=false; SW=cleanSW({sw:next}); renderSW();
+        undoBar("Social worker saved", ()=>Store.setConfig("contacts", prev||{sw:{name:"",phone:"",email:""}})); }catch(err){ failWrite(err); } }
+  });
+  const telOf = p => (p||"").replace(/[^\d+]/g,"");
+  function renderSW(){
+    const el=$("swBox"); if(!el) return; const has=SW.name||SW.phone||SW.email;
+    if(swEditing){ el.innerHTML=`<div class="swform">
+        <label class="f">Name<input id="swName" type="text" maxlength="80" autocomplete="off" value="${esc(SW.name)}"></label>
+        <label class="f">Phone<input id="swPhone" type="tel" maxlength="30" autocomplete="off" value="${esc(SW.phone)}"></label>
+        <label class="f">Email<input id="swEmail" type="email" maxlength="120" autocomplete="off" value="${esc(SW.email)}"></label>
+        <div class="row"><button class="btn" type="button" data-sw="save" ${canWrite?"":"disabled"}>Save</button><button class="btn ghost" type="button" data-sw="cancel">Cancel</button></div>
+        <p class="note">Saved for your family, so both of you can find it.</p></div>`; return; }
+    el.innerHTML = has ? `<div class="swcard">${SW.name?`<div class="swn">${esc(SW.name)}</div>`:""}${SW.phone?`<div class="s">${esc(SW.phone)}</div>`:""}${SW.email?`<div class="s">${esc(SW.email)}</div>`:""}
+        <div class="row">${SW.phone&&telOf(SW.phone)?`<a class="btn ghost" href="tel:${esc(telOf(SW.phone))}">Call</a><a class="btn ghost" href="sms:${esc(telOf(SW.phone))}">Text</a>`:""}${SW.email?`<a class="btn ghost" href="mailto:${esc(SW.email)}">Email</a>`:""}<button class="btn ghost" type="button" data-sw="edit" ${canWrite?"":"disabled"}>Edit</button></div></div>`
+      : `<div class="row"><button class="btn ghost" type="button" data-sw="edit" ${canWrite?"":"disabled"}>Add their name, phone and email</button></div>`;
+  }
   const PREF = (()=>{ let p={}; try{ p=JSON.parse(localStorage.getItem("prefs")||"{}")||{}; }catch{} return {units:"g",clock:"12",text:"1",night:"manual",look:"system",...p}; })();
   const savePrefs = () => { try{ localStorage.setItem("prefs",JSON.stringify(PREF)); }catch{} };
   const clock = (h,m,short) => PREF.clock==="24" ? `${pad(h)}:${pad(m)}` : `${h%12||12}${m||!short?":"+pad(m):""}${short?(h<12?"a":"p"):(h<12?" AM":" PM")}`;
@@ -1627,7 +1657,7 @@
   // Collection names come from Store.lists (one place, firebase-store.js); the fallback matches it.
   const bkCols = () => (window.Store&&Store.lists&&Store.lists.shared) || ["weights","feeds","pumps","drops","checklist","plans","questions","events","needs"];
   const bkPriv = () => (window.Store&&Store.lists&&Store.lists.private) || ["checkins"];
-  const BK_CFG=["profile","diet","people","milk","cams"], BK_APPS=["twins-tracker","niculog"], BK_FORMATS=[1,2];
+  const BK_CFG=["profile","diet","people","milk","cams","contacts"], BK_APPS=["twins-tracker","niculog"], BK_FORMATS=[1,2];
   const rawOf = c => c==="weights"?rawW:c==="feeds"?rawF:RAW[c]||[];
   // Format 2: shared collections (incl. events, needs), config, and ONLY the signed-in person's own private data.
   function backupData(){
@@ -1829,6 +1859,7 @@
   function renderSupport(){
     if(!$("ciScale")) return;
     $("supMsg").textContent=supMsg();
+    if(!swEditing) renderSW();
     if(!$("ciScale").children.length) $("ciScale").innerHTML=MOOD.map((m,k)=>`<button type="button" class="chip" data-mood="${k+1}" aria-pressed="false">${m}</button>`).join("");
     [...$("ciScale").children].forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.mood===ciMood)));
     $("ciSave").disabled=!ciMood;
@@ -2840,6 +2871,7 @@
         if(!camsSeen){ camsSeen=true; let local={}; try{ local=cleanCams({links:JSON.parse(localStorage.getItem("camLinks")||"{}")}); }catch{}
           if(Object.keys(local).length){ if(!Object.keys(CAMS).length) saveCams(local).catch(()=>{}); try{ localStorage.removeItem("camLinks"); }catch{} } }
         renderNext(); renderCams(); renderCamTip(); }, ()=>{}));
+      unsubs.push(Store.watchConfig("contacts",c=>{ RAWC.contacts=c; SW=cleanSW(c); if(!$("swBox").contains(document.activeElement)) renderSW(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ RAWC.milk=c; milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
       unsubs.push(Store.watchConfig("sources",c=>{ SRC_CFG=c&&c.on===true?c:null; renderAll(); }, ()=>{}));
     }

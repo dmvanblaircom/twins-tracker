@@ -135,6 +135,26 @@ async function main() {
     const fm = await p.evaluate(() => Object.values(__db.events).find(e => e.key === "nursery-ready"));
     check("a family milestone saves with scope family, i null and its key", fm && fm.scope === "family" && fm.i === null && fm.kind === "milestone" && fm.title === "Nursery ready");
 
+    // ---- NICU social worker's contact details, saved for the family ----
+    await support(p);
+    check("social worker: an Add button when nothing is saved", (await p.textContent("#swBox")).includes("Add their name, phone and email"));
+    await p.click('#swBox [data-sw="edit"]'); await wait(p, 150);
+    check("Add opens name, phone and email fields, name focused", (await p.$$("#swName, #swPhone, #swEmail")).length === 3 && await p.evaluate(() => document.activeElement.id === "swName"));
+    await p.fill("#swName", "Pat Example"); await p.fill("#swPhone", "(614) 555-0100"); await p.fill("#swEmail", "not-an-email");
+    await p.click('#swBox [data-sw="save"]'); await wait(p, 200);
+    check("an incomplete email is refused in plain words, nothing saved", (await p.textContent("#banner")).includes("doesn't look complete") && await p.evaluate(() => !(__db.config.contacts)));
+    await p.fill("#swEmail", "pat@example.org"); await p.click('#swBox [data-sw="save"]'); await wait(p, 300);
+    check("saving stores it for the family in config/contacts", await p.evaluate(() => { const c = __db.config.contacts; return c && c.sw.name === "Pat Example" && c.sw.phone === "(614) 555-0100" && c.sw.email === "pat@example.org"; }));
+    check("it shows the name, number and email with Call, Text and Email buttons", await p.evaluate(() => { const b = document.querySelector("#swBox"), h = [...b.querySelectorAll("a")].map(a => a.getAttribute("href"));
+      return b.textContent.includes("Pat Example") && b.textContent.includes("(614) 555-0100") && h.includes("tel:6145550100") && h.includes("sms:6145550100") && h.includes("mailto:pat@example.org"); }));
+    check("its buttons are 44 px tall", await p.$$eval("#swBox a, #swBox button", x => x.length >= 4 && x.every(e => e.getBoundingClientRect().height >= 44)));
+    await p.click("#toast button"); await wait(p, 300);
+    check("Undo takes it back off", (await p.textContent("#swBox")).includes("Add their name, phone and email"));
+    await p.evaluate(() => Store.setConfig("contacts", { sw: { name: "Sam Example", phone: "614-555-0199", email: "" } })); await wait(p, 300);
+    check("details the other parent saves show up on this phone", (await p.textContent("#swBox")).includes("Sam Example") && !(await p.$('#swBox a[href^="mailto:"]')));
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await p.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
+    const [bk2] = await Promise.all([p.waitForEvent("download"), p.click("#bkGo")]); const b2 = JSON.parse(fs.readFileSync(await bk2.path(), "utf8"));
+    check("the family backup carries the social worker's details", b2.data.config.contacts && b2.data.config.contacts.sw.name === "Sam Example");
     // ---- leaving purges my check-ins; shared copies stay ----
     await support(p); await share(p);
     await p.evaluate(() => Store.leave()); await wait(p, 300);
