@@ -172,20 +172,26 @@ async function main() {
 
     // ---- milk ----
     await tab(p, "milk");
-    check("Milk time boxes stay inside their cards", await p.$$eval("#pmT,#dpT", els => els.every(e => e.getBoundingClientRect().right <= e.closest(".card").getBoundingClientRect().right)));
+    check("Milk tab is four cards: estimate, pumping, one log card, chart (no log table)", (await p.$$('.tab[data-tab="milk"] > .card:not([hidden])')).length === 4 && !(await p.$("#mkBody")) && (await p.$$("#mkLogCard #mkPump, #mkLogCard #mkDrop")).length === 2);
+    check("Milk: the time is 'now' until changed, folded away", (await p.textContent("#mkWhenLbl")) === "now" && !(await p.$eval("#mkWhen", e => e.open)));
+    await p.click("#mkWhen summary"); await p.waitForTimeout(100);
+    check("Milk time box stays inside its card", await p.$eval("#mkT", e => e.getBoundingClientRect().right <= e.closest(".card").getBoundingClientRect().right));
+    await p.click("#mkWhen summary"); await p.waitForTimeout(100);
     check("baby bar hidden on Milk", !(await p.isVisible(".viewbar")));
     check("Log feed button hidden on Milk", !(await p.isVisible("#fab")));
     check("Milk: no estimate before any drop-off or count", (await p.textContent("#mkInv")).includes("to start the estimate"));
     const pumpsBefore = await db(p, () => Object.keys(__db.pumps || {}).length);
-    await p.fill("#pmV", "120"); await p.click("#pmGo"); await p.waitForTimeout(150);
+    await p.fill("#mkV", "120"); await p.click("#mkPump"); await p.waitForTimeout(150);
     check("pump entry saves", await db(p, () => Object.keys(__db.pumps || {}).length) === pumpsBefore + 1);
-    const pmAt = await p.inputValue("#pmT");
-    for (const v of ["30", "35"]) { await p.fill("#pmT", pmAt); await p.fill("#pmV", v); await p.click("#pmGo"); await p.waitForTimeout(150); }
+    const pmAt = await p.inputValue("#mkT");
+    for (const v of ["30", "35"]) { await p.click("#mkWhen summary"); await p.fill("#mkT", pmAt); await p.fill("#mkV", v); await p.click("#mkPump"); await p.waitForTimeout(150); }
     check("two pump entries in the same minute are both kept", await db(p, () => Object.keys(__db.pumps || {}).length) === pumpsBefore + 3);
     check("Need & pumping shows daily need and 24 h pumped in mL", /Est\. daily need\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")) && /Pumped 24 h\s*[\d,]+\s*mL/.test(await p.textContent("#mkStats")), (await p.textContent("#mkStats")).replace(/\s+/g, " "));
     const dropAt = await p.evaluate(() => { const d = new Date(Date.now() - 4 * 3600e3), q = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${q(d.getMonth() + 1)}-${q(d.getDate())}T${q(d.getHours())}:${q(d.getMinutes())}`; });   // the page's clock, not the real one
-    await p.fill("#dpT", dropAt);
-    await p.fill("#dpV", "500"); await p.click("#dpGo"); await p.waitForTimeout(200);
+    await p.click("#mkWhen summary"); await p.fill("#mkT", dropAt);
+    check("Milk: a changed time shows on the fold", (await p.textContent("#mkWhenLbl")) !== "now");
+    await p.fill("#mkV", "500"); await p.click("#mkDrop"); await p.waitForTimeout(200);
+    check("Took to NICU saves a drop-off at the chosen time, and the time goes back to now", await db(p, () => Object.values(__db.drops || {}).some(x => x.v === 500)) && (await p.textContent("#mkWhenLbl")) === "now");
     const inv1 = await p.textContent("#mkInv");
     const amt = re => { const m = inv1.replace(/\s+/g, " ").match(re); return m ? +m[1].replace(/,/g, "") : NaN; };
     const start = amt(/before your first drop-off .*? ([\d,]+) mL/), added = amt(/Dropped off since.*? ([\d,]+) mL/), used = amt(/scheduled feeds since \(\d+\) ([\d,]+) mL/), est = amt(/Estimated now ([\d,]+) mL/);
@@ -194,12 +200,15 @@ async function main() {
     p.answers = ["1000"]; await p.click("#stkGo"); await p.waitForTimeout(200);
     const inv2 = (await p.textContent("#mkInv")).replace(/\s+/g, " ");
     check("NICU count becomes the starting point, marked Counted", inv2.includes("NICU's count") && inv2.includes("Counted") && /1,000 mL/.test(inv2), inv2);
-    check("NICU count appears in the milk log", (await p.innerText("#mkBody")).includes("NICU count"));
+    check("the working folds under 'How this is worked out' (still on the page)", await p.$eval("#mkInv details.mkhow", d => !d.open && d.querySelector("summary").textContent.includes("How this is worked out")));
+    await p.click("#mkRecs"); await p.waitForTimeout(250);
+    check("See all milk entries opens Records filtered to milk, with the NICU count", await p.$eval("#tabbar .on", b => b.dataset.tab) === "more" && (await p.$$eval("#logBody tr[data-kind]", x => [...new Set(x.map(t => t.dataset.kind))])).every(k => ["pump", "drop", "count"].includes(k)) && /NICU count/i.test(await p.innerText("#logBody")), JSON.stringify(await p.evaluate(() => ({ tab: document.querySelector("#tabbar .on").dataset.tab, f: document.querySelector("#recF .on")?.dataset.v, kinds: [...new Set([...document.querySelectorAll("#logBody tr[data-kind]")].map(t => t.dataset.kind))], txt: document.querySelector("#logBody").innerText.slice(0, 200) }))));
+    await p.click('#recF button[data-v="all"]'); await p.waitForTimeout(100); await tab(p, "milk");
     await p.click("#toast button"); await p.waitForTimeout(200);
     check("Undo of a NICU count restores the drop-off estimate", (await p.textContent("#mkInv")).includes("before your first drop-off"));
     await p.context().setOffline(true); await p.waitForTimeout(200);
     check("offline: sync pill says so", (await p.textContent("#sync")).startsWith("Offline"));
-    await p.fill("#pmV", "90"); await p.click("#pmGo"); await p.waitForTimeout(150);
+    await p.fill("#mkV", "90"); await p.click("#mkPump"); await p.waitForTimeout(150);
     check("offline: pump entry still saves locally", await db(p, () => Object.values(__db.pumps || {}).some(x => x.v === 90)));
     await p.context().setOffline(false); await p.waitForTimeout(200);
     p.answers = ["1000"]; await p.click("#stkGo"); await p.waitForTimeout(200);

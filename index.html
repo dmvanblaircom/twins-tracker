@@ -179,11 +179,10 @@
   .swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
   .swatches button{width:44px;height:44px;border-radius:50%;border:3px solid transparent;background:var(--sw);cursor:pointer;outline-offset:2px}
   .swatches button[aria-checked="true"]{border-color:var(--title);box-shadow:inset 0 0 0 3px var(--surface)}
-  .mkrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
-  .mkrow .box{position:relative}
-  .mkrow input{font-size:30px;font-weight:650;text-align:center;height:60px;padding:8px 36px 8px 8px;border-width:2px}
-  .mkrow .box span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
-  .mkrow .save{height:60px;font-size:18px}
+  .mkbox{position:relative}
+  .mkbox input{font-size:30px;font-weight:650;text-align:center;height:60px;padding:8px 36px 8px 8px;border-width:2px}
+  .mkbox span{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+  .mkbtns .save{height:52px;font-size:var(--fs-lg)}
   .tabbar button span{font-size:var(--fs-xs);letter-spacing:.01em}
   .sync{display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:2px 9px 2px 8px;border-radius:var(--r-pill);font-size:var(--fs-xs);font-weight:600;background:var(--track);color:var(--muted)}
   .sync i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
@@ -339,6 +338,11 @@
   #roundsCard h2 + div .rh{margin-top:var(--sp-2)}
   .rh #qCount{text-transform:none;letter-spacing:0;font-weight:400}
   .gline{margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px solid var(--grid);font-size:var(--fs-sm);color:var(--text2)} .gline b{color:var(--title)}
+  .mkbox{margin-bottom:var(--sp-2)} .mkbtns{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2)}
+  .mkwhen{margin-top:var(--sp-2)} .mkwhen summary,.mkhow summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--accent);font-size:var(--fs-sm);font-weight:600}
+  .mkwhen summary span{color:var(--text2);font-weight:500;margin-left:4px}
+  .mkline{font-size:var(--fs-md);margin-bottom:var(--sp-2)} .mkline b{color:var(--title)} .mksub{margin-top:var(--sp-2)}
+  #mkRecs{margin-top:var(--sp-3)}
   .plist{list-style:none;margin:0;padding:0}
   .plist li{display:grid;grid-template-columns:1fr auto;gap:var(--sp-2) var(--sp-3);align-items:start;padding:var(--sp-3) 0;border-top:1px solid var(--grid)}
   .plist li:first-child{border-top:0;padding-top:0}
@@ -620,21 +624,16 @@
     <h2>Milk at the NICU <span class="badge warn" id="mkInvBadge">Estimate</span></h2>
     <div id="mkInv"></div>
     <div class="row" style="margin-top:var(--sp-3)"><button class="btn ghost" id="stkGo">Update with the NICU's count</button></div>
-    <div class="note" id="mkNote">The estimate is not a count. It starts from the NICU's last count (or your first drop-off), adds drop-offs since, and subtracts each baby's full feed at every scheduled feed time since. Update it whenever the nurses give you a real number.</div>
   </div>
-  <div class="card"><h2>Need &amp; pumping <span class="muted" id="mkAs" style="font-weight:600;font-size:var(--fs-xs)"></span></h2><div class="metrics" id="mkStats"></div></div>
-  <div class="card"><h2>Log pumping</h2>
-    <div class="mkrow"><div class="box"><input id="pmV" type="number" inputmode="decimal" min="0" step="any" placeholder="—" aria-label="Pumped mL"><span>mL</span></div><button class="btn save" id="pmGo">Save</button></div>
-    <label class="f" style="margin-top:8px">When<input id="pmT" type="datetime-local"></label></div>
-  <div class="card"><h2>Took milk to the NICU</h2>
-    <div class="mkrow"><div class="box"><input id="dpV" type="number" inputmode="decimal" min="0" step="any" placeholder="—" aria-label="Dropped off mL"><span>mL</span></div><button class="btn save" id="dpGo">Save</button></div>
-    <label class="f" style="margin-top:8px">When<input id="dpT" type="datetime-local"></label>
+  <div class="card"><h2>Pumping</h2><div id="mkStats"></div></div>
+  <div class="card" id="mkLogCard"><h2>Log milk</h2>
+    <div class="box mkbox"><input id="mkV" type="number" inputmode="decimal" min="0" step="any" placeholder="—" aria-label="Milk in mL"><span>mL</span></div>
+    <div class="mkbtns"><button class="btn save" id="mkPump" type="button">Pumped</button><button class="btn save" id="mkDrop" type="button">Took to NICU</button></div>
+    <details class="mkwhen" id="mkWhen"><summary>Change time · <span id="mkWhenLbl">now</span></summary><label class="f">When<input id="mkT" type="datetime-local"></label></details>
   </div>
   <div class="card"><h2>Pumped per day</h2><div class="chartbox"><canvas id="cMilk" aria-label="Milk pumped per day compared with the estimated daily need" role="img"></canvas></div>
-    <div class="legend"><span>▮ pumped that day (mL)</span><span id="mkLeg">- - babies' estimated daily need</span></div></div>
-  <div class="card"><h2>Milk log</h2>
-    <div style="overflow-x:auto"><table><thead><tr><th>Time</th><th>Entry</th><th class="num">mL</th><th>By</th><th></th></tr></thead><tbody id="mkBody"></tbody></table></div>
-    <div class="row" style="margin-top:10px"><button class="btn ghost" id="mkMore">Show more</button></div></div>
+    <div class="legend"><span>▮ pumped that day (mL)</span><span id="mkLeg">- - babies' estimated daily need</span></div>
+    <button class="tgo" id="mkRecs" type="button"><span>See all milk entries (pumping, drop-offs, NICU counts)</span><span class="chev" aria-hidden="true">›</span></button></div>
   </section>
 
   <section class="tab" data-tab="trends">
@@ -1501,7 +1500,7 @@
     store.set("tab",name); scrollTo(0,0);
     document.querySelector(".viewbar").style.display = name==="milk" || (name==="more" && state.moreSec==="support") ? "none" : "";   // nothing baby-specific there
     updateFab();
-    if(name==="milk") ["pmT","dpT"].forEach(id=>{ if(document.activeElement!==$(id)) $(id).value=toLocalInput(new Date()); });
+    if(name==="milk" && document.activeElement!==$("mkT") && !$("mkWhen").open){ $("mkT").value=toLocalInput(new Date()); mkWhenLbl(); }
     if(TWINS[0]!=="A") renderAll();        // charts can only be measured while visible
   }
   // Floating "+ Log feed": on other screens, or once the Next-feed box has scrolled out of reach.
@@ -2298,7 +2297,7 @@
   $("careQ").addEventListener("click", qClick);
 
   // ---------- milk log ----------
-  let P=[], D=[], milkCfg=null, mkN=20;     // pumps, NICU drop-offs, {count,t} correction
+  let P=[], D=[], milkCfg=null;     // pumps, NICU drop-offs, {count,t} correction
   // Same estimate as before, returned with its parts so the screen can show the working.
   function stockParts(){
     const now=Date.now(), base=milkCfg&&isFinite(milkCfg.t)?milkCfg:null;
@@ -2349,34 +2348,27 @@
     const pct=n>0?Math.round(tot24/n*100):0, on=srcOn();   // n can be 0 only with milk sources (no mother's milk planned)
     renderDrift(); renderSrcNotes();
     $("mkLeg").textContent = !on ? "- - babies' estimated daily need" : n>0 ? "- - daily need for mother's milk" : "No mother's-milk need line (none planned)";
-    $("mkNote").textContent = on
+    const mkNoteTxt = on => on
       ? "The estimate is not a count. It starts from the NICU's last count (or your first drop-off), adds drop-offs since, and subtracts the mother's-milk share of each baby's scheduled feed at every scheduled feed time since. Donor milk and formula aren't taken from mother's stock. Feeds with no recorded source count as mother's milk, as before. Update it whenever the nurses give you a real number."
       : "The estimate is not a count. It starts from the NICU's last count (or your first drop-off), adds drop-offs since, and subtracts each baby's full feed at every scheduled feed time since. Update it whenever the nurses give you a real number.";
-    $("mkAs").textContent="";
     const sp=stockParts(), whenFull=t=>`${longD(new Date(t))} ${hm(t)}`;
     $("mkInvBadge").textContent = "Estimate";
     $("mkInv").innerHTML = !sp ? `<div class="k">Estimated stock</div><div class="hero">—</div><div class="s">Log a drop-off, or enter the NICU's count, to start the estimate.</div>`
       : `<div class="k">Estimated stock now</div>
         <div class="hero-row"><div class="hero">${fmtG(Math.round(sp.est))}<small> mL</small></div><div class="s">${n>0?`≈ ${(sp.est/n).toFixed(1)} days of feeds`:TWINS.some(tw=>inNicu(tw))?"No mother's milk is planned at the current usual milk, so there's no days estimate":"Both babies are home, so no feeds draw on this milk"}${(u=>u?` · next −${u.ml} mL at ${hm(u.t)}`:"")(nextUse())}</div></div>
+        <details class="mkhow"><summary>How this is worked out</summary>
         <ul class="calc" aria-label="How the estimate is worked out">
           <li><span class="op"></span> <span>${sp.base?`NICU's count <span class="badge ok">Counted</span> <br>${whenFull(sp.base.t)}`:`Start · before your first drop-off <br>${whenFull(sp.first.t)}`}</span> <span class="amt">${fmtG(sp.base?sp.base.count:0)} mL</span></li>
           <li><span class="op">+</span> <span>Dropped off since${sp.nDrops?` (${sp.nDrops})`:""}</span> <span class="amt">${fmtG(Math.round(sp.added))} mL</span></li>
           ${on&&sp.src?srcCalc(sp.src):`<li><span class="op">−</span> <span>Used by scheduled feeds since (${sp.nFeeds})</span> <span class="amt">${fmtG(Math.round(sp.used))} mL</span></li>`}
           <li class="total"><span class="op">=</span> <span>Estimated now</span> <span class="amt">${fmtG(Math.round(sp.est))} mL</span></li>
-        </ul>${on?strandNote():""}`;
+        </ul>${on?strandNote():""}<p class="note" id="mkNote">${mkNoteTxt(on)}</p></details>`;
+    const needSub=(inN=>!inN.length?"both babies are home":on?(n>0?"at the current usual milk":"no mother's milk planned"):inN.length===2?`both full feeds × ${FEEDS_PER_DAY}`:`${esc(inN[0])}'s full feed × ${FEEDS_PER_DAY}`)(TWINS.filter(tw=>inNicu(tw)));
     $("mkStats").innerHTML=`
-      <div class="m"><div class="k">${on?"Need / day (mother's milk)":"Est. daily need"}</div><div class="v">${fmtG(Math.round(n))}<small> mL</small></div><div class="s">${(inN=>!inN.length?"both babies are home":on?(n>0?"at the current usual milk":"no mother's milk planned"):inN.length===2?`both full feeds × ${FEEDS_PER_DAY}`:`${esc(inN[0])}'s full feed × ${FEEDS_PER_DAY}`)(TWINS.filter(tw=>inNicu(tw)))}</div></div>
-      <div class="m"><div class="k">Pumped 24 h</div><div class="v">${fmtG(Math.round(tot24))}<small> mL</small></div><div class="s">${n>0?`${pct}% of need · `:""}${p24.length} session${p24.length===1?"":"s"}</div></div>
-      <div class="m"><div class="k">Last pump</div><div class="v">${last?agoShort(last.t):"—"}</div><div class="s">${last?`${last.v} mL at ${hm(last.t)}`:"none logged yet"}</div></div>
-      <div class="m" style="grid-column:1/-1">${n>0?`<div class="bar" role="img" aria-label="Pumped ${pct}% of daily need in the last 24 hours"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div>`:`<div class="s">No mother's-milk need to compare pumping with.</div>`}
-        <div class="s" style="margin-top:6px">7-day average: ${avg7==null?"needs a full day logged":`${fmtG(Math.round(avg7))} mL/day${n>0?` (${Math.round(avg7/n*100)}% of need)`:""}`}</div></div>`;
-    // log
-    const rows=[...P.map(x=>({...x,kind:"pump"})), ...D.map(x=>({...x,kind:"drop"})), ...(milkCfg?[{t:milkCfg.t,v:milkCfg.count,kind:"count"}]:[])].sort((a,b)=>b.t-a.t);
-    const kindLbl={pump:"Pumped",drop:"To NICU",count:'NICU count <span class="badge ok">Counted</span>'};
-    $("mkBody").innerHTML = rows.slice(0,mkN).map(r=>`<tr><td>${fmtWhen(r.t)}</td><td>${kindLbl[r.kind]}</td><td class="num">${fmtG(r.v)}</td><td class="muted">${r.kind==="count"?"":esc(whoName(r.by))}</td>
-      <td>${canWrite&&r.kind!=="count"?`<button class="x" data-kind="${r.kind}" data-id="${esc(r.id)}" aria-label="Delete ${r.kind==="pump"?"pump":"drop-off"} at ${fmtWhen(r.t)}">×</button>`:""}</td></tr>`).join("")
-      || `<tr><td colspan="5" class="muted">Nothing logged yet.</td></tr>`;
-    $("mkMore").style.display = rows.length>mkN ? "" : "none";
+      <div class="mkline">Pumped 24 h <b>${fmtG(Math.round(tot24))} mL</b>${n>0?` of <b>${fmtG(Math.round(n))} mL</b> needed · <b>${pct}%</b>`:""}</div>
+      ${n>0?`<div class="bar" role="img" aria-label="Pumped ${pct}% of daily need in the last 24 hours"><i style="width:${Math.min(100,pct)}%;background:var(--accent)"></i></div>`:""}
+      <div class="s mksub">${on?"Need / day (mother's milk)":"Est. daily need"} ${fmtG(Math.round(n))} mL · ${needSub}</div>
+      <div class="s mksub">${last?`Last pump ${agoShort(last.t)} ago · ${last.v} mL at ${hm(last.t)}`:"No pumping logged yet"} · 7-day average ${avg7==null?"needs a full day logged":`${fmtG(Math.round(avg7))} mL/day${n>0?` (${Math.round(avg7/n*100)}% of need)`:""}`}</div>`;
     // chart: last 14 days
     const days=[...Array(14)].map((_,k)=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-13+k); return dKey(d); });
     const o=baseOpts("Pumped (mL per day)"); o.scales.x={type:"category",grid:{display:false},ticks:{color:css("--muted"),maxRotation:0,autoSkip:true,maxTicksLimit:7}}; o.scales.y.beginAtZero=true; o.scales.y.suggestedMax=n>0?n*1.15:undefined;
@@ -2389,30 +2381,26 @@
   }
   const localNow = () => toLocalInput(new Date());
   const whenOf = id => { const v=$(id).value; const t=v?new Date(v).getTime():Date.now(); return isFinite(t)?t:Date.now(); };
-  function milkSave(kind){
-    const vId=kind==="pump"?"pmV":"dpV", tId=kind==="pump"?"pmT":"dpT", col=kind==="pump"?"pumps":"drops";
-    const v=parseFloat($(vId).value); if(!isFinite(v)||v<=0||v>3000){ $(vId).focus(); flash("Enter the mL (e.g. 120)."); return; }
-    const t=whenOf(tId); if(t>Date.now()+10*60e3){ flash("That time is in the future."); return; }
+  function milkSave(kind){   // one mL box, two buttons: Pumped / Took to NICU; the time is now unless changed
+    const col=kind==="pump"?"pumps":"drops";
+    const v=parseFloat($("mkV").value); if(!isFinite(v)||v<=0||v>3000){ $("mkV").focus(); flash("Enter the mL (e.g. 120)."); return; }
+    const t=whenOf("mkT"); if(t>Date.now()+10*60e3){ flash("That time is in the future."); return; }
     const id=`${kind[0]}-${t}-${Math.random().toString(36).slice(2,6)}`, rec={t,v:Math.round(v*10)/10};
-    Store.put(col,id,rec).then(()=>{ $(vId).value=""; $(vId).blur(); $(tId).value=localNow();
+    Store.put(col,id,rec).then(()=>{ $("mkV").value=""; $("mkV").blur(); $("mkT").value=localNow(); $("mkWhen").open=false; mkWhenLbl();
       undoBar(`${kind==="pump"?"Pumped":"To NICU"} ${rec.v} mL · ${hm(t)}`, ()=>Store.remove(col,id)); }).catch(failWrite);
   }
-  $("pmGo").addEventListener("click",()=>milkSave("pump"));
-  $("dpGo").addEventListener("click",()=>milkSave("drop"));
-  ["pmV","dpV"].forEach(id=>$(id).addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); milkSave(id==="pmV"?"pump":"drop"); } }));
+  function mkWhenLbl(){ const v=$("mkT").value, t=v?new Date(v).getTime():NaN; $("mkWhenLbl").textContent = !isFinite(t)||Math.abs(t-Date.now())<2*60e3 ? "now" : fmtWhen(t); }
+  $("mkPump").addEventListener("click",()=>milkSave("pump"));
+  $("mkDrop").addEventListener("click",()=>milkSave("drop"));
+  $("mkT").addEventListener("input",mkWhenLbl);
+  $("mkRecs").addEventListener("click",()=>{ state.moreSec="records"; try{ localStorage.setItem("moreSec","records"); }catch{} state.recF="milk"; state.logN=30;
+    showTab("more"); const nav=$("moreNav"); if(nav){ const b=nav.querySelector('button[data-v="records"]'); b&&b.click(); } const f=$("recF"); if(f){ const b=f.querySelector('button[data-v="milk"]'); b&&b.click(); } });
   $("stkGo").addEventListener("click", async ()=>{
     const r=prompt("How many mL of milk does the NICU have right now?"); if(r==null) return;
     const v=parseFloat(r); if(!isFinite(v)||v<0){ flash("Enter a number of mL."); return; }
     const prev=milkCfg; try{ await Store.setConfig("milk",{count:Math.round(v),t:Date.now()});
       undoBar(`NICU stock set to ${Math.round(v)} mL`, ()=>Store.setConfig("milk",prev||{})); }catch(err){ failWrite(err); }
   });
-  $("mkBody").addEventListener("click", async e=>{
-    const b=e.target.closest("button.x"); if(!b) return;
-    if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Delete?"; setTimeout(()=>{ if(b.isConnected){b.classList.remove("armed"); b.textContent="×";} },3000); return; }
-    const col=b.dataset.kind==="pump"?"pumps":"drops", list=b.dataset.kind==="pump"?P:D, old=list.find(x=>x.id===b.dataset.id);
-    try{ await Store.remove(col,b.dataset.id); if(old){ const {id,...r}=old; undoBar(`Deleted · ${fmtWhen(old.t)}`, ()=>Store.put(col,id,r)); } }catch(err){ failWrite(err); }
-  });
-  $("mkMore").addEventListener("click",()=>{ mkN+=40; renderMilk(); });
   const cleanM = (id,d) => { const t=Number(d.t), v=Number(d.v); return isFinite(t)&&isFinite(v)&&v>0 ? {id,t,v,by:typeof d.by==="string"?d.by:""} : null; };
 
   // ========== milk sources (engine in milk-sources.js; design in docs/phase2b-design.md) ==========
