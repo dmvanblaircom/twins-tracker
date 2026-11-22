@@ -257,7 +257,20 @@ async function main() {
     await p.click('[data-ck="b0-hearing"]'); await p.waitForTimeout(150); await p.click('[data-na="b0-rsv"]'); await p.waitForTimeout(150);
     check("checklist check + n/a", (await p.$$eval("#ckBabies .cl h4", x => x[0].textContent)).includes("1/7"));
     check("checklist marks persist to the database (ids unchanged)", await db(p, () => __db.checklist["b0-hearing"]?.s === "done" && __db.checklist["b0-rsv"]?.s === "na"));
-    check("checklist item shows when it was marked", /^[A-Z][a-z]{2} \d+/.test(await p.textContent('[data-ck="b0-hearing"] .dt')), await p.textContent('[data-ck="b0-hearing"] .dt'));
+    check("checklist item shows when it was marked", /^[A-Z][a-z]{2} \d+/.test(await p.textContent('[data-ckdate="b0-hearing"]')), await p.textContent('[data-ckdate="b0-hearing"]'));
+    // the day it was done can be changed (forgot to check it off that day); who marked it stays
+    await db(p, () => Store.put("checklist", "b0-hearing", { s: "done", d: "2026-02-10", by: "parent2@example.com" })); await p.waitForTimeout(200);
+    await p.click('[data-ckdate="b0-hearing"]'); await p.waitForTimeout(150);
+    check("tapping the date opens a date box limited to birth → today", await p.$eval('input[data-ckin="b0-hearing"]', i => i.type === "date" && i.value === "2026-02-10" && i.max === "2026-02-11" && i.min === "2026-02-01" && i.getBoundingClientRect().height >= 44), await p.$eval('input[data-ckin="b0-hearing"]', i => JSON.stringify([i.type, i.value, i.min, i.max, Math.round(i.getBoundingClientRect().height)])).catch(e => e.message));
+    await p.fill('input[data-ckin="b0-hearing"]', "2026-02-06"); await p.waitForTimeout(300);
+    check("picking a day saves it and keeps who marked it", await db(p, () => { const c = __db.checklist["b0-hearing"]; return c.s === "done" && c.d === "2026-02-06" && c.by === "parent2@example.com"; }) && (await p.textContent('[data-ckdate="b0-hearing"]')).startsWith("Feb 6"));
+    await p.click("#toast button"); await p.waitForTimeout(300);
+    check("Undo puts the old day back", await db(p, () => __db.checklist["b0-hearing"].d === "2026-02-10"));
+    await p.click('[data-ckdate="b0-hearing"]'); await p.waitForTimeout(150); await p.fill('input[data-ckin="b0-hearing"]', "2026-01-20"); await p.waitForTimeout(250);
+    check("a day before birth is refused", await db(p, () => __db.checklist["b0-hearing"].d === "2026-02-10") && (await p.textContent("#banner")).includes("before the babies were born"));
+    await p.evaluate(() => document.activeElement.blur()); await p.waitForTimeout(150);
+    check("the family checklist dates can be changed too", await p.click('[data-ck="f-seats"]').then(() => p.waitForTimeout(200)).then(() => p.$('[data-ckdate="f-seats"]')).then(Boolean).catch(() => false));
+    await db(p, () => { Store.remove("checklist", "f-seats"); Store.put("checklist", "b0-hearing", { s: "done", d: "2026-02-10" }); }); await p.waitForTimeout(200);
     check("checklist counts: marked done / open / not needed", /1 marked done/.test(await p.textContent("#ckBabies .ckmeta")) && /6 open/.test(await p.textContent("#ckBabies .ckmeta")) && /1 not needed/.test(await p.textContent("#ckBabies .ckmeta")), await p.textContent("#ckBabies .ckmeta"));
     await p.click('[data-ck="f-cpr"]'); await p.waitForTimeout(150);
     check("family checklist updates", await db(p, () => __db.checklist["f-cpr"]?.s === "done") && /1\/6/.test(await p.textContent("#famList h2")));
@@ -266,7 +279,7 @@ async function main() {
     const still = await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); return { same: b === __ck.b, dy: Math.abs(scrollY - __ck.y), on: b.getAttribute("aria-pressed") }; });
     check("checklist tap keeps the screen still (same button, no scroll)", still.same && still.dy < 2 && still.on === "true", JSON.stringify(still));
     await db(p, () => Store.put("checklist", "b1-cchd", { s: "done", d: "2026-02-10", by: "parent2@example.com" })); await p.waitForTimeout(200);
-    check("the other parent's checklist mark updates in place, with counts", await p.evaluate(() => document.querySelector('[data-ck="b1-hearing"]') === __ck.b) && (await p.$$eval("#ckBabies .cl h4 .ckn", x => x[1].textContent)) === "2/8" && /P|parent2/.test(await p.textContent('[data-ck="b1-cchd"] .dt')), await p.$$eval("#ckBabies .cl h4 .ckn", x => x.map(e => e.textContent).join(",")));
+    check("the other parent's checklist mark updates in place, with counts", await p.evaluate(() => document.querySelector('[data-ck="b1-hearing"]') === __ck.b) && (await p.$$eval("#ckBabies .cl h4 .ckn", x => x[1].textContent)) === "2/8" && /P|parent2/.test(await p.textContent('[data-ckdate="b1-cchd"]')), await p.$$eval("#ckBabies .cl h4 .ckn", x => x.map(e => e.textContent).join(",")));
     await db(p, () => { Store.remove("checklist", "b1-hearing"); Store.remove("checklist", "b1-cchd"); }); await p.waitForTimeout(200);
     await p.click('#tabbar button[data-tab=weight]'); await p.waitForTimeout(300);
     check("Growth holds all three charts: weight, by mouth per day, by mouth per feed (Journey has none)", await p.evaluate(() => ["cWeight", "cDaily", "cFeed"].every(id => document.getElementById(id).closest('.tab[data-tab="weight"]')) && !document.querySelector('.tab[data-tab="trends"] canvas')));

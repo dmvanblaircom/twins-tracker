@@ -383,7 +383,9 @@
   .ck.done .lb{color:var(--text2)} .ck.na .lb{color:var(--muted);text-decoration:line-through}
   .ck .dt{font-size:var(--fs-xs);color:var(--muted)}
   .na-btn{background:none;border:0;color:var(--muted);font:inherit;font-size:var(--fs-xs);text-decoration:underline;cursor:pointer;min-height:44px;padding:0 6px}
-  .ckrow{display:grid;grid-template-columns:1fr auto;align-items:center}
+  .ckrow{display:grid;grid-template-columns:1fr auto auto;align-items:center}
+  .ckdate{min-height:44px;padding:0 var(--sp-2);border:0;background:none;color:var(--muted);font:inherit;font-size:var(--fs-xs);text-decoration:underline dotted;text-underline-offset:3px;white-space:nowrap;cursor:pointer}
+  .ckdate-in{min-height:44px;width:auto;max-width:150px;font-size:var(--fs-sm);padding:4px 6px}
   .qs{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:2px}
   .qs li{display:grid;grid-template-columns:30px 1fr auto;gap:6px;align-items:start;padding:8px 0;border-bottom:1px solid var(--grid);font-size:var(--fs-md)}
   .qs li.done{color:var(--muted)} .qs .ans{display:block;font-size:13px;color:var(--text2);margin-top:2px}
@@ -2222,10 +2224,14 @@
       undoBar("Removed from your journey", phUndo(evUndo("delete",id,null,()=>Store.put("events",id,before)),{added:[],removed:gone})); }catch(err){ failWrite(err); }
   });
   const twIdx = tw => TWINS.indexOf(tw);
+  // The day an item was marked done can be changed (e.g. it happened before you checked it off) — product owner, Nov 22, 2026
+  function ckDateBtn(id,label){ const st=CK[id]; if(!st||st.s!=="done") return `<span class="ckdate-x" data-ckdx="${id}"></span>`;
+    return `<button class="ckdate" type="button" data-ckdate="${id}" aria-label="${esc(label)}: marked done ${md(st.d)}${st.by?` by ${esc(whoName(st.by))}`:""}. Change the date">${md(st.d)}${st.by?` · ${esc(whoName(st.by))}`:""}</button>`; }
   function ckRow(id,label,c){
     const st=CK[id], s=st&&st.s;
     return `<div class="ckrow"><button class="ck ${s||""}" data-ck="${id}" style="${c?`--c:${c}`:""}" aria-pressed="${s==="done"}" aria-label="${esc(label)}: ${s==="done"?"marked done":s==="na"?"not needed":"open"}">
-      <span class="box2">${s==="done"?"✓":""}</span><span class="lb">${esc(label)}</span><span class="dt">${s==="done"?`${md(st.d)}${st.by?` · ${esc(whoName(st.by))}`:""}`:s==="na"?"not needed":"open"}</span></button>
+      <span class="box2">${s==="done"?"✓":""}</span><span class="lb">${esc(label)}</span><span class="dt">${s==="done"?"":s==="na"?"not needed":"open"}</span></button>
+      ${ckDateBtn(id,label)}
       <button class="na-btn" data-na="${id}" aria-label="Mark ${esc(label)} not needed">${s==="na"?"undo":"n/a"}</button></div>`;
   }
   function ckCounts(ids){ const done=ids.filter(id=>CK[id]&&CK[id].s==="done").length, na=ids.filter(id=>CK[id]&&CK[id].s==="na").length; return {done,na,open:ids.length-done-na,need:ids.length-na}; }
@@ -2255,6 +2261,8 @@
       btn.className=nb.className; btn.setAttribute("aria-pressed",nb.getAttribute("aria-pressed")); btn.setAttribute("aria-label",nb.getAttribute("aria-label"));
       btn.querySelector(".box2").textContent=nb.querySelector(".box2").textContent; btn.querySelector(".dt").innerHTML=nb.querySelector(".dt").innerHTML;
       const na=row&&row.querySelector("[data-na]"); if(na){ na.textContent=nn.textContent; na.setAttribute("aria-label",nn.getAttribute("aria-label")); }
+      const slot=row&&row.querySelector("[data-ckdate],[data-ckdx],input.ckdate-in"), ns=tmp.querySelector("[data-ckdate],[data-ckdx]");
+      if(slot && ns && !(slot.matches("input") && document.activeElement===slot)) slot.replaceWith(ns);
     });
     document.querySelectorAll("[data-ids]").forEach(box=>{
       const n=ckCounts(box.dataset.ids.split(" ")), c=box.querySelector(".ckn"), m=box.querySelector(".ckmeta");
@@ -2271,9 +2279,23 @@
     }catch(err){ failWrite(err); }
   }
   document.addEventListener("click",e=>{
+    const dbt=e.target.closest("[data-ckdate]"); if(dbt){ e.preventDefault(); if(!canWrite) return; const id=dbt.dataset.ckdate, st=CK[id]; if(!st) return;
+      const inp=document.createElement("input"); inp.type="date"; inp.className="ckdate-in"; inp.value=st.d; inp.dataset.ckin=id;
+      inp.max=dKey(new Date()); if(profile&&profile.born) inp.min=profile.born; inp.setAttribute("aria-label",`Day it was done (${md(st.d)})`);
+      dbt.replaceWith(inp); inp.focus(); try{ inp.showPicker&&inp.showPicker(); }catch{} return; }
     const a=e.target.closest("[data-ck]"), b=e.target.closest("[data-na]");
     if(a) ckToggle(a.dataset.ck,"done"); else if(b) ckToggle(b.dataset.na,"na");
   });
+  document.addEventListener("change", async e=>{ const inp=e.target.closest("input[data-ckin]"); if(!inp) return;
+    const id=inp.dataset.ckin, old=CK[id], d=inp.value; if(!old||old.s!=="done"||!d||d===old.d) return;
+    if(d>dKey(new Date())){ flash("That day is in the future."); inp.value=old.d; return; }
+    if(profile&&profile.born&&d<profile.born){ flash("That's before the babies were born."); inp.value=old.d; return; }
+    try{ await Store.put("checklist",id,{s:"done",d,...(old.by?{by:old.by}:{})}); inp.blur();
+      undoBar(`Date changed to ${md(d)}`, ()=>Store.put("checklist",id,{s:"done",d:old.d,...(old.by?{by:old.by}:{})})); }catch(err){ failWrite(err); }
+  });
+  document.addEventListener("focusout", e=>{ const inp=e.target.closest&&e.target.closest("input[data-ckin]"); if(!inp) return;
+    setTimeout(()=>{ if(document.activeElement!==inp && inp.isConnected){ const id=inp.dataset.ckin, row=inp.closest(".ckrow"), lb=row&&row.querySelector(".lb");
+      const tmp=document.createElement("div"); tmp.innerHTML=ckDateBtn(id, lb?lb.textContent:""); inp.replaceWith(tmp.firstElementChild); } },0); });
   // Plan from rounds: one line per baby per feed day
   function renderPlanToday(){
     const el=$("planToday"); if(!el||!profileReady()) return;
