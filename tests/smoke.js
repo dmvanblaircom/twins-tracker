@@ -155,7 +155,7 @@ async function main() {
     check("Rounds card: questions first, then today's plan, then the checklist", await p.evaluate(() => { const r = document.querySelector("#roundsCard"), q = r.querySelector("#qCard"), pl = r.querySelector("#planCard"), c = r.querySelector("#ckToday [data-ckgo]"); return !!(q && pl && c) && !!(q.compareDocumentPosition(pl) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(pl.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING); }));
     check("Today has no milk summary (it's on the Milk tab)", !(await p.$("#todayMilk")));
     await p.click("#ckToday [data-ckgo]"); await p.waitForTimeout(250);
-    check("checklist link opens Progress", await p.$eval("#tabbar .on", b => b.dataset.tab) === "trends");
+    check("checklist link opens Journey on Progress", await p.$eval("#tabbar .on", b => b.dataset.tab) === "trends" && await p.isVisible("#home") && !(await p.isVisible("#jCard")));
     await p.click('#tabbar button[data-tab=feed]'); await p.waitForTimeout(250);
     await p.fill(`${A} .wIn`, "2560"); await p.click(`${A} [data-act=wsave]`); await p.waitForTimeout(900);
     check("tonight's weight saves to the feed day", await db(p, () => __db.weights["b0-2026-02-10"]?.v) === 2560);
@@ -247,13 +247,16 @@ async function main() {
     await p.click("#view button:nth-child(3)"); await p.waitForTimeout(250);
 
     // ---- progress: checklist ----
-    await tab(p, "trends");
+    await tab(p, "trends"); await p.click('#jNav button[data-v="progress"]'); await p.waitForTimeout(200);
     check("old summary tiles are gone", (await p.$$("#tiles")).length === 0);
-    check("Progress is framed as family indicators, not discharge criteria", (await p.textContent(".glance h2")) === "Progress at a glance" && (await p.textContent(".glance .lead")).includes("not clinical discharge criteria") && (await p.textContent(".glance .lead")).includes("NICU care team"));
+    check("Progress is framed in one line as family tracking, not discharge criteria", (await p.textContent("#glance")).includes("not clinical discharge criteria") && (await p.textContent("#glance")).includes("NICU team decides"));
+    check("each marker is one line; its detail opens on tap", await p.$$eval('#home .bcard[data-tw="Ada Rose"] details.ind', x => x.length === 5 && x.every(d => !d.open && d.querySelector("summary").getBoundingClientRect().height <= 70)));
+    check("checklists start folded, with their counts showing", await p.$$eval("details.ckfold", x => x.length === 3 && x.every(d => !d.open && /\d+\/\d+/.test(d.querySelector("summary .ckn").textContent))));
+    await p.evaluate(() => document.querySelectorAll("details.ckfold").forEach(d => d.open = true)); await p.waitForTimeout(150);
     check("no green check marks or 'Going home' wording on Progress", (await p.$$("[data-tab=trends] .y")).length === 0 && !(await p.textContent("[data-tab=trends]")).includes("Going home"));
     check("each baby shows all five indicators with explicit periods", await p.$$eval('#home .bcard[data-tw="Ada Rose"] .ind', x => x.length) === 5 && /last 48 h: \d+%/.test(await p.textContent("#home")) && /over the last 3 nights/.test(await p.textContent("#home")));
     check("indicator states are neutral words", await p.$$eval("#home .ind .mk", x => x.every(e => ["Marker reached", "Not yet"].includes(e.textContent))));
-    check("order: indicators, family checklist, baby checklists, then the timeline", await p.evaluate(() => { const a = [...document.querySelectorAll("#home,#famList,#ckBabies,#jCard")].map(e => e.getBoundingClientRect().top); return a.length === 4 && a[0] < a[1] && a[1] < a[2] && a[2] < a[3]; }));
+    check("order: indicators, family checklist, baby checklists; the timeline is on Story", await p.evaluate(() => { const a = [...document.querySelectorAll("#home,#famList,#ckBabies")].map(e => e.getBoundingClientRect().top); return a.length === 3 && a[0] < a[1] && a[1] < a[2] && !document.querySelector("#jCard").getClientRects().length; }));
     await p.click('[data-ck="b0-hearing"]'); await p.waitForTimeout(150); await p.click('[data-na="b0-rsv"]'); await p.waitForTimeout(150);
     check("checklist check + n/a", (await p.$$eval("#ckBabies .cl h4", x => x[0].textContent)).includes("1/7"));
     check("checklist marks persist to the database (ids unchanged)", await db(p, () => __db.checklist["b0-hearing"]?.s === "done" && __db.checklist["b0-rsv"]?.s === "na"));
@@ -273,7 +276,7 @@ async function main() {
     await db(p, () => { Store.remove("checklist", "f-seats"); Store.put("checklist", "b0-hearing", { s: "done", d: "2026-02-10" }); }); await p.waitForTimeout(200);
     check("checklist counts: marked done / open / not needed", /1 marked done/.test(await p.textContent("#ckBabies .ckmeta")) && /6 open/.test(await p.textContent("#ckBabies .ckmeta")) && /1 not needed/.test(await p.textContent("#ckBabies .ckmeta")), await p.textContent("#ckBabies .ckmeta"));
     await p.click('[data-ck="f-cpr"]'); await p.waitForTimeout(150);
-    check("family checklist updates", await db(p, () => __db.checklist["f-cpr"]?.s === "done") && /1\/6/.test(await p.textContent("#famList h2")));
+    check("family checklist updates", await db(p, () => __db.checklist["f-cpr"]?.s === "done") && /1\/6/.test(await p.textContent("#famList summary")));
     await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); b.scrollIntoView({ block: "center" }); window.__ck = { b, y: scrollY }; });
     await p.click('[data-ck="b1-hearing"]'); await p.waitForTimeout(200);
     const still = await p.evaluate(() => { const b = document.querySelector('[data-ck="b1-hearing"]'); return { same: b === __ck.b, dy: Math.abs(scrollY - __ck.y), on: b.getAttribute("aria-pressed") }; });
@@ -456,7 +459,7 @@ async function main() {
         if (title != null) await J.fill("#mTitle", title); if (note != null) await J.fill("#mNote", note);
         await J.click("#mSave"); await J.waitForTimeout(200); };
       await tab(J, "trends");
-      check("Journey timeline sits below the existing Progress content", await J.evaluate(() => !!(document.querySelector("#ckBabies").compareDocumentPosition(document.querySelector("#jCard")) & Node.DOCUMENT_POSITION_FOLLOWING)));
+      check("Journey opens on Story; Progress is the other view", await J.isVisible("#jCard") && !(await J.isVisible("#home")) && (await J.$eval('#jNav button[data-v="story"]', b => b.classList.contains("on"))));
       check("checklist label reads 'Open crib, maintaining temperature' (id unchanged)", (await J.textContent('[data-ck="b0-crib"] .lb')) === "Open crib, maintaining temperature");
       // add one of each scope
       await sheet("0", "milestone", "first-hold", null, "Forty minutes");
@@ -473,7 +476,7 @@ async function main() {
       check("'Me' journal saves as scope parent with a title from the note", all.some(d => d.kind === "journal" && d.scope === "parent" && d.i === null && d.title.startsWith("Long night")));
       check("'Our family' offers holding both babies and saves as scope family", all.some(d => d.scope === "family" && d.key === "holding-both" && d.i === null && d.title === "First time holding both babies at once"));
       check("every saved event passes the shared validation", all.every(d => true) && await J.evaluate(() => Object.values(__db.events).every(__nicu.validEvent)));
-      check("milestones and journal entries show with distinct treatments on the rail", (await J.$$("#jRail .ji-ms")).length >= 3 && (await J.$$("#jRail .ji-jr")).length >= 1 && (await J.$$("#jRail .ji-sum")).length >= 1);
+      check("milestones and journal entries show with distinct treatments on the rail", (await J.$$("#jRail .ji-ms")).length >= 3 && (await J.$$("#jRail .ji-jr")).length >= 1);
       // edit + undo
       const holdId = (await evs()).find(([, d]) => d.key === "first-hold")[0];
       await J.click(`#jRail [data-ev="${holdId}"]`); await J.waitForTimeout(100); await J.fill("#mNote", "Forty-five minutes"); await J.click("#mSave"); await J.waitForTimeout(150);
@@ -510,7 +513,10 @@ async function main() {
       const nd = J.dialogs.length; await J.click("#toast button"); await J.waitForTimeout(150);
       check("Undo with no change from the other parent still works without asking", J.dialogs.length === nd && (await J.evaluate(id => __db.events[id].note, stId)) === "Their second edit");
 
-      // summaries and records from existing data
+      // summaries and records from existing data — hidden until "Show daily numbers"
+      check("daily numbers are hidden by default (moments only)", (await J.$$("#jRail .ji-sum")).length === 0 && !/mL by mouth/.test(await J.textContent("#jRail")) && (await J.textContent("#jDaily")) === "Show daily numbers");
+      await J.click("#jDaily"); await J.waitForTimeout(200);
+      check("Show daily numbers brings them back and is remembered", (await J.$$("#jRail .ji-sum")).length > 0 && (await J.evaluate(() => localStorage.getItem("jDaily"))) === "1" && (await J.textContent("#jDaily")) === "Hide daily numbers");
       const rail = await J.textContent("#jRail");
       check("feeds appear as daily summaries per baby", /Ada Rose:\s*[\d,]+ mL by mouth · \d+ of 8 feeds/.test(rail) && /Bea Joy:\s*[\d,]+ mL by mouth · \d+ of 8 feeds/.test(rail));
       check("each baby has at most one feed summary per day", await J.evaluate(() => { const days = []; let cur = null; for (const li of document.querySelectorAll("#jRail li")) { if (li.classList.contains("jday")) { cur = { a: 0, b: 0 }; days.push(cur); } else if (li.classList.contains("ji-sum") && /by mouth/.test(li.textContent)) { if (li.textContent.includes("Ada Rose")) cur.a++; if (li.textContent.includes("Bea Joy")) cur.b++; } } return days.every(d => d.a <= 1 && d.b <= 1); }));
@@ -643,11 +649,11 @@ async function main() {
     { const N = await newPage(browser, base); await importData(N);
     check("tab bar reads Today · Growth · Milk · Journey · More", (await N.$$eval("#tabbar button", b => b.map(x => x.dataset.tab + ":" + x.textContent.trim()).join())) === "feed:Today,weight:Growth,milk:Milk,trends:Journey,more:More");
     await tab(N, "trends");
-    check("Journey shows the existing Progress experience", await N.isVisible(".glance") && (await N.textContent(".glance h2")) === "Progress at a glance" && await N.isVisible("#ckBabies"));
+    check("Journey shows Story and Progress views", await N.isVisible("#jNav") && await N.isVisible("#jCard") && (await N.$$("#ckBabies")).length === 1);
     await tab(N, "more"); await N.click('#moreNav button[data-v="records"]'); await N.waitForTimeout(150);
     check("More opens Records / Care / Support / Settings", await N.isVisible("#moreNav") && (await N.$$eval("#moreNav button", b => b.map(x => x.textContent).join())) === "Records,Care,Support,Settings" && await N.isVisible("#logBody"));
     await tab(N, "trends"); await N.reload(); await N.waitForTimeout(700);
-    check("the chosen tab is remembered (stored id 'trends' still valid)", await N.$eval("#tabbar .on", b => b.dataset.tab) === "trends" && await N.isVisible(".glance"));
+    check("the chosen tab is remembered (stored id 'trends' still valid)", await N.$eval("#tabbar .on", b => b.dataset.tab) === "trends" && await N.isVisible("#jNav"));
       check("no page errors in navigation", N.errors.length === 0, N.errors.join(" | "));
       await N.context().close(); }
 

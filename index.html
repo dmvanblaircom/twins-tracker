@@ -320,7 +320,18 @@
   .subnav{margin:0 0 var(--sp-3)} .subnav .seg{display:flex;flex-wrap:wrap;width:100%;background:none;padding:0;gap:0;border-radius:0;border-bottom:1px solid var(--line)}
   .subnav .seg button{flex:1 1 auto;padding:0 var(--sp-2);min-height:44px;font-size:var(--fs-md);border-radius:0;background:none;box-shadow:none}
   .subnav .seg button.on{background:none;box-shadow:inset 0 -3px 0 var(--accent);color:var(--title)}
-  .msec{display:none} .msec.on{display:block}
+  .msec{display:none} .msec.on{display:block} .jsec{display:none} .jsec.on{display:block}
+  .glance-note{margin:0 0 var(--sp-3);font-size:var(--fs-sm);color:var(--muted)} .glance-note b{color:var(--text2)}
+  .jdaily{margin:0 0 var(--sp-2)}
+  details.ind{display:block;padding:0} details.ind summary{list-style:none;display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 10px;align-items:center;min-height:44px;padding:6px 0;cursor:pointer}
+  details.ind summary::-webkit-details-marker{display:none}
+  details.ind summary .k{font-size:var(--fs-sm);font-weight:600;color:var(--text)} details.ind summary .v{font-size:var(--fs-md);font-weight:700;color:var(--title);white-space:nowrap}
+  details.ind summary .mk{grid-row:auto;grid-column:auto;align-self:center}
+  details.ind .s{padding:0 0 var(--sp-2)}
+  details.ckfold > summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);min-height:44px;cursor:pointer}
+  details.ckfold > summary::-webkit-details-marker{display:none}
+  details.ckfold > summary .ckt{font-weight:700;color:var(--title);font-size:var(--fs-h2)} details.ckfold > summary .ckn{font-size:var(--fs-sm);font-weight:600;color:var(--text2);white-space:nowrap}
+  details.ckfold > summary .ckn::after{content:" ›";color:var(--accent)} details.ckfold[open] > summary .ckn::after{content:" ⌄"}
   .phgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2);margin-bottom:var(--sp-2)}
   .phgrid:empty{display:none}
   .phcell{position:relative} .phcell img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--r-sm);background:var(--track)}
@@ -640,20 +651,23 @@
   </section>
 
   <section class="tab" data-tab="trends">
-  <div class="card glance">
-    <h2>Progress at a glance</h2>
-    <p class="lead">Family tracking indicators worked out from what you've logged. They are <b>not clinical discharge criteria</b> — when the babies go home is decided by the NICU care team.</p>
-    <ul class="keys"><li><span class="mk">Logged</span> calculated from your entries</li><li><span class="mk done">Marked done</span> checked off by your family</li><li><span class="mk open">Open</span> still to follow up</li></ul>
-  </div>
-  <div id="home"></div>
-  <div id="famList"></div>
-  <div id="ckBabies"></div>
-  <!-- JOURNEY TIMELINE -->
+  <nav class="subnav" aria-label="Journey sections"><div class="seg" id="jNav"><button data-v="story">Story</button><button data-v="progress">Progress</button></div></nav>
+  <!-- JOURNEY TIMELINE (Story) -->
+  <div class="jsec" data-jsec="story">
   <div class="card" id="jCard">
     <div class="jhead"><h2>Your journey</h2><button class="btn" id="jAdd" type="button">Add a moment</button></div>
+    <button class="chip jdaily" id="jDaily" type="button" aria-pressed="false">Show daily numbers</button>
     <div id="jSuggest"></div>
     <ol class="jrail" id="jRail" aria-label="Journey timeline, newest first"></ol>
     <div class="row" style="margin-top:var(--sp-2)"><button class="btn ghost" id="jMore" type="button">Show earlier days</button></div>
+  </div>
+  </div>
+  <!-- PROGRESS: markers + checklists -->
+  <div class="jsec" data-jsec="progress">
+  <p class="glance-note" id="glance">Family tracking only, worked out from what you've logged — <b>not clinical discharge criteria</b>. The NICU team decides when babies go home.</p>
+  <div id="home"></div>
+  <div id="famList"></div>
+  <div id="ckBabies"></div>
   </div>
   </section>
 
@@ -1234,6 +1248,15 @@
     const vb=document.querySelector(".viewbar"); if(vb && (document.querySelector(".tab.on")||{}).dataset?.tab==="more") vb.style.display = sec==="support" ? "none" : "";
     [...$("moreNav").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v===sec); b.setAttribute("aria-pressed",b.dataset.v===sec?"true":"false"); });
   }
+  // Journey: Story (timeline) | Progress (markers + checklists), remembered per phone (product owner, Nov 25, 2026)
+  function showJSec(sec){
+    if(!["story","progress"].includes(sec)) sec="story";
+    state.jSec=sec; try{ localStorage.setItem("jSec",sec); }catch{}
+    document.querySelectorAll(".jsec").forEach(m=>m.classList.toggle("on",m.dataset.jsec===sec));
+    [...$("jNav").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v===sec); b.setAttribute("aria-pressed",b.dataset.v===sec?"true":"false"); });
+  }
+  $("jNav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ showJSec(b.dataset.v); scrollTo(0,0); if(TWINS[0]!=="A") renderAll(); } });
+  showJSec((()=>{ try{ return localStorage.getItem("jSec"); }catch{ return null; } })()||"story");
   $("moreNav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ showMoreSec(b.dataset.v); scrollTo(0,0); } });
   showMoreSec((()=>{ try{ return localStorage.getItem("moreSec"); }catch{ return null; } })()||"records");
   state.recF="all";
@@ -1784,7 +1807,7 @@
     if(!profileReady()) return;
     const now=Date.now(), C=COLORS();
     const mk=(on)=>on?'<span class="mk on">Marker reached</span>':'<span class="mk">Not yet</span>';
-    const row=(k,v,sub,on)=>`<div class="ind"><div class="k">${k}</div>${mk(on)}<div class="v">${v}</div><div class="s">${sub}</div></div>`;
+    const row=(k,v,sub,on)=>`<details class="ind"><summary><span class="k">${k}</span><span class="v">${v}</span>${mk(on)}</summary><div class="s">${sub}</div></details>`;
     $("home").innerHTML = focusOrder(shown()).map(tw=>{
       if(!inNicu(tw)) return state.view==="both" ? `<div class="bcard gone mini" style="--c:${C[tw]}"><span class="slead">${homeShort(tw)}</span>${viewBabyBtn(tw)}</div>`
         : `<div class="bcard gone" style="--c:${C[tw]}"><p class="slead">${wentHome(tw)}</p></div>`;
@@ -1797,7 +1820,7 @@
       const evDays = ev ? Math.floor((now-ev.t)/DAY) : null;
       return `<section class="bcard" style="--c:${C[tw]}" data-tw="${esc(tw)}">
         <header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
-          <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div><span class="mk">Logged</span></header>
+          <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter}</div></div></header>
         <div class="sec-h"><span>Feeding · by mouth</span></div>
         ${row("Full feeds in a row", `${streak}`, `each ≥ ${full} mL · family marker: ${FEEDS_PER_DAY} in a row`, streak>=FEEDS_PER_DAY)}
         ${row("By mouth, last 24 h", `${p24}%`, `of the configured target · last 48 h: ${p48}%${k!=null?` · ${k} mL/kg/day (24 h, birth weight ${fmtG(BIRTH[tw].g)} g)`:""} · family marker: 100% over 24 h`, p24>=100)}
@@ -1969,7 +1992,10 @@
     if(!profileReady() || !$("jRail")) return;
     const C=COLORS(), W2={}; Object.values(W).forEach(w=>W2[w.twin+"|"+w.date]={...w,t:nightT(w.date)});
     const ckLabel = id => { const m=/^(b[01]|f)-(.+)$/.exec(id); if(!m) return ""; const list=m[1]==="f"?DIS_FAM:DIS_BABY, it=list.find(([k])=>k===m[2]); return it?it[1]:""; };
-    const tl=buildTimeline({F,W:W2,CK,PLANS,QS,P,D,EV,twins:TWINS,shown:shown(),feedsPerDay:FEEDS_PER_DAY,dayOf:feedDay,checkLabel:ckLabel,milkOf:srcOn()?daySrc:null});
+    const daily = jDaily(), isNum = it => it.type==="summary" || (it.type==="record" && it.sub==="weight");
+    const tl=buildTimeline({F,W:W2,CK,PLANS,QS,P,D,EV,twins:TWINS,shown:shown(),feedsPerDay:FEEDS_PER_DAY,dayOf:feedDay,checkLabel:ckLabel,milkOf:srcOn()?daySrc:null})
+      .map(g=>daily?g:{...g, items:g.items.filter(it=>!isNum(it))}).filter(g=>g.items.length);
+    $("jDaily").setAttribute("aria-pressed", daily?"true":"false"); $("jDaily").textContent = daily ? "Hide daily numbers" : "Show daily numbers";
     const who = i => i==null ? "" : esc(TWINS[i]), col = i => i==null ? "var(--muted)" : C[TWINS[i]];
     const scopeName = e => e.scope==="baby" ? esc(TWINS[e.i]) : e.scope==="family" ? "Our family" : "Me";
     const rows=[], shownEv=[];
@@ -2010,6 +2036,8 @@
       + (all.length>1 && !jSugAll ? `<button class="link" type="button" data-sg="more">${all.length-1} more suggestion${all.length===2?"":"s"}</button>` : "");
   }
   $("jMore").addEventListener("click",()=>{ jDays+=14; renderJourney(); });
+  const jDaily = () => { try{ return localStorage.getItem("jDaily")==="1"; }catch{ return false; } };
+  $("jDaily").addEventListener("click",()=>{ try{ localStorage.setItem("jDaily", jDaily()?"0":"1"); }catch{} renderJourney(); });
   // Undo for journey entries never silently overwrites the other parent's later change (same rule as feeds and weights).
   // op: "new" (undo removes what I added), "edit" (undo restores my earlier version), "delete" (undo puts it back).
   // mineT: the editT I wrote with the save being undone (null for delete).
@@ -2240,17 +2268,19 @@
   const ckMeta=c=>`<div class="ckmeta"><span class="mk done">${c.done} marked done</span><span class="mk open">${c.open} open</span>${c.na?`<span class="mk">${c.na} not needed</span>`:""}</div>`;
   function checklistHTML(tw){ const i=twIdx(tw), c=COLORS()[tw], ids=DIS_BABY.map(([k])=>`b${i}-${k}`), n=ckCounts(ids);
     return `<div class="cl" data-ids="${ids.join(" ")}"><h4><span>Checklist</span><span class="ckn">${n.done}/${n.need}</span></h4>${ckMeta(n)}${DIS_BABY.map(([k,l])=>ckRow(`b${i}-${k}`,l,c)).join("")}</div>`; }
+  const ckOpen=new Set();   // which checklists are unfolded (this session)
+  document.addEventListener("toggle",e=>{ const d=e.target; if(d.matches&&d.matches("details.ckfold")) d.open?ckOpen.add(d.dataset.fold):ckOpen.delete(d.dataset.fold); }, true);
   function renderBabyChecklists(){
     const C=COLORS();
-    $("ckBabies").innerHTML = focusOrder(shown()).map(tw=>{ const letter=TWINS.indexOf(tw)?"B":"A";
-      if(!inNicu(tw) && state.view==="both") return `<details class="bcard gone ckhome" style="--c:${C[tw]}"><summary class="slead">${homeShort(tw)} · her checklist</summary>${checklistHTML(tw)}</details>`;
-      return `<section class="bcard" style="--c:${C[tw]}"><header class="bh"><span class="idtag" aria-hidden="true">${esc((tw.trim()[0]||letter).toUpperCase())}</span>
-        <div class="bh-id"><div class="who">${esc(tw)}</div><div class="bh-sub">Baby ${letter} · checklist</div></div></header>${checklistHTML(tw)}
-        <div class="note">Items are marked by your family. The NICU team confirms each step.</div></section>`; }).join("");
+    $("ckBabies").innerHTML = focusOrder(shown()).map(tw=>{ const i=twIdx(tw), ids=DIS_BABY.map(([k])=>`b${i}-${k}`), n=ckCounts(ids), key="b"+i;
+      const label = !inNicu(tw) && state.view==="both" ? `${homeShort(tw)} · her checklist` : `<span class="ckt">${esc(tw)} · checklist</span>`;
+      return `<details class="bcard ckfold${!inNicu(tw)?" gone ckhome":""}" data-fold="${key}" data-ids="${ids.join(" ")}" style="--c:${C[tw]}" ${ckOpen.has(key)?"open":""}>
+        <summary><span class="slead" style="margin:0">${label}</span><span class="ckn">${n.done}/${n.need}</span></summary>${checklistHTML(tw)}
+        <div class="note">Items are marked by your family. The NICU team confirms each step.</div></details>`; }).join("");
   }
   function renderFam(){ if(!profileReady()) return; const ids=DIS_FAM.map(([k])=>"f-"+k), n=ckCounts(ids);
-    $("famList").innerHTML=`<section class="card" data-ids="${ids.join(" ")}"><h2>Family checklist <span class="muted ckn" style="font-size:var(--fs-xs);font-weight:600">${n.done}/${n.need}</span></h2>${ckMeta(n)}
-      <div class="cl" style="margin-top:0">${DIS_FAM.map(([k,l])=>ckRow("f-"+k,l)).join("")}</div></section>`; }
+    $("famList").innerHTML=`<details class="card ckfold" data-fold="f" data-ids="${ids.join(" ")}" ${ckOpen.has("f")?"open":""}><summary><span class="ckt">Family checklist</span><span class="ckn">${n.done}/${n.need}</span></summary>${ckMeta(n)}
+      <div class="cl" style="margin-top:0">${DIS_FAM.map(([k,l])=>ckRow("f-"+k,l)).join("")}</div></details>`; }
   // Update checklist rows where they are, so the tapped button (and the page) stays put.
   function patchChecklists(){
     if(!profileReady()) return;
@@ -2313,7 +2343,7 @@
     el.innerHTML = list.length ? `<h3 class="rh">Discharge checklist</h3>${list.map(tw=>{ const ck=ckSummary(tw);
       return `<button class="tgo" type="button" data-ckgo aria-label="${esc(tw)}'s checklist: ${ck.done} of ${ck.need} done. Open Progress"><span>${list.length>1?`<b>${esc(tw)}</b> · `:""}<b>${ck.done} of ${ck.need}</b> done${ck.next?` · next: ${esc(ck.next)}`:""}</span><span class="chev" aria-hidden="true">›</span></button>`; }).join("")}` : "";
   }
-  $("ckToday").addEventListener("click",e=>{ if(e.target.closest("[data-ckgo]")) showTab("trends"); });
+  $("ckToday").addEventListener("click",e=>{ if(e.target.closest("[data-ckgo]")){ showJSec("progress"); showTab("trends"); } });
   $("planToday").addEventListener("click",e=>{ const b=e.target.closest("[data-plan-day]"); if(!b) return; const [i,day]=b.dataset.planDay.split("|"); editPlan(TWINS[+i], day); });
   async function editPlan(tw, forDay){
     const i=twIdx(tw), day=forDay||feedDay(Date.now()), id=`${i}-${day}`, today=PLANS[id];
