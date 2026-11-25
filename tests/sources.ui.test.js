@@ -166,7 +166,7 @@ async function main() {
     // ===== 7. Journey: a source only when the whole day was one source =====
     for (const h of ["08:30", "11:30", "14:30"]) await p.evaluate(t => { const id = `b1-${t}`, a = __db.slotMilk[id]; return a ? __nicu.src.singleAlloc(1, t, "donor", a.rev) : __nicu.src.singleAlloc(1, t, "donor", 0); }, T("10", h));
     await wait(p);
-    await tab(p, "trends"); await wait(p, 300);
+    await tab(p, "trends"); await p.evaluate(() => localStorage.setItem("jDaily", "1")); await p.click("#jDaily"); await p.click("#jDaily"); await wait(p, 300);   // daily numbers are off by default
     const jr = await p.textContent("#jRail");
     check("Journey's daily summary names the source when the whole day was donor milk", /Bea Joy:[^\n]*donor milk/.test(jr), jr.slice(0, 400));
     check("…and names none for a day of mixed or unrecorded feeds", !/Ada Rose:[^\n]*(mother's milk|donor milk|formula)/.test(jr));
