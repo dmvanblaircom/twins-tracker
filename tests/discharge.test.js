@@ -76,6 +76,28 @@ async function main() {
     await p.evaluate(() => __nicu.src.setUsual(1, { mom: 100, donor: 0, formula: 0 })); await wait(p);
     const srcAfter = await parts(p);
     check("milk sources on: the same estimate and need (her feeds stop at the same time)", Math.round(srcAfter.used * 10) === Math.round(legacyAfter.used * 10) && srcAfter.nFeeds === legacyAfter.nFeeds && Math.round(srcAfter.need) === Math.round(legacyAfter.need), JSON.stringify([legacyAfter, srcAfter]));
+    // ---- NICU stay summary ----
+    await p.evaluate(() => { Store.put("events", "e-1770500000000-sm01", { kind: "milestone", scope: "baby", i: 0, key: "first-bath", t: new Date("2026-02-07T10:00:00-05:00").getTime(), title: "First bath", note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "parent1@example.com" });
+      Store.put("checklist", "b0-hearing", { s: "done", d: "2026-02-08" }); }); await wait(p, 300);
+    await tab(p, "trends"); await p.click('#jNav button[data-v="progress"]'); await wait(p, 200);
+    await p.click("#sumGo"); await wait(p, 300);
+    const sum = await p.$eval("#sumBody", e => e.innerText);
+    check("summary opens from Journey → Progress", await p.isVisible("#sumView") && /NICU STAY SUMMARY|NICU stay summary/.test(sum));
+    const ada = await p.$eval("#sumBody .sumbaby", e => e.innerText.replace(/\s+/g, " "));
+    check("her section: born time and weight, went home with day and PMA, length of stay", ada.includes(ADA) && /Born .*2,600 g/.test(ada) && /Went home .*Feb 10 · Day 10 · \d+w\dd PMA/.test(ada) && /NICU stay 10 days/.test(ada), ada);
+    check("her weights: last before home, lowest, and no 'back to birth weight' she hasn't reached", /Last weight before home 2,515 g · .*Feb 9 · −85 g since birth/.test(ada) && /Lowest weight 2,440 g/.test(ada) && !ada.includes("Back to birth weight"), ada);
+    check("her feeding firsts come from the log", /First feed by mouth .* · \d+ mL/.test(ada), ada);
+    check("her milestones and checklist dates are listed", /Milestones First bath .*Feb 7/i.test(ada) && /Before going home Hearing screen .*Feb 8/i.test(ada), ada);
+    check("her sister still in the NICU says so", (await p.$$eval("#sumBody .sumbaby", x => x[1].innerText)).includes("Still in the NICU"));
+    check("it says it's not a medical record", sum.includes("Not a medical record"));
+    await p.evaluate(() => { window.__shared = null; navigator.share = d => { window.__shared = d; return Promise.resolve(); }; });
+    await p.click("#sumShare"); await wait(p, 200);
+    const shared = await p.evaluate(() => window.__shared);
+    check("Share as text sends a plain-text version", !!shared && shared.title === "NICU stay summary" && shared.text.includes("• Went home:") && !/<[a-z]/i.test(shared.text), shared && shared.text.slice(0, 200));
+    check("its buttons are 44 px tall", await p.$$eval(".sumbar button", x => x.length === 3 && x.every(b => b.getBoundingClientRect().height >= 44)));
+    await p.screenshot({ path: path.join(SHOTS, "summary.png"), fullPage: false });
+    await p.click("#sumClose"); await wait(p, 150);
+    check("Close returns to the app", !(await p.isVisible("#sumView")));
     // ---- undo: back in the NICU ----
     await setHome(p, "");
     check("clearing it (back in the NICU) removes the field and brings her card back", await p.evaluate(() => !("home" in __db.config.profile.twins[0])) && await (async () => { await tab(p, "feed"); return !!(await p.$(`.nx[data-tw="${ADA}"] input`)); })());

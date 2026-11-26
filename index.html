@@ -118,6 +118,19 @@
   .jsug .row{margin-top:var(--sp-2)}
   .msheet{position:fixed;inset:0;z-index:12;display:flex;align-items:flex-end;justify-content:center}
   .msheet[hidden]{display:none}
+  .sumcard{max-width:640px} .sumbar{position:sticky;top:calc(-1 * var(--sp-4));background:var(--surface);padding:var(--sp-2) 0;margin:calc(-1 * var(--sp-2)) 0 var(--sp-2);z-index:1}
+  .sumsub{margin:0 0 var(--sp-3);color:var(--text2);font-size:var(--fs-sm)}
+  .sumbaby{border-left:4px solid var(--c,var(--line));padding:0 0 0 var(--sp-3);margin:0 0 var(--sp-4)}
+  .sumbaby h3{margin:0 0 var(--sp-2);color:var(--title);font-size:var(--fs-lg);display:flex;align-items:center;gap:6px} .sumbaby h4{margin:var(--sp-3) 0 var(--sp-1);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .sumlist{list-style:none;margin:0;padding:0} .sumlist li{display:flex;justify-content:space-between;gap:var(--sp-3);padding:6px 0;border-bottom:1px solid var(--grid);font-size:var(--fs-sm)}
+  .sumlist li span{color:var(--text2)} .sumlist li b{color:var(--text);text-align:right;font-weight:600}
+  .sumfoot{font-size:var(--fs-xs);color:var(--muted);margin-top:var(--sp-3)}
+  @media print{
+    body.sumopen > *:not(#sumView){display:none !important}
+    body.sumopen #sumView{position:static;display:block} body.sumopen .msheet-back,body.sumopen .sumbar,body.sumopen #sumMsg{display:none !important}
+    body.sumopen .sumcard{max-height:none;overflow:visible;box-shadow:none;border-radius:0;max-width:none;padding:0;background:#fff;color:#000}
+    body.sumopen .sumbaby{break-inside:avoid}
+  }
   .msheet-back{position:absolute;inset:0;background:var(--scrim)}
   .msheet-card{position:relative;width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--surface);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:var(--sp-4) var(--sp-4) calc(var(--sp-4) + env(safe-area-inset-bottom));box-shadow:var(--shadow-2)}
   .msheet-card h2{margin:0 0 var(--sp-2)}
@@ -673,6 +686,7 @@
   <!-- PROGRESS: markers + checklists -->
   <div class="jsec" data-jsec="progress">
   <p class="glance-note" id="glance">Family tracking only, worked out from what you've logged — <b>not clinical discharge criteria</b>. The NICU team decides when babies go home.</p>
+  <button class="tgo" id="sumGo" type="button" style="margin:0 0 var(--sp-3)"><span><b>NICU stay summary</b> · one page to keep or share</span><span class="chev" aria-hidden="true">›</span></button>
   <div id="home"></div>
   <div id="famList"></div>
   <div id="ckBabies"></div>
@@ -797,7 +811,10 @@
     <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button><span><span class="msg" id="who" style="font-size:12px"></span> <button class="link" id="signOut">Sign out</button></span></div>
   </details>
   <details class="card settings sfold" data-sf="data"><summary><span class="sft">Data</span><span class="sfv" id="sfvData">Backup, CSV export &amp; import</span></summary>
-  <div class="sect" style="border-top:0;margin-top:0;padding-top:0"><h2>Full backup</h2>
+  <div class="sect" style="border-top:0;margin-top:0;padding-top:0"><h2>NICU stay summary</h2>
+    <div class="note" style="margin-top:0">One page from what your family logged: stay, weights, feeding firsts, milestones and checklist dates.</div>
+    <div class="row"><button class="btn ghost" id="sumGo2" type="button">Open the summary</button></div></div>
+  <div class="sect"><h2>Full backup</h2>
     <div class="note" style="margin-top:0">Everything in one file: feeds, weights, pumping, drop-offs, NICU count, checklists, rounds plans, questions and your setup. Keep a copy somewhere safe.</div>
     <div class="row"><button class="btn ghost" id="bkGo">Save full backup</button><button class="btn ghost" id="rsGo">Restore from backup</button><input id="rsFile" type="file" accept="application/json,.json" hidden><span class="msg" id="bkMsg"></span></div>
     <p class="note" id="phUse"></p>
@@ -844,6 +861,14 @@
     <img id="phImg" alt="">
     <p class="note" id="phMsg" role="status"></p>
     <div class="row"><button class="btn ghost" id="phPrev" type="button">Previous</button><button class="btn ghost" id="phNext" type="button">Next</button><button class="btn" id="phClose" type="button">Close</button></div>
+  </div>
+</div>
+<div class="msheet sumsheet" id="sumView" hidden>
+  <div class="msheet-back" id="sumBack"></div>
+  <div class="msheet-card sumcard" role="dialog" aria-modal="true" aria-labelledby="sumHead">
+    <div class="row sumbar"><button class="btn" id="sumPrint" type="button">Print or save as PDF</button><button class="btn ghost" id="sumShare" type="button">Share as text</button><button class="btn ghost" id="sumClose" type="button">Close</button></div>
+    <div id="sumBody"></div>
+    <p class="msg" id="sumMsg" role="status"></p>
   </div>
 </div>
 <div class="msheet" id="sSheet" hidden>
@@ -1606,6 +1631,62 @@
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
   function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); renderCkToday(); renderViewHome(); renderSfold(); }
+  // NICU stay summary (product owner, Nov 26, 2026): one page built only from what the family logged. Not a medical record.
+  function stayFacts(tw){
+    const i=TWINS.indexOf(tw), b=BIRTH[tw], home=homeAt(tw), end=home||Date.now(), born=keyDate(profile.born);
+    const dayN = t => Math.floor((keyDate(dKey(new Date(t))) - born)/DAY)+1;                  // birth date = Day 1
+    const m=/(\d+)\s*(?:w|\+|weeks?)\s*(\d+)?/i.exec(profile.ga||""), gaD=m?(+m[1])*7+(+(m[2]||0)):null;
+    const pma = t => gaD==null?null:(p=>`${Math.floor(p/7)}w${p%7}d`)(gaD+dayN(t)-1);
+    const ws=wSeries(tw).filter(w=>nightT(w.date)<=end), last=ws[ws.length-1];
+    const low=ws.reduce((a,w)=>!a||w.v<a.v?w:a,null);
+    const back=low && ws.find(w=>w.date>=low.date && w.v>=b.g);
+    const fs=fSeries(tw).filter(f=>f.t<=end), firstPo=fs.find(f=>f.v>0);
+    const goal=FULL[tw]*FEEDS_PER_DAY, byDay={}; fs.forEach(f=>{ const d=feedDay(f.t); byDay[d]=(byDay[d]||0)+f.v; });
+    const fullDay=Object.keys(byDay).sort().find(d=>byDay[d]>=goal);
+    const ms=EV.filter(e=>e.scope==="baby"&&e.i===i&&e.kind!=="journal").sort((a,b2)=>a.t-b2.t);
+    const ck=DIS_BABY.map(([k,l])=>({l,c:CK[`b${i}-${k}`]})).filter(x=>x.c&&x.c.s==="done"&&x.c.d).sort((a,b2)=>a.c.d<b2.c.d?-1:1);
+    return {tw,i,b,home,days:dayN(end),pma,last,low,back,firstPo,fullDay,ms,ck,dayN};
+  }
+  function summaryHTML(){
+    const C=COLORS(), born=keyDate(profile.born);
+    const dk = k => longD(keyDate(k));
+    const babies=TWINS.map(stayFacts);
+    const fam=EV.filter(e=>e.scope==="family"&&e.kind!=="journal").sort((a,b)=>a.t-b.t);
+    const famCk=DIS_FAM.map(([k,l])=>({l,c:CK["f-"+k]})).filter(x=>x.c&&x.c.s==="done"&&x.c.d);
+    const li=(a,b)=>`<li><span>${a}</span><b>${b}</b></li>`;
+    return `<h2 id="sumHead">NICU stay summary</h2>
+      <p class="sumsub">${esc(TWINS.join(" & "))} · born ${longD(born)}, ${born.getFullYear()}${profile.ga?` at ${esc(profile.ga)}`:""}</p>
+      ${babies.map(f=>`<section class="sumbaby" style="--c:${C[f.tw]}"><h3><span class="dot" style="background:${C[f.tw]}"></span>${esc(f.tw)}</h3>
+        <ul class="sumlist">
+          ${li("Born", `${hm(f.b.t)} · ${fmtG(f.b.g)} g`)}
+          ${li(f.home?"Went home":"Still in the NICU", f.home?`${longD(new Date(f.home))} · Day ${f.dayN(f.home)}${f.pma(f.home)?` · ${f.pma(f.home)} PMA`:""}`:`Day ${f.days}`)}
+          ${f.home?li("NICU stay", `${f.days} day${f.days===1?"":"s"}`):""}
+          ${f.last?li(f.home?"Last weight before home":"Latest weight", `${fmtG(f.last.v)} g · ${dk(f.last.date)} · ${sgn(f.last.v-f.b.g)} g since birth`):""}
+          ${f.low&&f.low.v<f.b.g?li("Lowest weight", `${fmtG(f.low.v)} g · ${dk(f.low.date)}`):""}
+          ${f.back?li("Back to birth weight", `${dk(f.back.date)} · Day ${f.dayN(nightT(f.back.date))}`):""}
+          ${f.firstPo?li("First feed by mouth", `${longD(new Date(f.firstPo.t))} · ${f.firstPo.v} mL`):""}
+          ${f.fullDay?li("First full day by mouth", `${dk(f.fullDay)} · Day ${f.dayN(keyDate(f.fullDay).getTime()+12*36e5)}`):""}
+        </ul>
+        ${f.ms.length?`<h4>Milestones</h4><ul class="sumlist">${f.ms.map(e=>li(esc(e.title), longD(new Date(e.t)))).join("")}</ul>`:""}
+        ${f.ck.length?`<h4>Before going home</h4><ul class="sumlist">${f.ck.map(x=>li(esc(x.l), dk(x.c.d))).join("")}</ul>`:""}
+      </section>`).join("")}
+      ${fam.length||famCk.length?`<section class="sumbaby"><h3>Our family</h3>
+        ${fam.length?`<ul class="sumlist">${fam.map(e=>li(esc(e.title), longD(new Date(e.t)))).join("")}</ul>`:""}
+        ${famCk.length?`<h4>Family checklist</h4><ul class="sumlist">${famCk.map(x=>li(esc(x.l), dk(x.c.d))).join("")}</ul>`:""}</section>`:""}
+      <p class="sumfoot">Made with NICUlog from what our family logged on ${longD(new Date())}. Not a medical record — the hospital's chart is the record.</p>`;
+  }
+  function summaryText(){ const el=document.createElement("div"); el.innerHTML=summaryHTML();
+    el.querySelectorAll("h2,h3,h4").forEach(h=>h.textContent="\n"+h.textContent.trim().toUpperCase()); el.querySelectorAll("li").forEach(l=>{ const [a,b]=l.children; l.textContent=`• ${a.textContent}: ${b.textContent}`; });
+    return el.innerText.replace(/\n{3,}/g,"\n\n").trim(); }
+  function openSummary(){ if(!profileReady()) return; $("sumBody").innerHTML=summaryHTML(); $("sumMsg").textContent=""; $("sumView").hidden=false; document.body.style.overflow="hidden"; document.body.classList.add("sumopen"); setTimeout(()=>$("sumClose").focus(),50); }
+  function closeSummary(){ $("sumView").hidden=true; document.body.style.overflow=""; document.body.classList.remove("sumopen"); }
+  ["sumGo","sumGo2"].forEach(id=>$(id).addEventListener("click",openSummary));
+  $("sumClose").addEventListener("click",closeSummary); $("sumBack").addEventListener("click",closeSummary);
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("sumView").hidden) closeSummary(); });
+  $("sumPrint").addEventListener("click",()=>{ try{ window.print(); }catch{ $("sumMsg").textContent="Printing isn't available here. Use Share as text instead."; } });
+  $("sumShare").addEventListener("click",async ()=>{ const text=summaryText();
+    try{ if(navigator.share){ await navigator.share({title:"NICU stay summary", text}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+    try{ await navigator.clipboard.writeText(text); $("sumMsg").textContent="Copied. Paste it into a message or note."; }catch{ $("sumMsg").textContent="Couldn't share from here."; } });
   // Settings rows show their current value while folded (product owner, Nov 26, 2026)
   function renderSfold(){
     if(!$("sfvYou")) return; const set=(id,t)=>{ const e=$(id); if(e && e.textContent!==t) e.textContent=t; };
