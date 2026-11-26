@@ -37,7 +37,7 @@ async function main() {
     check("unconfigured: sources are off and no milk-source documents exist", !(await p.evaluate(() => __nicu.src.on())) && await p.evaluate(() => !Object.keys(__db.slotMilk || {}).length && !Object.keys(__db.milkUsual || {}).length && !Object.keys(__db.schedPeriods || {}).length));
     check("unconfigured: the estimate is the original code path (need = Σ full × feeds/day)", S0.need === await p.evaluate(() => __nicu.src.legacyNeed()) && S0.parts.est > 0, JSON.stringify(S0.parts));
     // a schedule change in an unconfigured family behaves exactly as today (no history is started)
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));
     await p.click("#editProfile"); await p.selectOption("#suEvery", "4"); p.answers = [true]; await p.click("#suSave"); await p.waitForTimeout(400);
     const S4 = await snap(p);
     check("unconfigured schedule change: no schedule history written, sources still off", await p.evaluate(() => !Object.keys(__db.schedPeriods || {}).length && !__nicu.src.on()));
@@ -48,7 +48,7 @@ async function main() {
 
     // ===== 2. phone readiness =====
     check("this phone records its app version", await p.evaluate(() => __db.clients && __db.clients.u1 && __db.clients.u1.v === MilkSources.CLIENT_V));
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await p.waitForTimeout(300);
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await p.waitForTimeout(300);
     check("not ready while the other parent's phone hasn't reported the new version", !(await p.evaluate(() => __nicu.src.sourcesReady())));
     const early = await p.evaluate(async t => [await __nicu.src.setUsual(0, { mom: 100, donor: 0, formula: 0 }), await __nicu.src.singleAlloc(0, t, "donor", 0)], T("11:00"));
     check("tracking can't start until both phones are updated: usual milk and per-feed sources refused, nothing written",
@@ -150,7 +150,7 @@ async function main() {
     const tm11 = at("2026-02-11T11:00:00-05:00");
     await q.evaluate(t => __nicu.src.singleAlloc(0, t, "formula", 0), tm11); await q.waitForTimeout(100);
     const chg = await q.evaluate(() => Date.now()), hist0 = await q.evaluate(t => __nicu.src.usage(0, t), chg), P0 = await q.evaluate(() => Object.keys(__db.schedPeriods).length);
-    await tab(q, "more"); await q.click('#moreNav button[data-v="settings"]');
+    await tab(q, "more"); await q.click('#moreNav button[data-v="settings"]').then(() => q.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));
     await q.click("#editProfile"); await q.selectOption("#suEvery", "4"); q.answers = [true]; await q.click("#suSave"); await q.waitForTimeout(400);
     check("a setup change to feed times starts a new period from now", await q.evaluate(([n, c]) => { const ps = Object.values(__db.schedPeriods); const np = ps.find(p => p.src === "setup"); return ps.length === n + 1 && np && np.everyH === 4 && np.from >= c; }, [P0, chg]));
     check("…and every estimate before the change is identical (history keeps its schedule)", JSON.stringify(await q.evaluate(t => __nicu.src.usage(0, t), chg)) === JSON.stringify(hist0));
@@ -188,7 +188,7 @@ async function main() {
     check("restoring again changes nothing", (await q.textContent("#bkMsg")).startsWith("Nothing to restore"));
     // a fresh, empty family restores the whole thing and computes the same numbers
     const r = await page(browser, base, { fullMl: 60, empty: true });
-    await tab(r, "more"); await r.click('#moreNav button[data-v="settings"]'); await r.evaluate(() => { document.querySelector("details.settings").open = true; });
+    await tab(r, "more"); await r.click('#moreNav button[data-v="settings"]').then(() => r.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await r.evaluate(() => { document.querySelector("details.settings").open = true; });
     r.answers = [true]; await r.setInputFiles("#rsFile", await dl.path()); await r.waitForTimeout(800);
     check("restored into an empty family, the estimate is identical", JSON.stringify(await r.evaluate(([a, b]) => __nicu.src.usage(a, b), win)) === JSON.stringify(usageQ), await r.textContent("#bkMsg"));
     const old = JSON.parse(JSON.stringify(bk)); ["slotMilk", "milkUsual", "schedPeriods"].forEach(k => delete old.data[k]);
@@ -208,7 +208,7 @@ async function main() {
     check("a feed row carries its recorded (actual) amounts: 30 / 10 / 5", !!row11 && row11.endsWith(",30,10,5"), row11);
     check("a feed with no recorded source has blank source columns", lines.some(l => l.includes('"Bea Joy",PO feed,') && l.endsWith(",,,")));
     const s = await page(browser, base, { fullMl: 60, empty: true });
-    await tab(s, "more"); await s.click('#moreNav button[data-v="settings"]');
+    await tab(s, "more"); await s.click('#moreNav button[data-v="settings"]').then(() => s.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));
     await s.evaluate(() => { document.querySelector("details.settings").open = true; document.querySelector("#impBox").closest("details:not(.settings)").open = true; });
     await s.fill("#impBox", csv); await s.click("#impGo"); await s.waitForTimeout(1200);
     const msg = await s.textContent("#impMsg");

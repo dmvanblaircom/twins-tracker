@@ -42,6 +42,8 @@ async function main() {
     await setHome(q, 1, at("2026-02-10T13:00:00-05:00")); await wait(q, 300); await tab(q, "milk"); await wait(q);
     const st2 = await q.textContent("#mkStats"), inv2 = await q.textContent("#mkInv");
     check("Milk: with both babies home, it says so (not 'no mother's milk planned')", st2.includes("both babies are home") && inv2.includes("Both babies are home") && !inv2.includes("usual milk"), inv2.slice(0, 200));
+    await tab(q, "more"); await q.click('#moreNav button[data-v="settings"]'); await wait(q, 200);
+    check("Settings: with both babies home, the Baby cameras row steps back", await q.$eval("#camCard", e => e.hidden));
     check("…and no Infinity / NaN anywhere", !/Infinity|NaN/.test(await q.evaluate(() => document.body.innerText)));
     // milk sources on, a source set for after Ada went home
     await setHome(q, 1, null); await setHome(q, 0, null); await wait(q, 300);
@@ -162,13 +164,13 @@ async function main() {
     await cp.evaluate(() => { const pr = JSON.parse(JSON.stringify(__db.config.profile)); pr.twins[0].home = Date.now() - 3600e3; return Store.setProfile(pr); }); await wait(cp, 400);
     check("after she goes home, her camera button goes with her card", (await cp.$$("a.camb")).length === 1);
     await cp.evaluate(() => { const pr = JSON.parse(JSON.stringify(__db.config.profile)); delete pr.twins[0].home; return Store.setProfile(pr); }); await wait(cp, 400);
-    await tab(cp, "more"); await cp.click('#moreNav button[data-v="settings"]'); await wait(cp);
+    await tab(cp, "more"); await cp.click('#moreNav button[data-v="settings"]').then(() => cp.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await wait(cp);
     await cp.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
     const [dl] = await Promise.all([cp.waitForEvent("download"), cp.click("#bkGo")]); const bk = JSON.parse(require("fs").readFileSync(await dl.path(), "utf8"));
     check("the family backup carries the camera links", !!bk.data.config.cams && bk.data.config.cams.links["1"] === URL2);
     await cp.fill('[data-cam="0"]', ""); await cp.dispatchEvent('[data-cam="0"]', "change"); await tab(cp, "feed"); await wait(cp);
     check("clearing a link removes her button for the family", (await cp.$$("a.camb")).length === 1 && await cp.evaluate(() => !("0" in __db.config.cams.links)));
-    await tab(cp, "more"); await cp.click('#moreNav button[data-v="settings"]'); await cp.click("#editProfile"); await wait(cp);
+    await tab(cp, "more"); await cp.click('#moreNav button[data-v="settings"]').then(() => cp.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await cp.click("#editProfile"); await wait(cp);
     check("setup shows each baby's current camera link", (await cp.inputValue("#suK0")) === "" && (await cp.inputValue("#suK1")) === URL2);
     await cp.fill("#suK0", "nicu.example.org"); await cp.click("#suSave"); await wait(cp);
     check("setup refuses a camera link that isn't a full https address", (await cp.textContent("#suMsg")).includes(`${ADA}'s camera link`));

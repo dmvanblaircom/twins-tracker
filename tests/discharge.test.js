@@ -9,7 +9,7 @@ const check = (name, ok, detail = "") => { ok ? pass++ : fails.push(name + (deta
 const at = s => new Date(s).getTime();
 const NOW = "2026-02-10T15:10:00-05:00", HOME = "2026-02-10T12:00", ADA = "Ada Rose", BEA = "Bea Joy";
 const wait = (p, ms = 250) => p.waitForTimeout(ms);
-const settings = async p => { await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await wait(p); };
+const settings = async p => { await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await wait(p); };
 async function setHome(p, value) { await settings(p); await p.click("#editProfile"); await p.fill("#suH0", value); await p.click("#suSave"); await wait(p, 400); }
 const parts = p => p.evaluate(() => { const x = __nicu.src.parts(); return { used: x.used, nFeeds: x.nFeeds, est: x.est, need: __nicu.src.need() }; });
 

@@ -45,6 +45,7 @@ async function main() {
     await care(p); await wait(p, 300);
     const gate = await p.textContent("#srcCare");
     check("Care: before everyone has the updated app, it says so and lists each member account", gate.includes("Everyone in the family needs the updated app first") && gate.includes("You") && gate.includes("Has the updated app") && gate.includes("Hasn't opened the updated app"), gate);
+    check("Care: while waiting, the milk card is one line naming who still needs the update; the details fold away", /^Milk sources: waiting for .+ to open the updated app\./.test((await p.textContent("#srcCare .slead")).trim()) && await p.$eval("#srcCare details.srcwhy", d => !d.open));
     check("Care: says the check is per member account, not per device", gate.includes("checked for each family member's account") && gate.includes("more than one device"));
     check("Care: no usual-milk controls while the gate is closed", !(await p.$('#srcCare [data-se="edit"]')));
     await shot(p, "01-care-version-gate");
@@ -186,7 +187,7 @@ async function main() {
     // ===== 9. schedule change: stranded upcoming sources =====
     const t17 = T("10", "17:00");
     await p.evaluate(t => __nicu.src.singleAlloc(0, t, "formula", 0), t17); await wait(p);
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));
     await p.click("#editProfile"); await p.selectOption("#suEvery", "4"); p.answers = [true]; await p.click("#suSave"); await wait(p, 400);
     const dlg = p.dialogs.slice(-1)[0] || "";
     check("the feed-time change confirm names upcoming sources that won't match", dlg.includes("1 milk source set for upcoming feeds won't match the new times") && dlg.includes("kept in Records but not counted"), dlg);
@@ -197,7 +198,7 @@ async function main() {
     await records(p); await p.evaluate(() => document.querySelector('#logBody tr[data-kind="src"]')?.scrollIntoView({ block: "center" }));
     await shot(p, "14-records-stranded");
     await p.context().clock.fastForward(60e3);
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));
     await p.click("#editProfile"); await p.selectOption("#suEvery", "3"); p.answers = [true]; await p.click("#suSave"); await wait(p, 400);
 
     // ===== 10. old-app schedule change: detected, explained, recorded only when a parent confirms =====
@@ -240,7 +241,7 @@ async function main() {
     await p.click('#sCard [data-sa="close"]');
 
     // ===== 13. backup → restore into a family whose phones aren't both updated =====
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await p.evaluate(() => { document.querySelector("details.settings").open = true; });
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await p.evaluate(() => { document.querySelector("details.settings").open = true; });
     const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#bkGo")]);
     const bkFile = path.join(OUT, "backup-with-sources.json"); await dl.saveAs(bkFile);
     const bk = JSON.parse(fs.readFileSync(bkFile, "utf8"));
@@ -251,7 +252,7 @@ async function main() {
     await p.context().close();
 
     const r = await page(browser, base, { ready: false, empty: true });
-    await tab(r, "more"); await r.click('#moreNav button[data-v="settings"]'); await r.evaluate(() => { document.querySelector("details.settings").open = true; });
+    await tab(r, "more"); await r.click('#moreNav button[data-v="settings"]').then(() => r.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await r.evaluate(() => { document.querySelector("details.settings").open = true; });
     r.answers = [true]; await r.setInputFiles("#rsFile", bkFile); await wait(r, 800);
     check("restore brings every allocation and history entry back intact", await r.evaluate(b => ["slotMilk", "milkUsual", "schedPeriods"].every(c => Object.entries(b.data[c]).every(([id, d]) => JSON.stringify(__db[c][id]) === JSON.stringify(d))), bk));
     check("…but tracking stays off while the other phone isn't updated (legacy estimate, no activation)", await r.evaluate(() => !__nicu.src.on() && !(__db.config.sources)));

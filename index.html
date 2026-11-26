@@ -403,6 +403,14 @@
   .qs .who2{font-size:var(--fs-xs);color:var(--muted)}
   .qadd{display:grid;grid-template-columns:1fr auto;gap:8px}
   details.settings>summary{font-size:var(--fs-md);padding:4px 0;min-height:44px;display:flex;align-items:center}
+  details.srcwhy>summary{min-height:44px;display:flex;align-items:center;color:var(--accent);font-size:var(--fs-sm);font-weight:600;cursor:pointer}
+  details.sfold{padding-top:var(--sp-2);padding-bottom:var(--sp-2)} details.sfold[open]{padding-bottom:var(--sp-4)}
+  details.sfold>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);min-height:44px;cursor:pointer}
+  details.sfold>summary::-webkit-details-marker{display:none}
+  details.sfold>summary .sft{font-weight:700;color:var(--title);font-size:var(--fs-h2);white-space:nowrap}
+  details.sfold>summary .sfv{font-size:var(--fs-sm);color:var(--text2);text-align:right;min-width:0;overflow-wrap:anywhere}
+  details.sfold>summary .sfv::after{content:" ›";color:var(--accent)} details.sfold[open]>summary .sfv::after{content:" ⌄"}
+  details.sfold[open]>summary{margin-bottom:var(--sp-2)}
   details.settings .sect{border-top:1px solid var(--grid);margin-top:12px;padding-top:12px}
   .prefs{display:grid;gap:10px}
   .pr{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:var(--fs-md)}
@@ -749,12 +757,11 @@
   </div>
 
   <div class="msec" data-sec="settings">
-  <div class="card">
-    <h2>You</h2>
+  <details class="card sfold" data-sf="you"><summary><span class="sft">You</span><span class="sfv" id="sfvYou"></span></summary>
     <label class="f">Your name on entries (this phone's account)<input id="myName" type="text" maxlength="20" placeholder="e.g. Dad"></label>
     <div class="note">Shown next to what you log and in the alert the other phone gets.</div>
-  </div>
-  <div class="card"><h2>This phone</h2>
+  </details>
+  <details class="card sfold" data-sf="phone"><summary><span class="sft">This phone</span><span class="sfv" id="sfvPhone"></span></summary>
     <div class="prefs">
       <div class="pr"><span>Appearance</span><div class="seg small" id="pfLook"><button data-v="system">System</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
       <div class="pr"><span>Night mode</span><div class="seg small" id="pfNight"><button data-v="manual">Moon button</button><button data-v="auto">9 PM–7 AM</button></div></div>
@@ -763,7 +770,7 @@
       <div class="pr"><span>Time</span><div class="seg small" id="pfClock"><button data-v="12">2:30p</button><button data-v="24">14:30</button></div></div>
     </div>
     <div class="note">Only affects this phone. Weights are always entered in grams, as the NICU charts them.</div>
-  </div>
+  </details>
   <div class="card" id="mcCard" hidden>
     <h2 id="mcHead">MyChart (test)</h2>
     <p class="note" style="margin-top:0" id="mcLead">A test connection to Epic's sandbox with made-up patients. Read-only: nothing from MyChart is saved, and what it shows stays on this phone while this page is open.</p>
@@ -771,14 +778,12 @@
     <div class="row"><button class="btn ghost" id="mcRefresh" type="button" hidden>Refresh from MyChart</button></div>
     <div class="msg" id="mcMsg" role="status"></div>
   </div>
-  <div class="card" id="camCard">
-    <h2>Baby cameras</h2>
+  <details class="card sfold" id="camCard" data-sf="cams"><summary><span class="sft">Baby cameras</span><span class="sfv" id="sfvCams"></span></summary>
     <div class="cams" id="camFields"></div>
     <div class="msg" id="camMsg" role="status"></div>
     <div class="note">If your NICU has bedside cameras (such as AngelEye), paste the web address you use to watch. A camera button then appears on her card on Today, on every phone in your family. NICUlog only opens the link; it doesn't see or record the video.</div>
-  </div>
-  <div class="card" id="famCard">
-    <h2>Family</h2>
+  </details>
+  <details class="card sfold" id="famCard" data-sf="family"><summary><span class="sft">Family</span><span class="sfv" id="sfvFam"></span></summary>
     <div class="note" style="margin-top:0">Everyone here sees and logs the same babies.</div>
     <ul class="fmlist" id="fmList"></ul>
     <div class="sec-h" style="margin-top:var(--sp-3)"><span>Invite the other parent</span></div>
@@ -786,13 +791,12 @@
     <div class="row"><button class="btn ghost" id="fmShare">Share code</button><button class="btn ghost" id="fmRenew">New code</button></div>
     <div class="note">They create their own account, then enter this code. Codes last 7 days.</div>
     <div class="row" style="justify-content:space-between;margin-top:var(--sp-3);flex-wrap:wrap"><button class="link" id="fmLeave">Leave this family</button><button class="link danger" id="fmDelete">Delete my account</button></div>
-  </div>
-  <div class="card">
-    <h2>Babies &amp; account</h2>
+  </details>
+  <details class="card sfold" data-sf="babies"><summary><span class="sft">Babies &amp; account</span><span class="sfv" id="sfvBabies"></span></summary>
     <div class="sub" id="subtitle"></div>
     <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><button class="link" id="editProfile">Edit names, birth details &amp; full feeds</button><span><span class="msg" id="who" style="font-size:12px"></span> <button class="link" id="signOut">Sign out</button></span></div>
-  </div>
-  <details class="card settings"><summary>Data · backup, CSV export &amp; import</summary>
+  </details>
+  <details class="card settings sfold" data-sf="data"><summary><span class="sft">Data</span><span class="sfv" id="sfvData">Backup, CSV export &amp; import</span></summary>
   <div class="sect" style="border-top:0;margin-top:0;padding-top:0"><h2>Full backup</h2>
     <div class="note" style="margin-top:0">Everything in one file: feeds, weights, pumping, drop-offs, NICU count, checklists, rounds plans, questions and your setup. Keep a copy somewhere safe.</div>
     <div class="row"><button class="btn ghost" id="bkGo">Save full backup</button><button class="btn ghost" id="rsGo">Restore from backup</button><input id="rsFile" type="file" accept="application/json,.json" hidden><span class="msg" id="bkMsg"></span></div>
@@ -1257,6 +1261,8 @@
   }
   $("jNav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ showJSec(b.dataset.v); scrollTo(0,0); if(TWINS[0]!=="A") renderAll(); } });
   showJSec((()=>{ try{ return localStorage.getItem("jSec"); }catch{ return null; } })()||"story");
+  document.addEventListener("input",e=>{ if(e.target && e.target.id==="myName") renderSfold(); });
+  document.addEventListener("click",e=>{ if(e.target.closest && e.target.closest(".prefs")) setTimeout(renderSfold,0); });
   $("moreNav").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b){ showMoreSec(b.dataset.v); scrollTo(0,0); } });
   showMoreSec((()=>{ try{ return localStorage.getItem("moreSec"); }catch{ return null; } })()||"records");
   state.recF="all";
@@ -1599,7 +1605,18 @@
 
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
-  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); renderCkToday(); renderViewHome(); }
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); renderCkToday(); renderViewHome(); renderSfold(); }
+  // Settings rows show their current value while folded (product owner, Nov 26, 2026)
+  function renderSfold(){
+    if(!$("sfvYou")) return; const set=(id,t)=>{ const e=$(id); if(e && e.textContent!==t) e.textContent=t; };
+    set("sfvYou", ($("myName").value||"").trim() || "Add your name");
+    const look={system:"System",light:"Light",dark:"Dark"}[PREF.look]||"System";
+    set("sfvPhone", `${look} · ${PREF.clock==="24"?"24-hour":"12-hour"} · ${PREF.units==="lb"?"lb / oz":"grams"}${PREF.text!=="1"?` · ${PREF.text==="1.3"?"A++":"A+"}`:""}`);
+    const nc=[0,1].filter(i=>camLink(i)).length; set("sfvCams", nc?`${nc} link${nc===1?"":"s"} saved`:"Not set");
+    $("camCard").hidden = profileReady() && !TWINS.some(tw=>inNicu(tw));   // both babies home: cameras step back (links are kept)
+    const fm=document.querySelectorAll("#fmList li").length; set("sfvFam", fm?`${fm} member${fm===1?"":"s"}`:"");
+    set("sfvBabies", profileReady()?TWINS.join(" & "):"");
+  }
   function renderViewHome(){
     if(!profileReady()) return;
     [...$("view").children].forEach(b=>{ const d=b.dataset.v; if(d[0]!=="#") return; const tw=TWINS[+d[1]], gone=!inNicu(tw);
@@ -2770,7 +2787,8 @@
     const on=srcOn(), ready=sourcesReady(), dis=canWrite?"":"disabled";
     const intro=`<p class="slead">Record whether each baby usually gets mother's milk, donor milk or formula, or a mix. The milk estimate then counts only mother's milk. You can change a single feed on Today or in Records.</p>`;
     const perDevice=`<p class="note">This is checked for each family member's account. If you use the app on more than one device, open the updated app on each.</p>`;
-    if(!on && !ready){ el.innerHTML=intro+`<p class="slead"><b>Everyone in the family needs the updated app first.</b> Milk sources start only when every member has opened this version, so everyone sees the same estimate.</p>${memberList()}${perDevice}${srcData()?`<p class="note">Milk-source settings are saved here (for example from a backup). They'll be ready to turn on once everyone has the updated app.</p>`:""}`; return; }
+    const waiting = famInfo ? famInfo.members.filter(m=>!(CLIENTS[m.uid]&&CLIENTS[m.uid].v>=MS.CLIENT_V)).map(m=>esc(memberName(m))).join(", ") : "";
+    if(!on && !ready){ el.innerHTML=`<p class="slead">Milk sources: waiting for ${waiting||"everyone"} to open the updated app.</p><details class="srcwhy"><summary>Why, and who has it</summary>${intro}<p class="slead"><b>Everyone in the family needs the updated app first.</b> Milk sources start only when every member has opened this version, so everyone sees the same estimate.</p>${memberList()}${perDevice}</details>${srcData()?`<p class="note">Milk-source settings are saved here (for example from a backup). They'll be ready to turn on once everyone has the updated app.</p>`:""}`; return; }
     if(!on && srcData()){ el.innerHTML=intro+`<p class="slead">Milk-source settings are saved here (for example from a backup) but not in use yet. Turning them on uses them for the milk estimate, with the dates they were originally set.</p>${memberList()}<div class="row"><button class="btn" type="button" data-se="turnon" ${dis}>Turn on milk sources</button></div><div class="msg" id="srcMsg" role="status"></div>`; return; }
     const lagM = on && famInfo ? famInfo.members.filter(m=>!(CLIENTS[m.uid]&&CLIENTS[m.uid].v>=MS.CLIENT_V)) : [];
     const late = on && famInfo ? famInfo.members.filter(m=>!SRC_CFG.phones.includes(m.uid)) : [];
@@ -2779,7 +2797,7 @@
     el.innerHTML=(on?`<p class="meta">Milk sources turned on ${fmtWhen(SRC_CFG.t)}${SRC_CFG.by?` by ${esc(whoSays(SRC_CFG.by,"a parent"))}`:""}${incNames.length?` · included: ${names(incNames)}`:""}.</p>`:intro+`<p class="note">Saving the first setting starts milk-source tracking. Estimates for the past stay as they are.</p>`)
       + (late.length?`<div class="srcwarn">${names(late)} joined after milk sources were turned on.${late.some(m=>lagM.includes(m))?" Until the updated app is opened on that account, it shows the milk estimate without milk sources.":" Their app shows milk sources."}</div>`:"")
       + (lagM.length&&!late.every(m=>lagM.includes(m))||lagM.some(m=>!late.includes(m))?`<div class="srcwarn">${names(lagM.filter(m=>!late.includes(m)))} hasn't opened the updated app. Until then, that account shows the milk estimate without milk sources.</div>`:"")
-      + (lagM.length||late.length?memberList():"")
+      + (lagM.length||late.length?`<details class="srcwhy"><summary>Who has the updated app</summary>${memberList()}</details>`:"")
       + shown().map(tw=>{ const i=TWINS.indexOf(tw), u=MS.usualAt(USUAL,i,Date.now()), ed=srcEdit&&srcEdit.i===i, C=COLORS();
         return `<div class="srow" data-i="${i}">
           <div class="srow-h"><b><span class="dot" style="background:${C[tw]}"></span>${esc(tw)}</b><span class="sval">${esc(pctLabel(u&&u.pct))}</span></div>
@@ -3189,7 +3207,7 @@
   }
   function drawFamily(){ if(!famInfo) return;
     const f=famInfo, mine=f.owner===f.me, nm=e=>{ const p=people.find(x=>x.email===e); return p&&p.name?`${p.name} · ${e}`:e; };
-    $("fmList").innerHTML=f.members.map(m=>`<li><span>${esc(nm(m.email))}${m.uid===f.me?'<span class="tag">you</span>':""}${m.uid===f.owner?'<span class="tag">owner</span>':""}</span>${mine&&m.uid!==f.me?`<button class="link danger" data-rm="${esc(m.uid)}" data-em="${esc(m.email)}">Remove</button>`:""}</li>`).join("")||'<li class="muted">Just you so far.</li>';
+    $("fmList").innerHTML=f.members.map(m=>`<li><span>${esc(nm(m.email))}${m.uid===f.me?'<span class="tag">you</span>':""}${m.uid===f.owner?'<span class="tag">owner</span>':""}</span>${mine&&m.uid!==f.me?`<button class="link danger" data-rm="${esc(m.uid)}" data-em="${esc(m.email)}">Remove</button>`:""}</li>`).join("")||'<li class="muted">Just you so far.</li>'; renderSfold();
     const live=f.code && f.codeExp>Date.now();
     $("fmInvite").textContent=live?fmtCode(f.code):"—";
     $("fmExp").textContent=live?`good until ${mdD(new Date(f.codeExp))}`:"Tap New code to invite someone.";

@@ -70,7 +70,7 @@ async function newPage(browser, base, opts = {}) {
 const tab = (p, t) => p.$eval(`#tabbar button[data-tab=${t}]`, b => b.click()).then(() => p.waitForTimeout(250));
 const db = (p, f, arg) => p.evaluate(f, arg);
 async function importData(p) {
-  await tab(p, "more"); if (await p.$("#moreNav")) await p.click('#moreNav button[data-v="settings"]');   // older layouts had no sections
+  await tab(p, "more"); if (await p.$("#moreNav")) await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));   // older layouts had no sections
   await p.evaluate(() => { document.querySelector("details.settings").open = true; document.querySelector("#impBox").closest("details:not(.settings)").open = true; });
   await p.fill("#impBox", syntheticCSV()); await p.click("#impGo"); await p.waitForTimeout(800);
   return p.textContent("#impMsg");
@@ -334,7 +334,7 @@ async function main() {
     check("Care: questions show the team's answer", (await p.textContent("#careQ")).includes("Team's answer: Monday") && (await p.textContent("#careQ")).includes("Answered"));
     check("Care: diet box lives here", await p.isVisible("#diet"));
     // ---- settings ----
-    await p.click('#moreNav button[data-v="settings"]'); await p.waitForTimeout(150);
+    await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await p.waitForTimeout(150);
     check("Settings: every preference is reachable", await p.evaluate(() => ["#pfLook", "#pfNight", "#pfText", "#pfUnits", "#pfClock", "#myName", "#editProfile", "#signOut"].every(id => document.querySelector(id).offsetParent)));
     const small = [];
     for (const [t, sec] of [["feed"], ["weight"], ["milk"], ["trends"], ["more", "records"], ["more", "care"], ["more", "settings"]]) {
@@ -350,7 +350,7 @@ async function main() {
     await p.evaluate(() => scrollTo(0, 400)); await p.waitForTimeout(100); const tucked = await p.$eval("#fab", e => e.classList.contains("tuck"));
     await p.evaluate(() => scrollTo(0, 200)); await p.waitForTimeout(100);
     check("Log feed button tucks away while scrolling down and returns on scroll up", tucked && !(await p.$eval("#fab", e => e.classList.contains("tuck"))));
-    await p.evaluate(() => scrollTo(0, 0)); await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
+    await p.evaluate(() => scrollTo(0, 0)); await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));
     // ---- Store additions: patch + private (stub contract) ----
     await db(p, () => { Store.put("events", "e-1", { title: "First hold", note: "keep me", by: "parent2@example.com" }); });
     await db(p, () => Store.patch("events", "e-1", { title: "First cuddle", by: "someone-else" }));
@@ -401,7 +401,7 @@ async function main() {
     await p.evaluate(() => { document.querySelector("details.settings").open = false; });
 
     // ---- more: export ----
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]');
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));
     await p.evaluate(() => { document.querySelector("details.settings").open = true; });
     await p.click("#csvBtn"); await p.waitForTimeout(200);
     const csv = await p.evaluate(async () => document.querySelector("#csvBox").value || await navigator.clipboard.readText().catch(() => ""));
@@ -431,7 +431,10 @@ async function main() {
 
     // ---- per-phone prefs + large text ----
     const q = await newPage(browser, base, { prefs: { clock: "24", units: "lb", text: "1.3" } });
-    await tab(q, "more"); await q.click('#moreNav button[data-v="settings"]'); check("Data & settings starts collapsed", !(await q.$eval("details.settings", d => d.open)));
+    await tab(q, "more"); await q.click('#moreNav button[data-v="settings"]');
+    check("Settings starts as one-line rows, all folded", await q.$$eval("details.sfold", x => x.length === 6 && x.every(d => !d.open)));
+    check("the rows show their current values (this phone: 24-hour, lb / oz, A++)", (await q.textContent("#sfvPhone")).includes("24-hour") && (await q.textContent("#sfvPhone")).includes("lb / oz") && (await q.textContent("#sfvPhone")).includes("A++") && (await q.textContent("#sfvBabies")).includes(" & "), await q.textContent("#sfvPhone"));
+    await q.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true));
     await importData(q); await tab(q, "feed");
     check("A++ text: baby names in the selector are never truncated", await q.$$eval("#view .nm0,#view .nm1", els => els.every(e => e.scrollWidth <= e.clientWidth + 1 && getComputedStyle(e).textOverflow !== "ellipsis")));
     check("A++ text: tab labels fit without wrapping or clipping", await q.$$eval("#tabbar button span", s => s.every(e => e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height < 30)));
@@ -624,7 +627,7 @@ async function main() {
       check("joining with the partner's code opens the shared babies", await j.isVisible("#main") && (await j.textContent("#title")).includes("Ada Rose"));
       await j.context().close(); }
     { const f = await newPage(browser, base);
-      await tab(f, "more"); await f.click('#moreNav button[data-v="settings"]'); await f.waitForTimeout(200);
+      await tab(f, "more"); await f.click('#moreNav button[data-v="settings"]').then(() => f.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await f.waitForTimeout(200);
       const list = await f.textContent("#fmList");
       check("Settings lists the family with you and the owner marked", list.includes("parent1@example.com") && list.includes("you") && list.includes("owner") && list.includes("parent2@example.com"), list);
       check("Settings shows the invite code", (await f.textContent("#fmInvite")) === "TEST-CODE");
@@ -672,7 +675,7 @@ async function main() {
     { const D = await newPage(browser, base);
       await D.evaluate(() => { __fam.members = [{ uid: "u1", email: "parent1@example.com" }]; __db.private.u2.checkins = { "c-partner": { mood: 1 } };
         Store.put("events", "e-9", { title: "x" }); Store.put("needs", "n-1", { text: "meals" }); return Store.putPrivate("checkins", "c-mine", { mood: 3 }); });
-      await tab(D, "more"); await D.click('#moreNav button[data-v="settings"]'); await D.waitForTimeout(250);
+      await tab(D, "more"); await D.click('#moreNav button[data-v="settings"]').then(() => D.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await D.waitForTimeout(250);
       D.answers = [true, "pw"]; await D.click("#fmDelete"); await D.waitForTimeout(400);
       check("the last member deleting their account removes events, needs and their own private data", await D.evaluate(() => !__db.events && !__db.needs && !Object.keys(__db.private.u1.checkins || {}).length && !!__db.private.u2.checkins["c-partner"]));
       await D.context().close(); }
@@ -684,7 +687,7 @@ async function main() {
     await sysDark.context().close();
     const forcedLight = await newPage(browser, base, { ctx: { colorScheme: "dark" }, prefs: { look: "light" } });
     check("Appearance = Light stays light on a dark phone", await bgOf(forcedLight) === "rgb(243, 246, 249)", await bgOf(forcedLight));
-    await tab(forcedLight, "more"); await forcedLight.click('#moreNav button[data-v="settings"]');
+    await tab(forcedLight, "more"); await forcedLight.click('#moreNav button[data-v="settings"]').then(() => forcedLight.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true)));
     await forcedLight.click('#pfLook button[data-v="dark"]'); await forcedLight.waitForTimeout(150);
     check("switching Appearance to Dark applies immediately", await bgOf(forcedLight) === "rgb(14, 26, 38)", await bgOf(forcedLight));
     await forcedLight.click("#nightBtn"); await forcedLight.waitForTimeout(150);

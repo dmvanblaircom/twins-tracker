@@ -62,7 +62,7 @@ async function main() {
       await p.$eval('#sCard [data-sa="mixed"]', b => b.click()); await p.waitForTimeout(200); await run("milk sheet", "#sSheet");
       await p.evaluate(() => { document.querySelector("#sSheet").hidden = true; });
       await tab(p, "trends"); const add = await p.$("#jAdd"); if (add) { await add.click(); await p.waitForTimeout(250); await run("moment sheet", "#mSheet"); await p.evaluate(() => { document.querySelector("#mSheet").hidden = true; }); }
-      await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await p.click("#editProfile"); await p.waitForTimeout(250); await run("setup", "#setup");
+      await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await p.click("#editProfile"); await p.waitForTimeout(250); await run("setup", "#setup");
       check(`${theme}: every screen and sheet passes contrast, 12 px, 44 px, names and no sideways scroll`, !bad.length, bad.slice(0, 8).join("; "));
       check(`${theme}: the moment sheet was reached`, !!add);
       check(`${theme}: no page errors`, !p.errors.length, p.errors.join("; "));

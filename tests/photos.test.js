@@ -100,7 +100,7 @@ async function main() {
     check("Undo restores the moment and its photo", !!(await evIdOf(p, "Photo day")) && (await photos(p)).some(([, x]) => x.ev === ev && !x.deletedT));
 
     // ---- Settings: usage and backup ----
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await wait(p, 500);
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await wait(p, 500);
     check("Settings shows how much of the free storage photos use", /Photos: 1 · about <?\d+ MB of the 1 GB free storage\./.test(await p.textContent("#phUse")), await p.textContent("#phUse"));
     await p.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
     const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#bkGo")]); const bk = JSON.parse(fs.readFileSync(await dl.path(), "utf8"));

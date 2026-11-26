@@ -52,7 +52,7 @@ async function main() {
     check("no check-in text appears on Today, Growth, Milk, Journey, Records, Care or Settings", !seen.length, seen.join());
     const tl = await p.evaluate(() => document.querySelector("#jRail").innerText);
     check("the Journey timeline never includes a private check-in, even for its author", !tl.includes("zq-"));
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await p.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await p.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
     await p.click("#csvBtn"); await wait(p, 200); const csv = await p.$eval("#csvBox", x => x.value);
     check("the CSV export carries no check-in", csv.length > 100 && !csv.includes("zq-"));
     const [bk] = await Promise.all([p.waitForEvent("download"), p.click("#bkGo")]); const b = JSON.parse(fs.readFileSync(await bk.path(), "utf8"));
@@ -152,7 +152,7 @@ async function main() {
     check("Undo takes it back off", (await p.textContent("#swBox")).includes("Add their name, phone and email"));
     await p.evaluate(() => Store.setConfig("contacts", { sw: { name: "Sam Example", phone: "614-555-0199", email: "" } })); await wait(p, 300);
     check("details the other parent saves show up on this phone", (await p.textContent("#swBox")).includes("Sam Example") && !(await p.$('#swBox a[href^="mailto:"]')));
-    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await p.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
+    await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await p.evaluate(() => document.querySelectorAll("details").forEach(d => d.open = true));
     const [bk2] = await Promise.all([p.waitForEvent("download"), p.click("#bkGo")]); const b2 = JSON.parse(fs.readFileSync(await bk2.path(), "utf8"));
     check("the family backup carries the social worker's details", b2.data.config.contacts && b2.data.config.contacts.sw.name === "Sam Example");
     // ---- leaving purges my check-ins; shared copies stay ----

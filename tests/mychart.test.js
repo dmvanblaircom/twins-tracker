@@ -78,7 +78,7 @@ async function browserFlow() {
     }
     return json(route, {}, 404);
   };
-  const settings = async p => { await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]'); await wait(p); };
+  const settings = async p => { await tab(p, "more"); await p.click('#moreNav button[data-v="settings"]').then(() => p.evaluate(() => document.querySelectorAll("details.sfold").forEach(d => d.open = true))); await wait(p); };
   const connect = async (p, i, patient) => { nextPatient = patient; await p.click(`#mcBody [data-mcgo="${i}"]`); await p.waitForURL(u => !String(u).includes("code="), { timeout: 15000 }).catch(() => {}); await wait(p, 1200); };
   try {
     const p = await newPage(browser, base, { now: NOW });
