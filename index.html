@@ -124,10 +124,14 @@
   .sumbaby h3{margin:0 0 var(--sp-2);color:var(--title);font-size:var(--fs-lg);display:flex;align-items:center;gap:6px} .sumbaby h4{margin:var(--sp-3) 0 var(--sp-1);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
   .sumlist{list-style:none;margin:0;padding:0} .sumlist li{display:flex;justify-content:space-between;gap:var(--sp-3);padding:6px 0;border-bottom:1px solid var(--grid);font-size:var(--fs-sm)}
   .sumlist li span{color:var(--text2)} .sumlist li b{color:var(--text);text-align:right;font-weight:600}
+  .sumlist li{flex-wrap:wrap;align-items:center} .sumlist li b{flex:1}
+  .sumed{min-height:44px;padding:0 0 0 var(--sp-2);font-size:var(--fs-sm)} .sumlist .ckdate{margin-left:auto}
+  .sumfix{display:grid;gap:var(--sp-2);width:100%} .sumfix>span{color:var(--text2)}
+  .sumhint{margin-top:var(--sp-3)}
   .sumfoot{font-size:var(--fs-xs);color:var(--muted);margin-top:var(--sp-3)}
   @media print{
     body.sumopen > *:not(#sumView){display:none !important}
-    body.sumopen #sumView{position:static;display:block} body.sumopen .msheet-back,body.sumopen .sumbar,body.sumopen #sumMsg{display:none !important}
+    body.sumopen #sumView{position:static;display:block} body.sumopen .msheet-back,body.sumopen .sumbar,body.sumopen #sumMsg,body.sumopen .sumed,body.sumopen .sumhint{display:none !important}
     body.sumopen .sumcard{max-height:none;overflow:visible;box-shadow:none;border-radius:0;max-width:none;padding:0;background:#fff;color:#000}
     body.sumopen .sumbaby{break-inside:avoid}
   }
@@ -434,7 +438,7 @@
   .chip{border:1px solid var(--field);background:var(--surface);color:var(--text);border-radius:var(--r-pill);padding:0 var(--sp-3);min-height:44px;font:inherit;font-size:var(--fs-sm);font-weight:550;cursor:pointer}
   .chip.warn{border-color:var(--danger);background:var(--danger-tint);color:var(--danger-ink);font-weight:650}
   .tw{border-left:4px solid var(--c);padding-left:var(--sp-3);border-radius:2px}
-  #toast{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:9;display:none;align-items:center;justify-content:space-between;gap:12px;
+  #toast{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:14;display:none;align-items:center;justify-content:space-between;gap:12px;
     background:var(--title);color:var(--bg);border-radius:var(--r-lg);padding:10px 10px 10px 16px;font-size:var(--fs-md);font-weight:600;box-shadow:var(--shadow-2)}
   #toast.on{display:flex}
   #toast button{border:0;background:var(--bg);color:var(--title);border-radius:var(--r-sm);font:inherit;font-weight:700;min-height:44px;padding:0 16px;cursor:pointer}
@@ -1630,7 +1634,7 @@
 
   function dayRangeText(){ const h=hm(new Date(2000,0,1,DAY_START_H).getTime()); return `${h} to ${h}`; }
   function renderAll(){ const y=scrollY; renderAllInner(); if(Math.abs(scrollY-y)>1) scrollTo(0,y); }   // keep the screen still when data arrives
-  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); renderCkToday(); renderViewHome(); renderSfold(); }
+  function renderAllInner(){ if($("dayRange")) $("dayRange").textContent=dayRangeText(); renderNext(); renderMilk(); renderHome(); renderQs(); renderSheet(); renderFeed(); renderDaily(); renderGrowth(); renderWeight(); renderGrid(); renderLog(); renderCare(); renderJourney(); renderSrcCare(); renderSrcNotes(); renderSupport(); renderCams(); renderCamTip(); renderPlanToday(); renderCkToday(); renderViewHome(); renderSfold(); refreshSummary(); }
   // NICU stay summary (product owner, Nov 26, 2026): one page built only from what the family logged. Not a medical record.
   function stayFacts(tw){
     const i=TWINS.indexOf(tw), b=BIRTH[tw], home=homeAt(tw), end=home||Date.now(), born=keyDate(profile.born);
@@ -1642,45 +1646,80 @@
     const back=low && ws.find(w=>w.date>=low.date && w.v>=b.g);
     const fs=fSeries(tw).filter(f=>f.t<=end), firstPo=fs.find(f=>f.v>0);
     const goal=FULL[tw]*FEEDS_PER_DAY, byDay={}; fs.forEach(f=>{ const d=feedDay(f.t); byDay[d]=(byDay[d]||0)+f.v; });
-    const fullDay=Object.keys(byDay).sort().find(d=>byDay[d]>=goal);
+    const fix=(SUMFIX[i]||{}), loggedFull=Object.keys(byDay).sort().find(d=>byDay[d]>=goal);
+    const fullDay=fix.fullDay||loggedFull;
     const ms=EV.filter(e=>e.scope==="baby"&&e.i===i&&e.kind!=="journal").sort((a,b2)=>a.t-b2.t);
-    const ck=DIS_BABY.map(([k,l])=>({l,c:CK[`b${i}-${k}`]})).filter(x=>x.c&&x.c.s==="done"&&x.c.d).sort((a,b2)=>a.c.d<b2.c.d?-1:1);
-    return {tw,i,b,home,days:dayN(end),pma,last,low,back,firstPo,fullDay,ms,ck,dayN};
+    const ck=DIS_BABY.map(([k,l])=>({l,id:`b${i}-${k}`,c:CK[`b${i}-${k}`]})).filter(x=>x.c&&x.c.s==="done"&&x.c.d).sort((a,b2)=>a.c.d<b2.c.d?-1:1);
+    const po = fix.firstPo ? {t:keyDate(fix.firstPo.d).getTime()+12*36e5, v:fix.firstPo.mL, fixed:true} : firstPo;
+    return {tw,i,b,home,days:dayN(end),pma,last,low,back,firstPo:po,fullDay,fullFixed:!!fix.fullDay,ms,ck,dayN};
   }
   function summaryHTML(){
     const C=COLORS(), born=keyDate(profile.born);
     const dk = k => longD(keyDate(k));
     const babies=TWINS.map(stayFacts);
     const fam=EV.filter(e=>e.scope==="family"&&e.kind!=="journal").sort((a,b)=>a.t-b.t);
-    const famCk=DIS_FAM.map(([k,l])=>({l,c:CK["f-"+k]})).filter(x=>x.c&&x.c.s==="done"&&x.c.d);
-    const li=(a,b)=>`<li><span>${a}</span><b>${b}</b></li>`;
+    const famCk=DIS_FAM.map(([k,l])=>({l,id:"f-"+k,c:CK["f-"+k]})).filter(x=>x.c&&x.c.s==="done"&&x.c.d);
+    const ed=(act,label)=>canWrite?`<button class="link sumed" type="button" data-sed="${esc(act)}" aria-label="Edit ${esc(label)}">Edit</button>`:"";
+    const li=(a,b,act)=>`<li><span>${a}</span><b>${b}</b>${act?ed(act,a.replace(/<[^>]+>/g,"")):""}</li>`;
+    const cor=" · <i>corrected</i>";
     return `<h2 id="sumHead">NICU stay summary</h2>
       <p class="sumsub">${esc(TWINS.join(" & "))} · born ${longD(born)}, ${born.getFullYear()}${profile.ga?` at ${esc(profile.ga)}`:""}</p>
       ${babies.map(f=>`<section class="sumbaby" style="--c:${C[f.tw]}"><h3><span class="dot" style="background:${C[f.tw]}"></span>${esc(f.tw)}</h3>
         <ul class="sumlist">
-          ${li("Born", `${hm(f.b.t)} · ${fmtG(f.b.g)} g`)}
-          ${li(f.home?"Went home":"Still in the NICU", f.home?`${longD(new Date(f.home))} · Day ${f.dayN(f.home)}${f.pma(f.home)?` · ${f.pma(f.home)} PMA`:""}`:`Day ${f.days}`)}
+          ${li("Born", `${hm(f.b.t)} · ${fmtG(f.b.g)} g`, "setup")}
+          ${li(f.home?"Went home":"Still in the NICU", f.home?`${longD(new Date(f.home))} · Day ${f.dayN(f.home)}${f.pma(f.home)?` · ${f.pma(f.home)} PMA`:""}`:`Day ${f.days}`, f.home?"setup":"")}
           ${f.home?li("NICU stay", `${f.days} day${f.days===1?"":"s"}`):""}
-          ${f.last?li(f.home?"Last weight before home":"Latest weight", `${fmtG(f.last.v)} g · ${dk(f.last.date)} · ${sgn(f.last.v-f.b.g)} g since birth`):""}
-          ${f.low&&f.low.v<f.b.g?li("Lowest weight", `${fmtG(f.low.v)} g · ${dk(f.low.date)}`):""}
-          ${f.back?li("Back to birth weight", `${dk(f.back.date)} · Day ${f.dayN(nightT(f.back.date))}`):""}
-          ${f.firstPo?li("First feed by mouth", `${longD(new Date(f.firstPo.t))} · ${f.firstPo.v} mL`):""}
-          ${f.fullDay?li("First full day by mouth", `${dk(f.fullDay)} · Day ${f.dayN(keyDate(f.fullDay).getTime()+12*36e5)}`):""}
+          ${f.last?li(f.home?"Last weight before home":"Latest weight", `${fmtG(f.last.v)} g · ${dk(f.last.date)} · ${sgn(f.last.v-f.b.g)} g since birth`, `w|${f.i}|${f.last.date}`):""}
+          ${f.low&&f.low.v<f.b.g?li("Lowest weight", `${fmtG(f.low.v)} g · ${dk(f.low.date)}`, `w|${f.i}|${f.low.date}`):""}
+          ${f.back?li("Back to birth weight", `${dk(f.back.date)} · Day ${f.dayN(nightT(f.back.date))}`, `w|${f.i}|${f.back.date}`):""}
+          ${li("First feed by mouth", f.firstPo?`${longD(new Date(f.firstPo.t))} · ${f.firstPo.v} mL${f.firstPo.fixed?cor:""}`:"Not logged", `po|${f.i}`)}
+          ${li("First full day by mouth", f.fullDay?`${dk(f.fullDay)} · Day ${f.dayN(keyDate(f.fullDay).getTime()+12*36e5)}${f.fullFixed?cor:""}`:"Not logged", `full|${f.i}`)}
         </ul>
-        ${f.ms.length?`<h4>Milestones</h4><ul class="sumlist">${f.ms.map(e=>li(esc(e.title), longD(new Date(e.t)))).join("")}</ul>`:""}
-        ${f.ck.length?`<h4>Before going home</h4><ul class="sumlist">${f.ck.map(x=>li(esc(x.l), dk(x.c.d))).join("")}</ul>`:""}
+        ${f.ms.length?`<h4>Milestones</h4><ul class="sumlist">${f.ms.map(e=>li(esc(e.title), longD(new Date(e.t)), `ev|${e.id}`)).join("")}</ul>`:""}
+        ${f.ck.length?`<h4>Before going home</h4><ul class="sumlist">${f.ck.map(x=>`<li><span>${esc(x.l)}</span>${ckDateBtn(x.id,x.l)}</li>`).join("")}</ul>`:""}
       </section>`).join("")}
       ${fam.length||famCk.length?`<section class="sumbaby"><h3>Our family</h3>
-        ${fam.length?`<ul class="sumlist">${fam.map(e=>li(esc(e.title), longD(new Date(e.t)))).join("")}</ul>`:""}
-        ${famCk.length?`<h4>Family checklist</h4><ul class="sumlist">${famCk.map(x=>li(esc(x.l), dk(x.c.d))).join("")}</ul>`:""}</section>`:""}
+        ${fam.length?`<ul class="sumlist">${fam.map(e=>li(esc(e.title), longD(new Date(e.t)), `ev|${e.id}`)).join("")}</ul>`:""}
+        ${famCk.length?`<h4>Family checklist</h4><ul class="sumlist">${famCk.map(x=>`<li><span>${esc(x.l)}</span>${ckDateBtn(x.id,x.l)}</li>`).join("")}</ul>`:""}</section>`:""}
+      ${canWrite?`<p class="note sumhint">Something wrong? Tap Edit to fix it where it's recorded (it changes everywhere in the app), or tap a checklist date to change it.</p>`:""}
       <p class="sumfoot">Made with NICUlog from what our family logged on ${longD(new Date())}. Not a medical record — the hospital's chart is the record.</p>`;
   }
   function summaryText(){ const el=document.createElement("div"); el.innerHTML=summaryHTML();
-    el.querySelectorAll("h2,h3,h4").forEach(h=>h.textContent="\n"+h.textContent.trim().toUpperCase()); el.querySelectorAll("li").forEach(l=>{ const [a,b]=l.children; l.textContent=`• ${a.textContent}: ${b.textContent}`; });
+    el.querySelectorAll("h2,h3,h4").forEach(h=>h.textContent="\n"+h.textContent.trim().toUpperCase()); el.querySelectorAll("li").forEach(l=>{ const [a,b]=l.children; l.textContent=`• ${a.textContent}: ${b.textContent.trim()}`; }); el.querySelectorAll(".sumhint").forEach(x=>x.remove());
     return el.innerText.replace(/\n{3,}/g,"\n\n").trim(); }
   function openSummary(){ if(!profileReady()) return; $("sumBody").innerHTML=summaryHTML(); $("sumMsg").textContent=""; $("sumView").hidden=false; document.body.style.overflow="hidden"; document.body.classList.add("sumopen"); setTimeout(()=>$("sumClose").focus(),50); }
   function closeSummary(){ $("sumView").hidden=true; document.body.style.overflow=""; document.body.classList.remove("sumopen"); }
   ["sumGo","sumGo2"].forEach(id=>$(id).addEventListener("click",openSummary));
+  // Corrections for the two feeding firsts the log can't fix (the real first may predate logging): config/summary → {fix:{"0":{firstPo:{d,mL}, fullDay:"YYYY-MM-DD"}}}
+  let SUMFIX={};
+  const cleanSumFix = c => { const o={}; const f=c&&c.fix; if(f&&typeof f==="object") for(const i of ["0","1"]){ const x=f[i]; if(!x||typeof x!=="object") continue; const r={};
+    if(x.firstPo&&/^\d{4}-\d\d-\d\d$/.test(x.firstPo.d)&&+x.firstPo.mL>0&&+x.firstPo.mL<=150) r.firstPo={d:x.firstPo.d,mL:Math.round(+x.firstPo.mL*10)/10};
+    if(/^\d{4}-\d\d-\d\d$/.test(x.fullDay||"")) r.fullDay=x.fullDay; if(Object.keys(r).length) o[i]=r; } return o; };
+  function refreshSummary(){ const v=$("sumView"), a=document.activeElement; if(v && !v.hidden && !(v.contains(a) && a.matches("input"))) $("sumBody").innerHTML=summaryHTML(); }   // never mid-typing
+
+  async function saveSumFix(i, part, val){ const prev=RAWC.summary||null, fix={...((prev&&prev.fix)||{})}; const cur={...(fix[i]||{})};
+    if(val==null) delete cur[part]; else cur[part]=val; if(Object.keys(cur).length) fix[i]=cur; else delete fix[i];
+    try{ await Store.setConfig("summary",{fix}); undoBar(val==null?"Back to what's logged":"Summary corrected", ()=>Store.setConfig("summary", prev||{fix:{}})); }catch(err){ failWrite(err); } }
+  $("sumBody").addEventListener("click", async e=>{ const b=e.target.closest("[data-sed]"); if(!b) return; const [kind,a,c]=b.dataset.sed.split("|");
+    if(kind==="setup"){ closeSummary(); showSetup(true); return; }
+    if(kind==="ev"){ const ev=EV.find(x=>x.id===a); if(ev){ $("mSheet").style.zIndex="13"; openMoment(ev); } return; }
+    if(kind==="w"){ const tw=TWINS[+a], w=W[tw+"|"+c]; const r=prompt(`${tw}'s weight on ${md(c)}, in grams`, w?w.v:""); if(r==null) return;
+      await saveWeight(tw, c, {value:r.trim()}, document.createElement("span"), wSig(w)); return; }
+    if(kind==="po"||kind==="full"){ const li=b.closest("li"), i=a, f=SUMFIX[i]||{}, born=profile.born, max=dKey(new Date());
+      li.innerHTML=`<div class="sumfix"><span>${kind==="po"?"First feed by mouth":"First full day by mouth"}</span>
+        <label class="f">Day<input type="date" data-sfd min="${born}" max="${max}" value="${kind==="po"?(f.firstPo?f.firstPo.d:""):(f.fullDay||"")}"></label>
+        ${kind==="po"?`<label class="f">mL<input type="number" inputmode="decimal" min="0" step="any" data-sfm value="${f.firstPo?f.firstPo.mL:""}"></label>`:""}
+        <div class="row"><button class="btn" type="button" data-sfs="${kind}|${i}">Save</button><button class="btn ghost" type="button" data-sfx>Cancel</button>${(kind==="po"?f.firstPo:f.fullDay)?`<button class="link" type="button" data-sfr="${kind}|${i}">Use what's logged</button>`:""}</div></div>`;
+      li.querySelector("input").focus(); return; }
+  });
+  $("sumBody").addEventListener("click", async e=>{
+    if(e.target.closest("[data-sfx]")){ $("sumBody").innerHTML=summaryHTML(); return; }
+    const r=e.target.closest("[data-sfr]"); if(r){ const [kind,i]=r.dataset.sfr.split("|"); await saveSumFix(i, kind==="po"?"firstPo":"fullDay", null); return; }
+    const s=e.target.closest("[data-sfs]"); if(!s) return; const [kind,i]=s.dataset.sfs.split("|"), box=s.closest(".sumfix"), d=box.querySelector("[data-sfd]").value;
+    if(!d || d<profile.born || d>dKey(new Date())){ flash("Pick a day between birth and today."); return; }
+    if(kind==="po"){ const mL=parseFloat(box.querySelector("[data-sfm]").value); if(!(mL>0&&mL<=150)){ flash("Enter the mL (e.g. 5)."); return; } await saveSumFix(i,"firstPo",{d,mL:Math.round(mL*10)/10}); }
+    else await saveSumFix(i,"fullDay",d);
+  });
   $("sumClose").addEventListener("click",closeSummary); $("sumBack").addEventListener("click",closeSummary);
   document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("sumView").hidden) closeSummary(); });
   $("sumPrint").addEventListener("click",()=>{ try{ window.print(); }catch{ $("sumMsg").textContent="Printing isn't available here. Use Share as text instead."; } });
@@ -1780,7 +1819,7 @@
   // Collection names come from Store.lists (one place, firebase-store.js); the fallback matches it.
   const bkCols = () => (window.Store&&Store.lists&&Store.lists.shared) || ["weights","feeds","pumps","drops","checklist","plans","questions","events","needs"];
   const bkPriv = () => (window.Store&&Store.lists&&Store.lists.private) || ["checkins"];
-  const BK_CFG=["profile","diet","people","milk","cams","contacts"], BK_APPS=["twins-tracker","niculog"], BK_FORMATS=[1,2];
+  const BK_CFG=["profile","diet","people","milk","cams","contacts","summary"], BK_APPS=["twins-tracker","niculog"], BK_FORMATS=[1,2];
   const rawOf = c => c==="weights"?rawW:c==="feeds"?rawF:RAW[c]||[];
   // Format 2: shared collections (incl. events, needs), config, and ONLY the signed-in person's own private data.
   function backupData(){
@@ -2300,7 +2339,7 @@
     $("mDel").hidden=!ev; $("mSheet").hidden=false; document.body.style.overflow="hidden"; mPhRender();
     setTimeout(()=>($("mTitleL").hidden?$("mWhen"):$("mTitle")).focus(),50);
   }
-  function closeMoment(){ if(mState) mState.ph.add.forEach(a=>URL.revokeObjectURL(a.url)); $("mSheet").hidden=true; document.body.style.overflow=""; mState=null; }
+  function closeMoment(){ if(mState) mState.ph.add.forEach(a=>URL.revokeObjectURL(a.url)); $("mSheet").hidden=true; $("mSheet").style.zIndex=""; document.body.style.overflow=$("sumView").hidden?"":"hidden"; mState=null; refreshSummary(); }
   $("jAdd").addEventListener("click",()=>openMoment(null));
   $("jRail").addEventListener("click",e=>{ const t=e.target.closest("[data-ph]"); if(t){ phOpen(t.dataset.ph); return; } const b=e.target.closest("[data-ev]"); if(!b) return; const ev=EV.find(x=>x.id===b.dataset.ev); if(ev) openMoment(ev); });
   $("mWho").addEventListener("click",e=>{ const b=e.target.closest("button"); if(b) mSetWho(b.dataset.v); });
@@ -2396,7 +2435,7 @@
       const n=ckCounts(box.dataset.ids.split(" ")), c=box.querySelector(".ckn"), m=box.querySelector(".ckmeta");
       if(c) c.textContent=`${n.done}/${n.need}`; if(m) m.outerHTML=ckMeta(n);
     });
-    renderNext();   // Today's single-baby view shows a checklist summary
+    renderNext(); refreshSummary();
   }
   async function ckToggle(id,to){
     const old=CK[id]; const today=dKey(new Date());
@@ -3022,6 +3061,7 @@
         if(!camsSeen){ camsSeen=true; let local={}; try{ local=cleanCams({links:JSON.parse(localStorage.getItem("camLinks")||"{}")}); }catch{}
           if(Object.keys(local).length){ if(!Object.keys(CAMS).length) saveCams(local).catch(()=>{}); try{ localStorage.removeItem("camLinks"); }catch{} } }
         renderNext(); renderCams(); renderCamTip(); }, ()=>{}));
+      unsubs.push(Store.watchConfig("summary",c=>{ RAWC.summary=c; SUMFIX=cleanSumFix(c); refreshSummary(); }, ()=>{}));
       unsubs.push(Store.watchConfig("contacts",c=>{ RAWC.contacts=c; SW=cleanSW(c); if(!$("swBox").contains(document.activeElement)) renderSW(); }, ()=>{}));
       unsubs.push(Store.watchConfig("milk",c=>{ RAWC.milk=c; milkCfg=c&&isFinite(c.count)?c:null; renderMilk(); }, ()=>{}));
       unsubs.push(Store.watchConfig("sources",c=>{ SRC_CFG=c&&c.on===true?c:null; renderAll(); }, ()=>{}));

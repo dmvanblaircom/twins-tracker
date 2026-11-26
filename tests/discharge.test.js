@@ -77,7 +77,7 @@ async function main() {
     const srcAfter = await parts(p);
     check("milk sources on: the same estimate and need (her feeds stop at the same time)", Math.round(srcAfter.used * 10) === Math.round(legacyAfter.used * 10) && srcAfter.nFeeds === legacyAfter.nFeeds && Math.round(srcAfter.need) === Math.round(legacyAfter.need), JSON.stringify([legacyAfter, srcAfter]));
     // ---- NICU stay summary ----
-    await p.evaluate(() => { Store.put("events", "e-1770500000000-sm01", { kind: "milestone", scope: "baby", i: 0, key: "first-bath", t: new Date("2026-02-07T10:00:00-05:00").getTime(), title: "First bath", note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "parent1@example.com" });
+    await p.evaluate(() => { Store.put("events", "e-1770500000000-sm01", { kind: "moment", scope: "baby", i: 0, key: null, t: new Date("2026-02-07T10:00:00-05:00").getTime(), title: "First bath", note: "", ref: null, src: null, createdT: 1, editT: 1, editBy: "parent1@example.com" });
       Store.put("checklist", "b0-hearing", { s: "done", d: "2026-02-08" }); }); await wait(p, 300);
     await tab(p, "trends"); await p.click('#jNav button[data-v="progress"]'); await wait(p, 200);
     await p.click("#sumGo"); await wait(p, 300);
@@ -96,6 +96,34 @@ async function main() {
     check("Share as text sends a plain-text version", !!shared && shared.title === "NICU stay summary" && shared.text.includes("• Went home:") && !/<[a-z]/i.test(shared.text), shared && shared.text.slice(0, 200));
     check("its buttons are 44 px tall", await p.$$eval(".sumbar button", x => x.length === 3 && x.every(b => b.getBoundingClientRect().height >= 44)));
     await p.screenshot({ path: path.join(SHOTS, "summary.png"), fullPage: false });
+    // ---- corrections from the summary ----
+    const sb = () => p.$eval("#sumBody .sumbaby", e => e.innerText.replace(/\s+/g, " "));
+    p.answers = ["2530"]; await p.click('#sumBody [data-sed="w|0|2026-02-09"]'); await wait(p, 400);
+    check("Edit on a weight fixes that night's weight in the log (and the summary follows)", await p.evaluate(() => __db.weights["b0-2026-02-09"].v === 2530) && (await sb()).includes("2,530 g · Mon, Feb 9"), await sb());
+    await p.click("#toast button"); await wait(p, 300);
+    check("…with Undo", await p.evaluate(() => __db.weights["b0-2026-02-09"].v === 2515));
+    await p.click('#sumBody [data-sed="po|0"]'); await wait(p, 150);
+    await p.fill("#sumBody [data-sfd]", "2026-02-03"); await p.fill("#sumBody [data-sfm]", "5"); await p.click('#sumBody [data-sfs="po|0"]'); await wait(p, 300);
+    check("a first feed by mouth from before logging can be set; it's marked corrected and saved for the family", await p.evaluate(() => { const f = __db.config.summary.fix["0"].firstPo; return f.d === "2026-02-03" && f.mL === 5; }) && /First feed by mouth .*Feb 3 · 5 mL · corrected/i.test(await sb()), await sb());
+    await p.click('#sumBody [data-sed="po|0"]'); await wait(p, 150); await p.click('#sumBody [data-sfr="po|0"]'); await wait(p, 300);
+    check("Use what's logged puts it back", !(await p.evaluate(() => !!(__db.config.summary.fix["0"] || {}).firstPo)) && /First feed by mouth .*Feb 4 · 20 mL/.test(await sb()), await sb());
+    await p.click('#sumBody [data-sed="full|0"]'); await wait(p, 150); await p.fill("#sumBody [data-sfd]", "2026-01-20"); await p.click('#sumBody [data-sfs="full|0"]'); await wait(p, 200);
+    check("a day before birth is refused", !(await p.evaluate(() => !!(__db.config.summary.fix["0"] || {}).fullDay)) && (await p.textContent("#banner")).includes("between birth and today"));
+    await p.click("#sumBody [data-sfx]"); await wait(p, 150);
+    await p.click('#sumBody [data-ckdate="b0-hearing"]'); await wait(p, 150); await p.fill('#sumBody input[data-ckin="b0-hearing"]', "2026-02-07"); await wait(p, 300);
+    await p.evaluate(() => document.activeElement.blur()); await wait(p, 200);
+    check("a checklist date can be changed right on the summary", await p.evaluate(() => __db.checklist["b0-hearing"].d === "2026-02-07") && /Hearing screen .*Feb 7/.test(await sb()), await sb());
+    const evId = await p.evaluate(() => Object.keys(__db.events).find(k => __db.events[k].title === "First bath"));
+    await p.click(`#sumBody [data-sed="ev|${evId}"]`); await wait(p, 200);
+    check("Edit on a milestone opens it, above the summary", await p.isVisible("#mSheet") && await p.evaluate(() => +getComputedStyle(document.querySelector("#mSheet")).zIndex > +getComputedStyle(document.querySelector("#sumView")).zIndex));
+    await p.fill("#mTitle", "First bath at the bedside").catch(() => {}); await p.click("#mSave"); await wait(p, 300);
+    check("…and saving it updates the summary", (await sb()).includes("First bath at the bedside") && await p.isVisible("#sumView"), await sb());
+    await p.emulateMedia({ media: "print" });
+    check("printing leaves out the Edit buttons", await p.$$eval("#sumBody .sumed", x => x.every(b => getComputedStyle(b).display === "none")));
+    await p.emulateMedia({ media: "screen" });
+    await p.click('#sumBody [data-sed="setup"]'); await wait(p, 300);
+    check("Edit on Born opens the babies' setup (summary closes)", await p.isVisible("#setup") && !(await p.isVisible("#sumView")));
+    await p.click("#suCancel").catch(() => {}); await wait(p, 200); await p.click('#jNav button[data-v="progress"]').catch(() => {}); await p.click("#sumGo").catch(() => {}); await wait(p, 200);
     await p.click("#sumClose"); await wait(p, 150);
     check("Close returns to the app", !(await p.isVisible("#sumView")));
     // ---- undo: back in the NICU ----
