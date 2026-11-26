@@ -1595,8 +1595,8 @@
   }
   // Floating "+ Log feed": on other screens, or once the Next-feed box has scrolled out of reach.
   function updateFab(){ const onFeed=$("next").closest(".tab.on"), r=$("nextCard").getBoundingClientRect();
-    const tab=document.querySelector(".tab.on")?.dataset.tab;
-    $("fab").classList.toggle("on", tab!=="milk" && tab!=="more" && (!onFeed || r.bottom<80)); }
+    // Only on Today, once the feed cards have scrolled away, and only while a baby is in the NICU (product owner, Nov 26, 2026)
+    $("fab").classList.toggle("on", !!onFeed && r.bottom<80 && profileReady() && TWINS.some(tw=>inNicu(tw))); }
   let fabY=scrollY;
   addEventListener("scroll",()=>{ const y=scrollY, d=y-fabY;
     if(Math.abs(d)>6){ $("fab").classList.toggle("tuck", d>0 && y>40); fabY=y; }   // out of the way while reading down; back on any scroll up

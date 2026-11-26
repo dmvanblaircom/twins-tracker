@@ -346,7 +346,15 @@ async function main() {
     check("every control is at least 44 px tall", small.length === 0, small.slice(0, 5).join("; "));
     check("error messages are plain language (no Firestore jargon)", !(await p.content()).includes("Firestore rules"));
     check("update notice is wired and hidden until a new version loads", await p.$eval("#upd", e => e.hidden));
-    await tab(p, "weight"); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(100);
+    await tab(p, "weight"); await p.evaluate(() => scrollTo(0, 400)); await p.waitForTimeout(150);
+    check("Log feed button stays off Growth (it covered the charts)", !(await p.isVisible("#fab")));
+    await tab(p, "trends"); await p.evaluate(() => scrollTo(0, 400)); await p.waitForTimeout(150);
+    check("…and off Journey", !(await p.isVisible("#fab")));
+    await tab(p, "feed"); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(100);
+    check("on Today it's hidden while the feed cards are on screen", !(await p.isVisible("#fab")));
+    await p.evaluate(() => scrollTo(0, document.body.scrollHeight)); await p.waitForTimeout(150);
+    check("…and shows once they've scrolled away", await p.$eval("#fab", e => e.classList.contains("on")));
+    await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(100);
     await p.evaluate(() => scrollTo(0, 400)); await p.waitForTimeout(100); const tucked = await p.$eval("#fab", e => e.classList.contains("tuck"));
     await p.evaluate(() => scrollTo(0, 200)); await p.waitForTimeout(100);
     check("Log feed button tucks away while scrolling down and returns on scroll up", tucked && !(await p.$eval("#fab", e => e.classList.contains("tuck"))));

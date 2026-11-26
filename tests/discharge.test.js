@@ -126,6 +126,11 @@ async function main() {
     await p.click("#suCancel").catch(() => {}); await wait(p, 200); await p.click('#jNav button[data-v="progress"]').catch(() => {}); await p.click("#sumGo").catch(() => {}); await wait(p, 200);
     await p.click("#sumClose"); await wait(p, 150);
     check("Close returns to the app", !(await p.isVisible("#sumView")));
+    // ---- Log feed button: none once every baby is home ----
+    await p.evaluate(() => { const pr = JSON.parse(JSON.stringify(__db.config.profile)); pr.twins[1].home = Date.now() - 600e3; return Store.setProfile(pr); }); await wait(p, 400);
+    await tab(p, "feed"); await p.evaluate(() => scrollTo(0, document.body.scrollHeight)); await wait(p, 200);
+    check("with both babies home there's no Log feed button", !(await p.$eval("#fab", e => e.classList.contains("on"))));
+    await p.evaluate(() => { const pr = JSON.parse(JSON.stringify(__db.config.profile)); delete pr.twins[1].home; return Store.setProfile(pr); }); await wait(p, 400);
     // ---- undo: back in the NICU ----
     await setHome(p, "");
     check("clearing it (back in the NICU) removes the field and brings her card back", await p.evaluate(() => !("home" in __db.config.profile.twins[0])) && await (async () => { await tab(p, "feed"); return !!(await p.$(`.nx[data-tw="${ADA}"] input`)); })());
