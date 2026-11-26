@@ -135,6 +135,14 @@ async function main() {
     const fm = await p.evaluate(() => Object.values(__db.events).find(e => e.key === "nursery-ready"));
     check("a family milestone saves with scope family, i null and its key", fm && fm.scope === "family" && fm.i === null && fm.kind === "milestone" && fm.title === "Nursery ready");
 
+    // ---- layout: same header as the other More sections; space above Save check-in ----
+    await support(p);
+    const navSup = await p.$eval("#moreNav", e => e.getBoundingClientRect().top);
+    await p.click('#moreNav button[data-v="records"]'); await wait(p, 150);
+    const navRec = await p.$eval("#moreNav", e => e.getBoundingClientRect().top);
+    check("Support keeps the same header as Records (the section bar doesn't jump)", Math.abs(navSup - navRec) < 2 && await p.isVisible(".viewbar"), `${navSup} vs ${navRec}`);
+    await support(p);
+    check("there's space between the note box and Save check-in", await p.evaluate(() => document.querySelector("#ciSave").getBoundingClientRect().top - document.querySelector("#ciNote").getBoundingClientRect().bottom >= 12));
     // ---- NICU social worker's contact details, saved for the family ----
     await support(p);
     check("social worker: an Add button when nothing is saved", (await p.textContent("#swBox")).includes("Add their name, phone and email"));

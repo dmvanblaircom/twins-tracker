@@ -724,7 +724,7 @@
     <h2>How are you doing?</h2>
     <div class="moods" id="ciScale" role="group" aria-label="How are you doing?"></div>
     <label class="f">Note<input id="ciNote" type="text" maxlength="120" placeholder="Anything you want to remember (optional)"></label>
-    <div class="row"><button class="btn" id="ciSave" type="button" disabled>Save check-in</button></div>
+    <div class="row" style="margin-top:var(--sp-3)"><button class="btn" id="ciSave" type="button" disabled>Save check-in</button></div>
     <p class="note">Only you can see your check-ins. You can share one with your partner if you want to.</p>
     <ul class="cis" id="ciList"></ul>
   </div>
@@ -1278,7 +1278,6 @@
     if(sec==="care"||sec==="settings"){ try{ if(dataStarted) renderFamily(); }catch{} }
     if(sec==="settings"){ try{ if(dataStarted){ renderPhUse(); phMetaAll().then(m=>{ phMetaCache=m; }); } }catch{} }
     if(sec==="support"){ try{ renderSupport(); }catch{} }
-    const vb=document.querySelector(".viewbar"); if(vb && (document.querySelector(".tab.on")||{}).dataset?.tab==="more") vb.style.display = sec==="support" ? "none" : "";
     [...$("moreNav").children].forEach(b=>{ b.classList.toggle("on",b.dataset.v===sec); b.setAttribute("aria-pressed",b.dataset.v===sec?"true":"false"); });
   }
   // Journey: Story (timeline) | Progress (markers + checklists), remembered per phone (product owner, Nov 25, 2026)
@@ -1588,7 +1587,7 @@
     document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.tab===name));
     document.querySelectorAll("#tabbar button").forEach(b=>{ b.classList.toggle("on",b.dataset.tab===name); b.toggleAttribute("aria-current",b.dataset.tab===name); if(b.dataset.tab===name) b.setAttribute("aria-current","page"); });
     store.set("tab",name); scrollTo(0,0);
-    document.querySelector(".viewbar").style.display = name==="milk" || (name==="more" && state.moreSec==="support") ? "none" : "";   // nothing baby-specific there
+    document.querySelector(".viewbar").style.display = name==="milk" ? "none" : "";   // Milk is shared; More keeps the bar on every section so its sub-nav never jumps (product owner, Nov 26, 2026)
     updateFab();
     if(name==="milk" && document.activeElement!==$("mkT") && !$("mkWhen").open){ $("mkT").value=toLocalInput(new Date()); mkWhenLbl(); }
     if(TWINS[0]!=="A") renderAll();        // charts can only be measured while visible
