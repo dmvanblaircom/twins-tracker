@@ -109,6 +109,7 @@ Static PWA (no build step) for parents to chart twin NICU babies' nightly weight
 
 ## UI layout
 ### Shell
+- iPhone status bar (product owner, Nov 27, 2026): `--sat` = `env(safe-area-inset-top)`; `body::before` is a fixed strip of that height in the page colour, and the baby selector sticks at `top: var(--sat)` with no negative margin, so it never slides over the header (smoke.js simulates `--sat: 59px` on every tab).
 - Sticky top: title + sync status (Synced / Syncing… / Connecting… / Offline, from snapshot `fromCache`/`pending` + navigator.onLine), night-mode toggle (amber-on-black, per device), view bar (twin 0 | twin 1 | Both) that filters every screen.
 - Bottom tab bar (D1): Today · Growth · Milk · **Journey** · **More** — ids `feed`, `weight`, `milk`, `trends`, `more` unchanged (stored `tab` values stay valid). Tab, view and night mode are remembered in localStorage.
 

@@ -346,6 +346,16 @@ async function main() {
     check("every control is at least 44 px tall", small.length === 0, small.slice(0, 5).join("; "));
     check("error messages are plain language (no Firestore jargon)", !(await p.content()).includes("Firestore rules"));
     check("update notice is wired and hidden until a new version loads", await p.$eval("#upd", e => e.hidden));
+    // iPhone home-screen app: a 59 px status bar must never push the baby selector over the header
+    await p.evaluate(() => document.documentElement.style.setProperty("--sat", "59px"));
+    for (const t of ["feed", "weight", "trends", "more"]) {
+      await tab(p, t); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(120);
+      const lay = await p.evaluate(() => { const h = document.querySelector("#title").getBoundingClientRect(), s = document.querySelector("#sync").getBoundingClientRect(), v = document.querySelector(".viewbar").getBoundingClientRect(); return { titleBottom: Math.round(h.bottom), syncBottom: Math.round(s.bottom), barTop: Math.round(v.top), titleTop: Math.round(h.top) }; });
+      check(`with an iPhone status bar, the header isn't covered on ${t}`, lay.barTop >= lay.syncBottom && lay.barTop >= lay.titleBottom && lay.titleTop >= 59, JSON.stringify(lay));
+    }
+    await tab(p, "feed"); await p.evaluate(() => scrollTo(0, 600)); await p.waitForTimeout(150);
+    check("…and scrolled, the selector pins just below the status bar, which stays covered", await p.evaluate(() => Math.round(document.querySelector(".viewbar").getBoundingClientRect().top) === 59 && getComputedStyle(document.body, "::before").height === "59px"));
+    await p.evaluate(() => { document.documentElement.style.removeProperty("--sat"); scrollTo(0, 0); });
     await tab(p, "weight"); await p.evaluate(() => scrollTo(0, 400)); await p.waitForTimeout(150);
     check("Log feed button stays off Growth (it covered the charts)", !(await p.isVisible("#fab")));
     await tab(p, "trends"); await p.evaluate(() => scrollTo(0, 400)); await p.waitForTimeout(150);
